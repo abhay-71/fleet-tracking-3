@@ -1,0 +1,623 @@
+@model FleetTracking.Models.Trip
+
+@{
+    ViewData["Title"] = "Trip Playback";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Trip Playback: #@Model.Id</h1>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
+            <i class="fas fa-info-circle"></i> Trip Details
+        </a>
+        <a asp-action="Index" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Back to Trips
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Trip Route</h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="playbackMap" style="height: 600px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Trip Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Vehicle:</strong>
+                        </div>
+                        <div>@Model.Vehicle.DisplayName</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Driver:</strong>
+                        </div>
+                        <div>@Model.Driver.User.FirstName @Model.Driver.User.LastName</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Start:</strong>
+                        </div>
+                        <div>@Model.StartTime.ToString("MM/dd/yyyy HH:mm")</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>End:</strong>
+                        </div>
+                        <div>@(Model.EndTime?.ToString("MM/dd/yyyy HH:mm") ?? "Not Completed")</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Duration:</strong>
+                        </div>
+                        <div>@(Model.Duration?.ToString(@"hh\:mm") ?? "N/A")</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Distance:</strong>
+                        </div>
+                        <div>@Model.Distance.ToString("N1") km</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Avg. Speed:</strong>
+                        </div>
+                        <div>@Model.AverageSpeed.ToString("N1") km/h</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Max Speed:</strong>
+                        </div>
+                        <div id="maxSpeedValue">@Model.MaxSpeed.ToString("N1") km/h</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Fuel Used:</strong>
+                        </div>
+                        <div>@Model.FuelUsed.ToString("N1") L</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Fuel Economy:</strong>
+                        </div>
+                        <div>@(Model.FuelEfficiency?.ToString("N2") ?? "N/A") km/L</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Playback Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span id="currentTimeDisplay">00:00:00</span>
+                        <span id="totalTimeDisplay">@(Model.Duration?.ToString(@"hh\:mm\:ss") ?? "00:00:00")</span>
+                    </div>
+                    <input type="range" class="form-range" id="timelineSlider" min="0" max="100" value="0">
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary" id="resetBtn">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="skipBackBtn">
+                            <i class="fas fa-backward"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" id="playPauseBtn">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary" id="skipForwardBtn">
+                            <i class="fas fa-forward"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="speedBtn">
+                            1x
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Current Speed</label>
+                    <div class="progress" style="height: 25px;">
+                        <div id="speedProgressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0 km/h</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="form-label">Current RPM</label>
+                    <div class="progress" style="height: 25px;">
+                        <div id="rpmProgressBar" class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0 RPM</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Telemetry Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body p-0">
+                                <canvas id="speedChart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-body p-0">
+                                <canvas id="fuelChart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0" id="waypointsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Location</th>
+                                <th>Arrival</th>
+                                <th>Departure</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var waypoint in Model.Waypoints.OrderBy(w => w.SequenceNumber))
+                            {
+                                <tr data-waypoint-id="@waypoint.Id" data-lat="@waypoint.Latitude" data-lng="@waypoint.Longitude">
+                                    <td>@waypoint.SequenceNumber</td>
+                                    <td>@waypoint.Location</td>
+                                    <td>@waypoint.ArrivalTime?.ToString("HH:mm")</td>
+                                    <td>@waypoint.DepartureTime?.ToString("HH:mm")</td>
+                                    <td>
+                                        <span class="badge @(waypoint.Status == "completed" ? "bg-success" : waypoint.Status == "in_progress" ? "bg-warning" : "bg-secondary")">
+                                            @waypoint.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary waypoint-focus-btn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize the map
+            var map = L.map('playbackMap').setView([0, 0], 13);
+            
+            // Add base layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Define marker icons
+            var startIcon = L.divIcon({
+                html: '<i class="fas fa-flag-checkered fa-2x text-success"></i>',
+                iconSize: [20, 20],
+                className: 'map-marker-icon'
+            });
+            
+            var endIcon = L.divIcon({
+                html: '<i class="fas fa-flag fa-2x text-danger"></i>',
+                iconSize: [20, 20],
+                className: 'map-marker-icon'
+            });
+            
+            var waypointIcon = L.divIcon({
+                html: '<i class="fas fa-map-pin fa-2x text-primary"></i>',
+                iconSize: [20, 20],
+                className: 'map-marker-icon'
+            });
+            
+            var vehicleIcon = L.divIcon({
+                html: '<i class="fas fa-car fa-2x text-dark"></i>',
+                iconSize: [20, 20],
+                className: 'map-marker-icon'
+            });
+            
+            // Initialize trip data
+            var waypoints = [];
+            var routePoints = [];
+            var vehicleMarker = null;
+            var routeLine = null;
+            var isPlaying = false;
+            var playbackSpeed = 1;
+            var currentTimeIndex = 0;
+            var playbackInterval = null;
+            
+            // Collect waypoint data from the table
+            $('#waypointsTable tbody tr').each(function() {
+                var $row = $(this);
+                var lat = parseFloat($row.data('lat'));
+                var lng = parseFloat($row.data('lng'));
+                
+                waypoints.push({
+                    id: $row.data('waypoint-id'),
+                    lat: lat,
+                    lng: lng,
+                    element: $row
+                });
+                
+                // Add to route points
+                routePoints.push([lat, lng]);
+            });
+            
+            if (waypoints.length > 0) {
+                // Create markers for start, end and waypoints
+                var startMarker = L.marker([waypoints[0].lat, waypoints[0].lng], {
+                    icon: startIcon
+                }).addTo(map);
+                
+                var endMarker = L.marker([waypoints[waypoints.length - 1].lat, waypoints[waypoints.length - 1].lng], {
+                    icon: endIcon
+                }).addTo(map);
+                
+                // Add markers for waypoints (excluding start and end)
+                for (var i = 1; i < waypoints.length - 1; i++) {
+                    L.marker([waypoints[i].lat, waypoints[i].lng], {
+                        icon: waypointIcon
+                    }).addTo(map);
+                }
+                
+                // Create vehicle marker
+                vehicleMarker = L.marker([waypoints[0].lat, waypoints[0].lng], {
+                    icon: vehicleIcon
+                }).addTo(map);
+                
+                // Create route line
+                routeLine = L.polyline(routePoints, {
+                    color: 'blue',
+                    weight: 3,
+                    opacity: 0.7
+                }).addTo(map);
+                
+                // Fit map to show all points
+                map.fitBounds(routeLine.getBounds());
+                
+                // Generate interpolated points along the route
+                var interpolatedPoints = [];
+                var totalDistance = 0;
+                
+                for (var i = 0; i < routePoints.length - 1; i++) {
+                    var p1 = L.latLng(routePoints[i]);
+                    var p2 = L.latLng(routePoints[i + 1]);
+                    var distance = p1.distanceTo(p2);
+                    
+                    totalDistance += distance;
+                    
+                    // Interpolate points every 50 meters
+                    var numPoints = Math.max(1, Math.floor(distance / 50));
+                    
+                    for (var j = 0; j <= numPoints; j++) {
+                        var fraction = j / numPoints;
+                        var lat = routePoints[i][0] + fraction * (routePoints[i+1][0] - routePoints[i][0]);
+                        var lng = routePoints[i][1] + fraction * (routePoints[i+1][1] - routePoints[i][1]);
+                        
+                        interpolatedPoints.push({
+                            lat: lat,
+                            lng: lng,
+                            time: (i * numPoints + j) // This will be normalized later
+                        });
+                    }
+                }
+                
+                // Normalize time values to 0-100
+                var maxTime = interpolatedPoints.length > 0 ? interpolatedPoints[interpolatedPoints.length - 1].time : 0;
+                for (var i = 0; i < interpolatedPoints.length; i++) {
+                    interpolatedPoints[i].time = (interpolatedPoints[i].time / maxTime) * 100;
+                }
+                
+                // Generate speed data with some random variations
+                var baseSpeed = @Model.AverageSpeed;
+                var maxSpeed = baseSpeed * 1.5;
+                var speedData = [];
+                var fuelData = [];
+                var labels = [];
+                
+                for (var i = 0; i < 100; i++) {
+                    // Generate time label
+                    var totalMinutes = (@Model.Duration?.TotalMinutes ?? 60) * (i / 100);
+                    var hours = Math.floor(totalMinutes / 60);
+                    var minutes = Math.floor(totalMinutes % 60);
+                    labels.push(hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0'));
+                    
+                    // Generate speed with variation
+                    var variation = Math.random() * 20 - 10; // -10 to +10
+                    var speed = Math.max(0, Math.min(maxSpeed, baseSpeed + variation));
+                    speedData.push(speed);
+                    
+                    // Generate fuel consumption (inversely related to speed for simplicity)
+                    var fuelRate = 8 + (speed > 80 ? (speed - 80) / 10 : (speed < 40 ? (40 - speed) / 5 : 0));
+                    fuelData.push(fuelRate);
+                }
+                
+                // Create speed chart
+                var speedChart = new Chart(
+                    document.getElementById('speedChart'),
+                    {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Speed (km/h)',
+                                data: speedData,
+                                borderColor: 'rgb(54, 162, 235)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                fill: true,
+                                tension: 0.2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Speed Profile'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'km/h'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+                
+                // Create fuel chart
+                var fuelChart = new Chart(
+                    document.getElementById('fuelChart'),
+                    {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Fuel Consumption (L/100km)',
+                                data: fuelData,
+                                borderColor: 'rgb(255, 99, 132)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                fill: true,
+                                tension: 0.2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Fuel Consumption Rate'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'L/100km'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+                
+                // Initialize playback position indicator
+                var timeIndicator = document.createElement('div');
+                timeIndicator.className = 'time-indicator';
+                timeIndicator.style.position = 'absolute';
+                timeIndicator.style.width = '2px';
+                timeIndicator.style.height = '100%';
+                timeIndicator.style.backgroundColor = 'red';
+                timeIndicator.style.left = '0';
+                timeIndicator.style.top = '0';
+                
+                document.getElementById('speedChart').parentElement.style.position = 'relative';
+                document.getElementById('speedChart').parentElement.appendChild(timeIndicator);
+                
+                var timeIndicator2 = timeIndicator.cloneNode();
+                document.getElementById('fuelChart').parentElement.style.position = 'relative';
+                document.getElementById('fuelChart').parentElement.appendChild(timeIndicator2);
+                
+                // Playback functions
+                function updatePlaybackPosition(percent) {
+                    // Update slider
+                    $('#timelineSlider').val(percent);
+                    
+                    // Find the closest interpolated point
+                    var closestPoint = interpolatedPoints[0];
+                    var minDiff = Math.abs(closestPoint.time - percent);
+                    
+                    for (var i = 1; i < interpolatedPoints.length; i++) {
+                        var diff = Math.abs(interpolatedPoints[i].time - percent);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestPoint = interpolatedPoints[i];
+                        }
+                    }
+                    
+                    // Move vehicle marker
+                    vehicleMarker.setLatLng([closestPoint.lat, closestPoint.lng]);
+                    
+                    // Calculate current time
+                    var totalTime = @Model.Duration?.TotalSeconds ?? 3600; // Default to 1 hour if no duration
+                    var currentTime = (percent / 100) * totalTime;
+                    var hours = Math.floor(currentTime / 3600);
+                    var minutes = Math.floor((currentTime % 3600) / 60);
+                    var seconds = Math.floor(currentTime % 60);
+                    
+                    // Update time display
+                    $('#currentTimeDisplay').text(
+                        hours.toString().padStart(2, '0') + ':' + 
+                        minutes.toString().padStart(2, '0') + ':' + 
+                        seconds.toString().padStart(2, '0')
+                    );
+                    
+                    // Update chart time indicators
+                    var chartWidth = document.getElementById('speedChart').width;
+                    var position = (percent / 100) * chartWidth;
+                    timeIndicator.style.left = position + 'px';
+                    timeIndicator2.style.left = position + 'px';
+                    
+                    // Update telemetry displays
+                    var speedIndex = Math.floor((percent / 100) * speedData.length);
+                    if (speedIndex >= speedData.length) speedIndex = speedData.length - 1;
+                    
+                    var currentSpeed = speedData[speedIndex];
+                    var currentRpm = 800 + (currentSpeed * 30); // Simple calculation for RPM based on speed
+                    
+                    // Update speed bar
+                    var speedPercent = (currentSpeed / maxSpeed) * 100;
+                    $('#speedProgressBar').css('width', speedPercent + '%');
+                    $('#speedProgressBar').text(currentSpeed.toFixed(1) + ' km/h');
+                    
+                    // Update RPM bar
+                    var maxRpm = 6000;
+                    var rpmPercent = (currentRpm / maxRpm) * 100;
+                    $('#rpmProgressBar').css('width', rpmPercent + '%');
+                    $('#rpmProgressBar').text(currentRpm.toFixed(0) + ' RPM');
+                    
+                    // Color RPM bar based on value
+                    if (currentRpm > 5000) {
+                        $('#rpmProgressBar').removeClass('bg-warning bg-success').addClass('bg-danger');
+                    } else if (currentRpm > 3000) {
+                        $('#rpmProgressBar').removeClass('bg-success bg-danger').addClass('bg-warning');
+                    } else {
+                        $('#rpmProgressBar').removeClass('bg-warning bg-danger').addClass('bg-success');
+                    }
+                }
+                
+                function playPause() {
+                    if (isPlaying) {
+                        // Pause
+                        clearInterval(playbackInterval);
+                        $('#playPauseBtn').html('<i class="fas fa-play"></i>');
+                    } else {
+                        // Play
+                        playbackInterval = setInterval(function() {
+                            currentTimeIndex += (0.1 * playbackSpeed);
+                            if (currentTimeIndex > 100) {
+                                currentTimeIndex = 0;
+                                clearInterval(playbackInterval);
+                                isPlaying = false;
+                                $('#playPauseBtn').html('<i class="fas fa-play"></i>');
+                            }
+                            updatePlaybackPosition(currentTimeIndex);
+                        }, 100);
+                        $('#playPauseBtn').html('<i class="fas fa-pause"></i>');
+                    }
+                    isPlaying = !isPlaying;
+                }
+                
+                // Event listeners
+                $('#playPauseBtn').click(playPause);
+                
+                $('#resetBtn').click(function() {
+                    clearInterval(playbackInterval);
+                    isPlaying = false;
+                    currentTimeIndex = 0;
+                    $('#playPauseBtn').html('<i class="fas fa-play"></i>');
+                    updatePlaybackPosition(currentTimeIndex);
+                });
+                
+                $('#skipBackBtn').click(function() {
+                    currentTimeIndex = Math.max(0, currentTimeIndex - 10);
+                    updatePlaybackPosition(currentTimeIndex);
+                });
+                
+                $('#skipForwardBtn').click(function() {
+                    currentTimeIndex = Math.min(100, currentTimeIndex + 10);
+                    updatePlaybackPosition(currentTimeIndex);
+                });
+                
+                $('#speedBtn').click(function() {
+                    // Cycle through speeds: 1x, 2x, 4x, 0.5x
+                    if (playbackSpeed === 1) playbackSpeed = 2;
+                    else if (playbackSpeed === 2) playbackSpeed = 4;
+                    else if (playbackSpeed === 4) playbackSpeed = 0.5;
+                    else playbackSpeed = 1;
+                    
+                    $(this).text(playbackSpeed + 'x');
+                    
+                    // If playing, restart with new speed
+                    if (isPlaying) {
+                        clearInterval(playbackInterval);
+                        playPause();
+                    }
+                });
+                
+                $('#timelineSlider').on('input', function() {
+                    currentTimeIndex = parseFloat($(this).val());
+                    updatePlaybackPosition(currentTimeIndex);
+                });
+                
+                $('.waypoint-focus-btn').click(function() {
+                    var $row = $(this).closest('tr');
+                    var lat = parseFloat($row.data('lat'));
+                    var lng = parseFloat($row.data('lng'));
+                    
+                    map.setView([lat, lng], 15);
+                });
+                
+                // Initialize the playback position
+                updatePlaybackPosition(0);
+            }
+        });
+    </script>
+} 

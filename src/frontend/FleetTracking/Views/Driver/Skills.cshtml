@@ -1,0 +1,365 @@
+@model FleetTracking.Models.Driver
+
+@{
+    ViewData["Title"] = "Driver Skills";
+    var allSkills = ViewData["AllSkills"] as List<string>;
+    var driverSkills = ViewData["DriverSkills"] as List<string>;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Driver Skills: @Model.User.FirstName @Model.User.LastName</h1>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Driver Details
+        </a>
+        <a asp-action="Availability" class="btn btn-primary">
+            <i class="fas fa-users"></i> Driver Availability
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Driver Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img src="https://ui-avatars.com/api/?name=@(Model.User.FirstName)+@(Model.User.LastName)&background=random&size=128" class="rounded-circle" alt="@Model.User.FirstName @Model.User.LastName">
+                    <h4 class="mt-3">@Model.User.FirstName @Model.User.LastName</h4>
+                    <div class="badge bg-@(Model.Status == "active" ? "success" : "secondary")">@Model.Status</div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>License Number:</strong>
+                        <span>@Model.LicenseNumber</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>License Expiry:</strong>
+                        <span>@(Model.LicenseExpiry?.ToString("MM/dd/yyyy") ?? "Not Available")</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>Hire Date:</strong>
+                        <span>@(Model.HireDate?.ToString("MM/dd/yyyy") ?? "Not Available")</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>Experience:</strong>
+                        <span>@(Model.HireDate.HasValue ? (DateTime.Now - Model.HireDate.Value).Days / 365 : 0) years</span>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-grid">
+                    <a asp-action="Schedule" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                        <i class="fas fa-calendar-alt"></i> View Schedule
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Driver Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Completed Trips</label>
+                    <div class="progress" style="height: 25px;">
+                        @{
+                            // Random data for demo purposes
+                            var random = new Random(Model.Id);
+                            var completedTrips = random.Next(10, 100);
+                            var progressPercent = Math.Min(completedTrips, 100);
+                        }
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @progressPercent%">
+                            @completedTrips Trips
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Safety Rating</label>
+                    <div class="progress" style="height: 25px;">
+                        @{
+                            var safetyRating = 70 + random.Next(0, 30);
+                            var safetyClass = safetyRating >= 90 ? "bg-success" : 
+                                              safetyRating >= 70 ? "bg-info" : 
+                                              safetyRating >= 50 ? "bg-warning" : "bg-danger";
+                        }
+                        <div class="progress-bar @safetyClass" role="progressbar" style="width: @safetyRating%">
+                            @safetyRating%
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Fuel Efficiency</label>
+                    <div class="progress" style="height: 25px;">
+                        @{
+                            var efficiencyRating = 60 + random.Next(0, 40);
+                            var efficiencyClass = efficiencyRating >= 90 ? "bg-success" : 
+                                                 efficiencyRating >= 70 ? "bg-info" : 
+                                                 efficiencyRating >= 50 ? "bg-warning" : "bg-danger";
+                        }
+                        <div class="progress-bar @efficiencyClass" role="progressbar" style="width: @efficiencyRating%">
+                            @efficiencyRating%
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">On-Time Performance</label>
+                    <div class="progress" style="height: 25px;">
+                        @{
+                            var punctualityRating = 75 + random.Next(0, 25);
+                            var punctualityClass = punctualityRating >= 90 ? "bg-success" : 
+                                                  punctualityRating >= 70 ? "bg-info" : 
+                                                  punctualityRating >= 50 ? "bg-warning" : "bg-danger";
+                        }
+                        <div class="progress-bar @punctualityClass" role="progressbar" style="width: @punctualityRating%">
+                            @punctualityRating%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Skills & Certifications</h5>
+                <button class="btn btn-sm btn-primary" id="editSkillsBtn">
+                    <i class="fas fa-edit"></i> Edit Skills
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="viewSkillsSection">
+                    <div class="row">
+                        @foreach (var skill in driverSkills)
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0">
+                                                @if (skill.Contains("License"))
+                                                {
+                                                    <i class="fas fa-id-card fa-2x text-primary"></i>
+                                                }
+                                                else if (skill.Contains("Hazardous"))
+                                                {
+                                                    <i class="fas fa-biohazard fa-2x text-warning"></i>
+                                                }
+                                                else if (skill.Contains("First Aid"))
+                                                {
+                                                    <i class="fas fa-first-aid fa-2x text-danger"></i>
+                                                }
+                                                else if (skill.Contains("Driving"))
+                                                {
+                                                    <i class="fas fa-car-alt fa-2x text-success"></i>
+                                                }
+                                                else if (skill.Contains("Mountain"))
+                                                {
+                                                    <i class="fas fa-mountain fa-2x text-primary"></i>
+                                                }
+                                                else if (skill.Contains("Winter"))
+                                                {
+                                                    <i class="fas fa-snowflake fa-2x text-info"></i>
+                                                }
+                                                else if (skill.Contains("Load"))
+                                                {
+                                                    <i class="fas fa-box fa-2x text-warning"></i>
+                                                }
+                                                else if (skill.Contains("City"))
+                                                {
+                                                    <i class="fas fa-city fa-2x text-secondary"></i>
+                                                }
+                                                else if (skill.Contains("Off-road"))
+                                                {
+                                                    <i class="fas fa-truck-monster fa-2x text-danger"></i>
+                                                }
+                                                else if (skill.Contains("Maintenance"))
+                                                {
+                                                    <i class="fas fa-tools fa-2x text-dark"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-award fa-2x text-primary"></i>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="mb-0">@skill</h6>
+                                                @{
+                                                    var expiryDate = DateTime.Now.AddMonths(random.Next(1, 24));
+                                                }
+                                                <small class="text-muted">Exp: @expiryDate.ToString("MM/yyyy")</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                
+                <div id="editSkillsSection" style="display: none;">
+                    <form asp-action="UpdateSkills" asp-route-id="@Model.Id" method="post">
+                        <div class="row">
+                            @foreach (var skill in allSkills)
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="skills" value="@skill" id="skill_@allSkills.IndexOf(skill)" @(driverSkills.Contains(skill) ? "checked" : "")>
+                                        <label class="form-check-label" for="skill_@allSkills.IndexOf(skill)">
+                                            @skill
+                                            @if (driverSkills.Contains(skill))
+                                            {
+                                                <span class="badge bg-success">Certified</span>
+                                            }
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="mt-3 text-end">
+                            <button type="button" class="btn btn-secondary" id="cancelEditBtn">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Skill Matching Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h6 class="card-title">Qualification Completeness</h6>
+                                <div class="d-flex align-items-center">
+                                    @{
+                                        var completeness = (driverSkills.Count * 100) / allSkills.Count;
+                                    }
+                                    <div class="progress flex-grow-1" style="height: 25px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: @completeness%">
+                                            @completeness%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h6 class="card-title">Trip Type Compatibility</h6>
+                                <div>
+                                    @{
+                                        var compatibility = new Dictionary<string, int>
+                                        {
+                                            { "Urban Delivery", driverSkills.Any(s => s.Contains("City")) ? 100 : 50 },
+                                            { "Long-haul", driverSkills.Any(s => s.Contains("Heavy")) ? 100 : 60 },
+                                            { "Hazardous Materials", driverSkills.Any(s => s.Contains("Hazardous")) ? 100 : 0 },
+                                            { "Mountain Routes", driverSkills.Any(s => s.Contains("Mountain")) ? 100 : 40 },
+                                            { "Rural/Off-road", driverSkills.Any(s => s.Contains("Off-road")) ? 100 : 30 }
+                                        };
+                                    }
+                                    
+                                    @foreach (var item in compatibility)
+                                    {
+                                        <div class="mb-2">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <small>@item.Key</small>
+                                                <small>@item.Value%</small>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar @(item.Value == 100 ? "bg-success" : "bg-warning")" 
+                                                     role="progressbar" style="width: @item.Value%"></div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6 class="mb-3">Recommended Training</h6>
+                        <div class="list-group">
+                            @{
+                                var missingSkills = allSkills.Except(driverSkills).ToList();
+                                var topRecommendations = missingSkills.OrderBy(s => random.Next()).Take(3).ToList();
+                            }
+                            
+                            @if (topRecommendations.Any())
+                            {
+                                foreach (var rec in topRecommendations)
+                                {
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">@rec Certification</h6>
+                                                <p class="mb-1 text-muted small">This certification would increase the driver's trip compatibility and versatility.</p>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-primary">Schedule</button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="list-group-item">
+                                    <p class="mb-0 text-success">This driver has all available certifications!</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Edit skills button
+            $('#editSkillsBtn').click(function() {
+                $('#viewSkillsSection').hide();
+                $('#editSkillsSection').show();
+                $(this).hide();
+            });
+            
+            // Cancel edit button
+            $('#cancelEditBtn').click(function() {
+                $('#editSkillsSection').hide();
+                $('#viewSkillsSection').show();
+                $('#editSkillsBtn').show();
+            });
+        });
+    </script>
+} 

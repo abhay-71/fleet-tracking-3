@@ -1,0 +1,358 @@
+@{
+    ViewData["Title"] = "Batch Geocoding";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">Batch Geocoding</h1>
+            <p class="text-muted">Process multiple addresses or coordinates at once</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Index" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Geocoding
+            </a>
+            <a asp-action="SavedLocations" class="btn btn-outline-primary">
+                <i class="bi bi-bookmark-star"></i> Saved Locations
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Batch Geocoding Tool</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Batch" method="post" id="batchForm">
+                        <div class="mb-3">
+                            <label class="form-label">Geocoding Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type" id="forwardType" value="forward" checked>
+                                <label class="form-check-label" for="forwardType">
+                                    Forward Geocoding (Addresses to Coordinates)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type" id="reverseType" value="reverse">
+                                <label class="form-check-label" for="reverseType">
+                                    Reverse Geocoding (Coordinates to Addresses)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="batchInput" class="form-label">Input Data</label>
+                            <textarea class="form-control" id="batchInput" name="addresses" rows="10" placeholder="Enter one address or coordinate pair per line..."></textarea>
+                            <div class="form-text">
+                                For forward geocoding: Enter one address per line
+                                <br>
+                                For reverse geocoding: Enter coordinates as "latitude,longitude" (e.g. "34.0522,-118.2437") one pair per line
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 d-flex justify-content-end">
+                            <button type="button" class="btn btn-outline-secondary me-2" id="clearBtn">Clear</button>
+                            <button type="button" class="btn btn-outline-secondary me-2" id="sampleDataBtn">Load Sample Data</button>
+                            <button type="submit" class="btn btn-primary" id="processBtn">
+                                <i class="bi bi-play-fill"></i> Process Batch
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div id="batchLoading" class="text-center py-3 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
+                        <p class="mt-2">Processing batch geocoding request...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4 shadow-sm d-none" id="resultsCard">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Results</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" id="exportCSVBtn">
+                            <i class="bi bi-filetype-csv"></i> Export CSV
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" id="exportJSONBtn">
+                            <i class="bi bi-filetype-json"></i> Export JSON
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-hover" id="resultsTable">
+                            <thead>
+                                <tr>
+                                    <th>Input</th>
+                                    <th>Formatted Address</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Help & Tips</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6><i class="bi bi-info-circle"></i> About Batch Geocoding</h6>
+                        <p class="small text-muted">
+                            Batch geocoding allows you to process multiple locations at once, saving time when you need to convert addresses to coordinates or vice versa.
+                        </p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6><i class="bi bi-lightbulb"></i> Address Format Tips</h6>
+                        <ul class="small text-muted">
+                            <li>Include country name for better accuracy</li>
+                            <li>Use complete address when possible</li>
+                            <li>Format doesn't matter as long as all parts are included</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6><i class="bi bi-exclamation-triangle"></i> Limitations</h6>
+                        <ul class="small text-muted">
+                            <li>Maximum 100 addresses per batch</li>
+                            <li>Results may vary based on address completeness</li>
+                            <li>Rate limits may apply for larger batches</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6><i class="bi bi-clipboard-data"></i> Sample Input</h6>
+                        <div class="card card-body bg-light p-2">
+                            <small class="text-muted" id="sampleData">
+                                1600 Pennsylvania Ave, Washington DC<br>
+                                Eiffel Tower, Paris, France<br>
+                                Sydney Opera House, Australia
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Clear button
+            $('#clearBtn').click(function() {
+                $('#batchInput').val('');
+            });
+            
+            // Load sample data button
+            $('#sampleDataBtn').click(function() {
+                const geocodingType = $('input[name="type"]:checked').val();
+                
+                if (geocodingType === 'forward') {
+                    $('#batchInput').val(
+                        "1600 Pennsylvania Ave, Washington DC\n" +
+                        "Eiffel Tower, Paris, France\n" +
+                        "Sydney Opera House, Australia\n" +
+                        "Statue of Liberty, New York, USA\n" +
+                        "Taj Mahal, Agra, India"
+                    );
+                } else {
+                    $('#batchInput').val(
+                        "34.0522,-118.2437\n" +
+                        "40.7128,-74.0060\n" +
+                        "51.5074,-0.1278\n" +
+                        "48.8566,2.3522\n" +
+                        "35.6762,139.6503"
+                    );
+                }
+            });
+            
+            // Change sample data when geocoding type changes
+            $('input[name="type"]').change(function() {
+                const geocodingType = $(this).val();
+                
+                if (geocodingType === 'forward') {
+                    $('#sampleData').html(
+                        "1600 Pennsylvania Ave, Washington DC<br>" +
+                        "Eiffel Tower, Paris, France<br>" +
+                        "Sydney Opera House, Australia"
+                    );
+                } else {
+                    $('#sampleData').html(
+                        "34.0522,-118.2437<br>" +
+                        "40.7128,-74.0060<br>" +
+                        "51.5074,-0.1278"
+                    );
+                }
+            });
+            
+            // Process batch form
+            $('#batchForm').submit(function(e) {
+                e.preventDefault();
+                
+                const input = $('#batchInput').val().trim();
+                
+                if (!input) {
+                    alert('Please enter addresses or coordinates to process');
+                    return;
+                }
+                
+                const lines = input.split('\n').filter(line => line.trim() !== '');
+                
+                if (lines.length > 100) {
+                    alert('Maximum batch size is 100 addresses. Please reduce the number of addresses.');
+                    return;
+                }
+                
+                // Show loading indicator
+                $('#batchLoading').removeClass('d-none');
+                $('#resultsCard').addClass('d-none');
+                
+                // Prepare data for submission
+                const geocodingType = $('input[name="type"]:checked').val();
+                const formData = {
+                    addresses: JSON.stringify(lines),
+                    type: geocodingType
+                };
+                
+                // Submit data
+                $.ajax({
+                    url: '/Geocoding/Batch',
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        // Hide loading indicator
+                        $('#batchLoading').addClass('d-none');
+                        
+                        // Process and display results
+                        displayResults(response, lines, geocodingType);
+                    },
+                    error: function(error) {
+                        // Hide loading indicator
+                        $('#batchLoading').addClass('d-none');
+                        
+                        alert('Error processing batch geocoding request. Please try again.');
+                        console.error('Batch geocoding error:', error);
+                    }
+                });
+            });
+            
+            // Display batch geocoding results
+            function displayResults(results, inputs, type) {
+                const tableBody = $('#resultsBody');
+                tableBody.empty();
+                
+                // Store results for export
+                window.batchResults = results;
+                window.batchInputs = inputs;
+                
+                if (Array.isArray(results) && results.length > 0) {
+                    results.forEach(function(result, index) {
+                        const input = index < inputs.length ? inputs[index] : '';
+                        
+                        let row = `
+                            <tr>
+                                <td>${input}</td>
+                                <td>${result.formattedAddress || 'Not found'}</td>
+                                <td>${result.latitude ? result.latitude.toFixed(6) : 'N/A'}</td>
+                                <td>${result.longitude ? result.longitude.toFixed(6) : 'N/A'}</td>
+                                <td>${result.status === 'success' ? '<span class="badge bg-success">Success</span>' : '<span class="badge bg-warning">Failed</span>'}</td>
+                            </tr>
+                        `;
+                        
+                        tableBody.append(row);
+                    });
+                    
+                    // Show results card
+                    $('#resultsCard').removeClass('d-none');
+                } else {
+                    // No results
+                    tableBody.append(`
+                        <tr>
+                            <td colspan="5" class="text-center py-3">No results found</td>
+                        </tr>
+                    `);
+                    
+                    // Show results card
+                    $('#resultsCard').removeClass('d-none');
+                }
+            }
+            
+            // Export to CSV
+            $('#exportCSVBtn').click(function() {
+                if (!window.batchResults || window.batchResults.length === 0) {
+                    return;
+                }
+                
+                let csv = 'Input,Formatted Address,Latitude,Longitude,Status\n';
+                
+                window.batchResults.forEach(function(result, index) {
+                    const input = index < window.batchInputs.length ? window.batchInputs[index] : '';
+                    
+                    // Escape CSV values properly
+                    const escapeCsv = (value) => {
+                        if (value === null || value === undefined) return '';
+                        const str = String(value);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            return '"' + str.replace(/"/g, '""') + '"';
+                        }
+                        return str;
+                    };
+                    
+                    csv += `${escapeCsv(input)},${escapeCsv(result.formattedAddress)},${escapeCsv(result.latitude)},${escapeCsv(result.longitude)},${escapeCsv(result.status)}\n`;
+                });
+                
+                // Create download
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'geocoding_results_' + new Date().toISOString().slice(0, 10) + '.csv';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+            
+            // Export to JSON
+            $('#exportJSONBtn').click(function() {
+                if (!window.batchResults || window.batchResults.length === 0) {
+                    return;
+                }
+                
+                // Create results with inputs
+                const exportData = window.batchResults.map(function(result, index) {
+                    return {
+                        input: index < window.batchInputs.length ? window.batchInputs[index] : '',
+                        result: result
+                    };
+                });
+                
+                // Create download
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'geocoding_results_' + new Date().toISOString().slice(0, 10) + '.json';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        });
+    </script>
+} 

@@ -1,0 +1,176 @@
+@model FleetTracking.Models.MaintenanceRecord
+
+@{
+    ViewData["Title"] = "Edit Maintenance";
+    var vehicles = ViewData["Vehicles"] as SelectList;
+    var maintenanceTypes = ViewData["MaintenanceTypes"] as SelectList;
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Edit Maintenance</h1>
+            <p class="text-muted">Update maintenance record details</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Index" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Maintenance Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="CreatedAt" />
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="VehicleId" class="form-label">Vehicle</label>
+                                <select asp-for="VehicleId" asp-items="vehicles" class="form-select">
+                                    <option value="">-- Select Vehicle --</option>
+                                </select>
+                                <span asp-validation-for="VehicleId" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="MaintenanceTypeId" class="form-label">Maintenance Type</label>
+                                <select asp-for="MaintenanceTypeId" asp-items="maintenanceTypes" class="form-select" id="maintenanceTypeSelect">
+                                    <option value="">-- Select Type --</option>
+                                </select>
+                                <span asp-validation-for="MaintenanceTypeId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="ScheduledDate" class="form-label">Scheduled Date</label>
+                                <input asp-for="ScheduledDate" type="date" class="form-control" />
+                                <span asp-validation-for="ScheduledDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Status" class="form-label">Status</label>
+                                <select asp-for="Status" class="form-select">
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div id="completionFields" class="@(Model.Status == "completed" ? "" : "d-none")">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="CompletedDate" class="form-label">Completed Date</label>
+                                    <input asp-for="CompletedDate" type="date" class="form-control" />
+                                    <span asp-validation-for="CompletedDate" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="PerformedBy" class="form-label">Performed By</label>
+                                    <input asp-for="PerformedBy" class="form-control" />
+                                    <span asp-validation-for="PerformedBy" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="ActualCost" class="form-label">Actual Cost</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input asp-for="ActualCost" type="number" step="0.01" min="0" class="form-control" />
+                                    </div>
+                                    <span asp-validation-for="ActualCost" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="OdometerReading" class="form-label">Odometer Reading (km)</label>
+                                <input asp-for="OdometerReading" type="number" class="form-control" />
+                                <span asp-validation-for="OdometerReading" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="EstimatedCost" class="form-label">Estimated Cost</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input asp-for="EstimatedCost" type="number" step="0.01" min="0" class="form-control" id="estimatedCostInput" />
+                                </div>
+                                <span asp-validation-for="EstimatedCost" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notes</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Update Maintenance Record</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function() {
+            // Show/hide completion fields based on status
+            $('#Status').change(function() {
+                if ($(this).val() === 'completed') {
+                    $('#completionFields').removeClass('d-none');
+                    // Set completed date to today if not already set
+                    if (!$('#CompletedDate').val()) {
+                        $('#CompletedDate').val(new Date().toISOString().split('T')[0]);
+                    }
+                } else {
+                    $('#completionFields').addClass('d-none');
+                }
+            });
+            
+            // When maintenance type changes, update the estimated cost (only if not already set)
+            $('#maintenanceTypeSelect').change(function() {
+                var selectedTypeId = $(this).val();
+                if (!selectedTypeId) return;
+                
+                // Only update if estimated cost is empty or 0
+                var currentCost = parseFloat($('#estimatedCostInput').val()) || 0;
+                if (currentCost > 0) return;
+                
+                // This would normally fetch the maintenance type details from the API
+                // but for now we'll use a simple approach with sample data
+                var maintenanceTypes = @Json.Serialize(maintenanceTypes.Items.Select(i => new { 
+                    Id = int.Parse(i.Value), 
+                    Name = i.Text, 
+                    EstimatedCost = 0.0
+                }));
+                
+                var selectedType = maintenanceTypes.find(t => t.Id == selectedTypeId);
+                if (selectedType && selectedType.EstimatedCost > 0) {
+                    $('#estimatedCostInput').val(selectedType.EstimatedCost.toFixed(2));
+                }
+            });
+        });
+    </script>
+} 

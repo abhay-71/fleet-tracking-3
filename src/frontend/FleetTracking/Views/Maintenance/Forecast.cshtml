@@ -1,0 +1,385 @@
+@model List<FleetTracking.Models.MaintenanceForecast>
+
+@{
+    ViewData["Title"] = "Maintenance Forecast";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Maintenance Forecast</h1>
+            <p class="text-muted">Predictive maintenance forecasts to help plan upcoming service needs</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Schedule
+                </a>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> New Maintenance
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Maintenance Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-4">
+                            <div class="bg-light rounded p-3 text-center">
+                                <h3 class="mb-1">@Model.Count(f => f.DaysUntilDue < 0)</h3>
+                                <p class="text-muted mb-0">Overdue</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-4">
+                            <div class="bg-light rounded p-3 text-center">
+                                <h3 class="mb-1">@Model.Count(f => f.DaysUntilDue >= 0 && f.DaysUntilDue <= 30)</h3>
+                                <p class="text-muted mb-0">Due Soon</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-4">
+                            <div class="bg-light rounded p-3 text-center">
+                                <h3 class="mb-1">@Model.Count(f => f.DaysUntilDue > 30 && f.DaysUntilDue <= 90)</h3>
+                                <p class="text-muted mb-0">Coming Up</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-4">
+                            <div class="bg-light rounded p-3 text-center">
+                                <h3 class="mb-1">@Model.Count(f => f.DaysUntilDue > 90)</h3>
+                                <p class="text-muted mb-0">Future</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mb-3">Estimated Costs (Next 90 Days)</h6>
+                    <div class="progress mb-2" style="height: 25px;">
+                        @{
+                            var overdueTotal = Model.Where(f => f.DaysUntilDue < 0).Sum(f => f.EstimatedCost);
+                            var dueSoonTotal = Model.Where(f => f.DaysUntilDue >= 0 && f.DaysUntilDue <= 30).Sum(f => f.EstimatedCost);
+                            var comingUpTotal = Model.Where(f => f.DaysUntilDue > 30 && f.DaysUntilDue <= 90).Sum(f => f.EstimatedCost);
+                            var total = overdueTotal + dueSoonTotal + comingUpTotal;
+                            
+                            var overduePercent = total > 0 ? (int)(overdueTotal / total * 100) : 0;
+                            var dueSoonPercent = total > 0 ? (int)(dueSoonTotal / total * 100) : 0;
+                            var comingUpPercent = total > 0 ? (int)(comingUpTotal / total * 100) : 0;
+                        }
+                        @if (overduePercent > 0)
+                        {
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: @overduePercent%" 
+                                aria-valuenow="@overduePercent" aria-valuemin="0" aria-valuemax="100" 
+                                title="Overdue: @overdueTotal.ToString("C")">
+                                @if (overduePercent >= 10)
+                                {
+                                    <span>Overdue</span>
+                                }
+                            </div>
+                        }
+                        @if (dueSoonPercent > 0)
+                        {
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: @dueSoonPercent%" 
+                                aria-valuenow="@dueSoonPercent" aria-valuemin="0" aria-valuemax="100"
+                                title="Due Soon: @dueSoonTotal.ToString("C")">
+                                @if (dueSoonPercent >= 10)
+                                {
+                                    <span>Due Soon</span>
+                                }
+                            </div>
+                        }
+                        @if (comingUpPercent > 0)
+                        {
+                            <div class="progress-bar bg-info" role="progressbar" style="width: @comingUpPercent%" 
+                                aria-valuenow="@comingUpPercent" aria-valuemin="0" aria-valuemax="100"
+                                title="Coming Up: @comingUpTotal.ToString("C")">
+                                @if (comingUpPercent >= 10)
+                                {
+                                    <span>Coming Up</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small">
+                        <div>Total: @total.ToString("C")</div>
+                        <div>Next 90 days</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Maintenance Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <div id="maintenanceTimelineContainer" style="height: 300px;">
+                        <canvas id="timelineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Maintenance Forecasts</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="forecastTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Vehicle</th>
+                                    <th>Maintenance Type</th>
+                                    <th>Predicted Due Date</th>
+                                    <th>Days Until Due</th>
+                                    <th>Confidence</th>
+                                    <th>Cost Estimate</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OrderBy(f => f.PredictedDueDate))
+                                {
+                                    <tr class="@(item.DaysUntilDue < 0 ? "table-danger" : 
+                                               item.DaysUntilDue <= 30 ? "table-warning" : 
+                                               item.DaysUntilDue <= 90 ? "table-info" : "")">
+                                        <td>
+                                            <a asp-action="Vehicle" asp-route-id="@item.VehicleId" class="text-decoration-none">
+                                                @(item.Vehicle?.RegistrationNumber ?? $"Vehicle #{item.VehicleId}")
+                                            </a>
+                                        </td>
+                                        <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                        <td>@item.PredictedDueDate.ToString("MMM dd, yyyy")</td>
+                                        <td>
+                                            @if (item.DaysUntilDue < 0)
+                                            {
+                                                <span class="text-danger">@Math.Abs(item.DaysUntilDue) days overdue</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@item.DaysUntilDue days</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 8px; width: 100px;">
+                                                <div class="progress-bar @(item.ConfidenceLevel >= 80 ? "bg-success" : 
+                                                                          item.ConfidenceLevel >= 60 ? "bg-info" : 
+                                                                          item.ConfidenceLevel >= 40 ? "bg-warning" : "bg-danger")" 
+                                                     role="progressbar" style="width: @item.ConfidenceLevel%" 
+                                                     aria-valuenow="@item.ConfidenceLevel" aria-valuemin="0" aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <span class="small">@item.ConfidenceLevel%</span>
+                                        </td>
+                                        <td>@item.EstimatedCost.ToString("C")</td>
+                                        <td>
+                                            @switch (item.PriorityLevel)
+                                            {
+                                                case "Overdue":
+                                                    <span class="badge bg-danger">Overdue</span>
+                                                    break;
+                                                case "Critical":
+                                                    <span class="badge bg-danger">Critical</span>
+                                                    break;
+                                                case "High":
+                                                    <span class="badge bg-warning text-dark">High</span>
+                                                    break;
+                                                case "Medium":
+                                                    <span class="badge bg-info text-dark">Medium</span>
+                                                    break;
+                                                case "Low":
+                                                    <span class="badge bg-secondary">Low</span>
+                                                    break;
+                                                default:
+                                                    <span class="badge bg-secondary">@item.PriorityLevel</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a asp-action="Create" asp-route-vehicleId="@item.VehicleId" asp-route-maintenanceTypeId="@item.MaintenanceTypeId" class="btn btn-outline-primary" title="Schedule Maintenance">
+                                                    <i class="bi bi-calendar-plus"></i>
+                                                </a>
+                                                <a asp-action="Vehicle" asp-route-id="@item.VehicleId" class="btn btn-outline-secondary" title="View Vehicle">
+                                                    <i class="bi bi-truck"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!Model.Any())
+                                {
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <p class="text-muted mb-0">No maintenance forecasts available.</p>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize the forecast table with DataTables
+            $('#forecastTable').DataTable({
+                pageLength: 25,
+                lengthMenu: [10, 25, 50, 100],
+                order: [[2, 'asc']] // Sort by predicted due date
+            });
+            
+            // Initialize the timeline chart
+            initTimelineChart();
+        });
+        
+        function initTimelineChart() {
+            var ctx = document.getElementById('timelineChart').getContext('2d');
+            
+            // Create datasets from model
+            var forecasts = @Json.Serialize(Model);
+            
+            if (forecasts.length === 0) {
+                $('#maintenanceTimelineContainer').html('<p class="text-center text-muted py-5">No forecast data available to display.</p>');
+                return;
+            }
+            
+            // Get current date and date 90 days from now for the chart range
+            var today = new Date();
+            var endDate = new Date();
+            endDate.setDate(today.getDate() + 90);
+            
+            // Group forecasts by week
+            var weeklyData = {};
+            var currentDate = new Date(today);
+            
+            // Initialize weeks
+            while (currentDate <= endDate) {
+                var weekKey = formatDate(currentDate);
+                weeklyData[weekKey] = {
+                    overdue: 0,
+                    dueSoon: 0,
+                    comingUp: 0
+                };
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+            
+            // Populate weekly data
+            forecasts.forEach(function(forecast) {
+                var dueDate = new Date(forecast.predictedDueDate);
+                
+                // Find the appropriate week
+                currentDate = new Date(today);
+                while (currentDate <= endDate) {
+                    var nextWeek = new Date(currentDate);
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    
+                    if (dueDate >= currentDate && dueDate < nextWeek) {
+                        var weekKey = formatDate(currentDate);
+                        
+                        if (forecast.daysUntilDue < 0) {
+                            weeklyData[weekKey].overdue += forecast.estimatedCost;
+                        } else if (forecast.daysUntilDue <= 30) {
+                            weeklyData[weekKey].dueSoon += forecast.estimatedCost;
+                        } else {
+                            weeklyData[weekKey].comingUp += forecast.estimatedCost;
+                        }
+                        
+                        break;
+                    }
+                    
+                    currentDate.setDate(currentDate.getDate() + 7);
+                }
+            });
+            
+            // Prepare chart data
+            var labels = Object.keys(weeklyData);
+            var overdueData = [];
+            var dueSoonData = [];
+            var comingUpData = [];
+            
+            labels.forEach(function(label) {
+                overdueData.push(weeklyData[label].overdue);
+                dueSoonData.push(weeklyData[label].dueSoon);
+                comingUpData.push(weeklyData[label].comingUp);
+            });
+            
+            // Create the chart
+            var chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Overdue',
+                            data: overdueData,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Due Soon (30 days)',
+                            data: dueSoonData,
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Coming Up (90 days)',
+                            data: comingUpData,
+                            backgroundColor: 'rgba(13, 202, 240, 0.7)',
+                            borderColor: 'rgba(13, 202, 240, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Week Starting'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Estimated Cost ($)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function formatDate(date) {
+            var month = '' + (date.getMonth() + 1);
+            var day = '' + date.getDate();
+            var year = date.getFullYear();
+            
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+            
+            return [month, day, year].join('/');
+        }
+    </script>
+} 

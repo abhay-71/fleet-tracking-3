@@ -1,0 +1,345 @@
+@model IEnumerable<FleetTracking.Models.Trip>
+
+@{
+    ViewData["Title"] = "Trip History";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Trips
+        </a>
+        <a asp-action="Analytics" class="btn btn-primary">
+            <i class="fas fa-chart-bar"></i> Trip Analytics
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Trip History Filters</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="driverFilter" class="form-label">Driver</label>
+                    <select id="driverFilter" class="form-select">
+                        <option value="">All Drivers</option>
+                        @foreach (var driver in Model.Select(t => t.Driver).DistinctBy(d => d.Id))
+                        {
+                            <option value="@driver.Id">@driver.User.FirstName @driver.User.LastName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="vehicleFilter" class="form-label">Vehicle</label>
+                    <select id="vehicleFilter" class="form-select">
+                        <option value="">All Vehicles</option>
+                        @foreach (var vehicle in Model.Select(t => t.Vehicle).DistinctBy(v => v.Id))
+                        {
+                            <option value="@vehicle.Id">@vehicle.DisplayName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="dateFromFilter" class="form-label">From Date</label>
+                    <input type="date" id="dateFromFilter" class="form-control">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="dateToFilter" class="form-label">To Date</label>
+                    <input type="date" id="dateToFilter" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="text-end">
+            <button id="clearFiltersBtn" class="btn btn-outline-secondary">
+                <i class="fas fa-eraser"></i> Clear Filters
+            </button>
+            <button id="applyFiltersBtn" class="btn btn-primary">
+                <i class="fas fa-filter"></i> Apply Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Trips</h5>
+                <p class="display-4 mb-0" id="totalTripsCard">@Model.Count()</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Distance</h5>
+                <p class="display-4 mb-0" id="totalDistanceCard">@Model.Sum(t => t.Distance).ToString("N1") km</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Avg. Fuel Economy</h5>
+                <p class="display-4 mb-0" id="avgFuelEconomyCard">@(Model.Any(t => t.FuelUsed > 0) ? Model.Where(t => t.FuelUsed > 0).Average(t => t.Distance / t.FuelUsed).ToString("N2") : "0") km/L</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Avg. Speed</h5>
+                <p class="display-4 mb-0" id="avgSpeedCard">@Model.Average(t => t.AverageSpeed).ToString("N1") km/h</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Trip History</h5>
+        <div>
+            <button id="exportCsvBtn" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </button>
+            <button id="printReportBtn" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0" id="tripsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Vehicle</th>
+                        <th>Driver</th>
+                        <th>Start → End</th>
+                        <th>Date</th>
+                        <th>Distance</th>
+                        <th>Avg. Speed</th>
+                        <th>Fuel Used</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var trip in Model)
+                    {
+                        <tr data-driver="@trip.DriverId" data-vehicle="@trip.VehicleId" data-date="@trip.EndTime?.ToString("yyyy-MM-dd")">
+                            <td>@trip.Id</td>
+                            <td>@trip.Vehicle.DisplayName</td>
+                            <td>@trip.Driver.User.FirstName @trip.Driver.User.LastName</td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 150px;" title="@trip.StartLocation → @trip.EndLocation">
+                                    @trip.StartLocation → @trip.EndLocation
+                                </span>
+                            </td>
+                            <td>@trip.EndTime?.ToString("MM/dd/yyyy")</td>
+                            <td>@trip.Distance.ToString("N1") km</td>
+                            <td>@trip.AverageSpeed.ToString("N1") km/h</td>
+                            <td>@trip.FuelUsed.ToString("N1") L</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a asp-action="Details" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a asp-action="Playback" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-play"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Apply filters
+            $('#applyFiltersBtn').click(function() {
+                applyFilters();
+            });
+            
+            // Clear filters
+            $('#clearFiltersBtn').click(function() {
+                $('#driverFilter').val('');
+                $('#vehicleFilter').val('');
+                $('#dateFromFilter').val('');
+                $('#dateToFilter').val('');
+                applyFilters();
+            });
+            
+            // Export to CSV
+            $('#exportCsvBtn').click(function() {
+                exportTableToCSV('trip_history.csv');
+            });
+            
+            // Print report
+            $('#printReportBtn').click(function() {
+                window.print();
+            });
+            
+            function applyFilters() {
+                var driverId = $('#driverFilter').val();
+                var vehicleId = $('#vehicleFilter').val();
+                var dateFrom = $('#dateFromFilter').val();
+                var dateTo = $('#dateToFilter').val();
+                
+                // Show all rows initially
+                $('#tripsTable tbody tr').show();
+                
+                // Apply driver filter
+                if (driverId) {
+                    $('#tripsTable tbody tr').not(`[data-driver="${driverId}"]`).hide();
+                }
+                
+                // Apply vehicle filter
+                if (vehicleId) {
+                    $('#tripsTable tbody tr').not(`[data-vehicle="${vehicleId}"]`).hide();
+                }
+                
+                // Apply date range filter
+                if (dateFrom) {
+                    $('#tripsTable tbody tr').each(function() {
+                        var tripDate = $(this).data('date');
+                        if (tripDate && tripDate < dateFrom) {
+                            $(this).hide();
+                        }
+                    });
+                }
+                
+                if (dateTo) {
+                    $('#tripsTable tbody tr').each(function() {
+                        var tripDate = $(this).data('date');
+                        if (tripDate && tripDate > dateTo) {
+                            $(this).hide();
+                        }
+                    });
+                }
+                
+                // Update statistics based on visible rows
+                updateStatistics();
+            }
+            
+            function updateStatistics() {
+                var visibleRows = $('#tripsTable tbody tr:visible');
+                
+                // Total trips
+                $('#totalTripsCard').text(visibleRows.length);
+                
+                // Calculate total distance
+                var totalDistance = 0;
+                visibleRows.each(function() {
+                    var distanceText = $(this).find('td:eq(5)').text();
+                    var distance = parseFloat(distanceText.replace(' km', '').replace(',', ''));
+                    totalDistance += distance;
+                });
+                $('#totalDistanceCard').text(totalDistance.toFixed(1) + ' km');
+                
+                // Calculate average fuel economy
+                var totalFuel = 0;
+                var fuelTrips = 0;
+                visibleRows.each(function() {
+                    var fuelText = $(this).find('td:eq(7)').text();
+                    var fuel = parseFloat(fuelText.replace(' L', '').replace(',', ''));
+                    if (fuel > 0) {
+                        totalFuel += fuel;
+                        fuelTrips++;
+                    }
+                });
+                
+                var avgFuelEconomy = fuelTrips > 0 ? totalDistance / totalFuel : 0;
+                $('#avgFuelEconomyCard').text(avgFuelEconomy.toFixed(2) + ' km/L');
+                
+                // Calculate average speed
+                var totalSpeed = 0;
+                visibleRows.each(function() {
+                    var speedText = $(this).find('td:eq(6)').text();
+                    var speed = parseFloat(speedText.replace(' km/h', '').replace(',', ''));
+                    totalSpeed += speed;
+                });
+                
+                var avgSpeed = visibleRows.length > 0 ? totalSpeed / visibleRows.length : 0;
+                $('#avgSpeedCard').text(avgSpeed.toFixed(1) + ' km/h');
+            }
+            
+            function exportTableToCSV(filename) {
+                var csv = [];
+                var rows = document.querySelectorAll('#tripsTable tr:visible');
+                
+                for (var i = 0; i < rows.length; i++) {
+                    var row = [], cols = rows[i].querySelectorAll('td, th');
+                    
+                    for (var j = 0; j < cols.length - 1; j++) { // Skip last column (actions)
+                        var text = cols[j].innerText.replace(/"/g, '""');
+                        row.push('"' + text + '"');
+                    }
+                    
+                    csv.push(row.join(','));
+                }
+                
+                // Download CSV file
+                downloadCSV(csv.join('\n'), filename);
+            }
+            
+            function downloadCSV(csv, filename) {
+                var csvFile = new Blob([csv], {type: 'text/csv'});
+                var downloadLink = document.createElement('a');
+                
+                downloadLink.download = filename;
+                downloadLink.href = window.URL.createObjectURL(csvFile);
+                downloadLink.style.display = 'none';
+                
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        @media print {
+            .btn, button, .card-header, .filters, .no-print {
+                display: none !important;
+            }
+            
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            
+            .card-body {
+                padding: 0 !important;
+            }
+            
+            body {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+        }
+    </style>
+} 

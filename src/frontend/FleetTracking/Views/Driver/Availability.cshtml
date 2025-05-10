@@ -1,0 +1,451 @@
+@model IEnumerable<FleetTracking.Models.Driver>
+
+@{
+    ViewData["Title"] = "Driver Availability";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Drivers
+        </a>
+        <a asp-action="Workload" class="btn btn-primary">
+            <i class="fas fa-balance-scale"></i> Workload Balancing
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Filter Drivers</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="availabilityDate" class="form-label">Date</label>
+                    <input type="date" id="availabilityDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="availabilityTime" class="form-label">Time</label>
+                    <input type="time" id="availabilityTime" class="form-control" value="@DateTime.Now.ToString("HH:mm")">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="availabilityStatus" class="form-label">Status</label>
+                    <select id="availabilityStatus" class="form-select">
+                        <option value="all">All Statuses</option>
+                        <option value="available" selected>Available</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="skillFilter" class="form-label">Skill</label>
+                    <select id="skillFilter" class="form-select">
+                        <option value="">Any Skill</option>
+                        <option value="Heavy Vehicle License">Heavy Vehicle License</option>
+                        <option value="Hazardous Materials">Hazardous Materials</option>
+                        <option value="First Aid">First Aid</option>
+                        <option value="Defensive Driving">Defensive Driving</option>
+                        <option value="Mountain Roads">Mountain Roads</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="text-end">
+            <button id="applyFiltersBtn" class="btn btn-primary">
+                <i class="fas fa-filter"></i> Apply Filters
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Drivers</h5>
+                <p class="display-4 mb-0">@Model.Count()</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Available Now</h5>
+                <p class="display-4 mb-0" id="availableCount">@Model.Count(d => !d.CurrentTrips.Any(t => t.Status == "in_progress"))</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">On Trip</h5>
+                <p class="display-4 mb-0">@Model.Count(d => d.CurrentTrips.Any(t => t.Status == "in_progress"))</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Scheduled</h5>
+                <p class="display-4 mb-0">@Model.Count(d => d.CurrentTrips.Any(t => t.Status == "scheduled"))</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Driver Availability</h5>
+        <div>
+            <button class="btn btn-sm btn-success" id="exportCsvBtn">
+                <i class="fas fa-file-export"></i> Export
+            </button>
+            <button class="btn btn-sm btn-primary" id="printReportBtn">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0" id="driversTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Driver</th>
+                        <th class="text-center">Status</th>
+                        <th>Current/Next Trip</th>
+                        <th>Schedule</th>
+                        <th>Skills</th>
+                        <th>Experience</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var driver in Model)
+                    {
+                        var currentTrip = driver.CurrentTrips.FirstOrDefault(t => t.Status == "in_progress");
+                        var nextTrip = driver.CurrentTrips.FirstOrDefault(t => t.Status == "scheduled");
+                        var isAvailable = currentTrip == null;
+                        
+                        <tr data-driver-id="@driver.Id" class="@(isAvailable ? "available-driver" : "unavailable-driver")">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <img src="https://ui-avatars.com/api/?name=@(driver.User.FirstName)+@(driver.User.LastName)&background=random" class="rounded-circle" width="40" height="40" alt="@driver.User.FirstName @driver.User.LastName">
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="fw-bold">@driver.User.FirstName @driver.User.LastName</div>
+                                        <div class="small text-muted">@driver.LicenseNumber</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                @if (isAvailable)
+                                {
+                                    <span class="badge bg-success">Available</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">On Trip</span>
+                                }
+                            </td>
+                            <td>
+                                @if (currentTrip != null)
+                                {
+                                    <div>
+                                        <span class="badge bg-info">Current</span>
+                                        <strong>Trip #@currentTrip.Id</strong><br />
+                                        <small>@currentTrip.StartLocation → @currentTrip.EndLocation</small>
+                                    </div>
+                                }
+                                else if (nextTrip != null)
+                                {
+                                    <div>
+                                        <span class="badge bg-secondary">Next</span>
+                                        <strong>Trip #@nextTrip.Id</strong><br />
+                                        <small>@nextTrip.StartTime.ToString("MM/dd HH:mm")</small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No scheduled trips</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1" style="height: 10px;">
+                                        @{
+                                            var tripCount = driver.CurrentTrips.Count;
+                                            var progressWidth = Math.Min(tripCount * 10, 100);
+                                        }
+                                        <div class="progress-bar bg-@(progressWidth < 30 ? "success" : progressWidth < 70 ? "warning" : "danger")" 
+                                             role="progressbar" style="width: @progressWidth%;" 
+                                             aria-valuenow="@progressWidth" aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <span class="ms-2">@tripCount trips</span>
+                                </div>
+                            </td>
+                            <td>
+                                @{
+                                    var random = new Random(driver.Id);
+                                    var skills = new[] { "Heavy Vehicle License", "Hazardous Materials", "First Aid", "Defensive Driving", "Mountain Roads" }
+                                        .OrderBy(x => random.Next())
+                                        .Take(random.Next(1, 4));
+                                }
+                                
+                                @foreach (var skill in skills)
+                                {
+                                    <span class="badge bg-secondary me-1">@skill</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <div><strong>@driver.CompletedTrips</strong> completed trips</div>
+                                    <div class="small text-muted">@(driver.HireDate?.ToString("MM/yyyy") ?? "Unknown") hire date</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a asp-action="Schedule" asp-route-id="@driver.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </a>
+                                    <a asp-action="Skills" asp-route-id="@driver.Id" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-award"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-success assign-trip-btn"
+                                            data-driver-id="@driver.Id" data-driver-name="@driver.User.FirstName @driver.User.LastName"
+                                            @(isAvailable ? "" : "disabled")>
+                                        <i class="fas fa-truck"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Trip Modal -->
+<div class="modal fade" id="assignTripModal" tabindex="-1" aria-labelledby="assignTripModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignTripModalLabel">Assign Trip to Driver</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="selectedDriverId">
+                <p>Assigning trip to <strong id="selectedDriverName"></strong></p>
+                
+                <div class="mb-3">
+                    <label for="tripDate" class="form-label">Trip Date</label>
+                    <input type="date" class="form-control" id="tripDate" value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripStartTime" class="form-label">Start Time</label>
+                            <input type="time" class="form-control" id="tripStartTime" value="08:00">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripEndTime" class="form-label">End Time</label>
+                            <input type="time" class="form-control" id="tripEndTime" value="17:00">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripStartLocation" class="form-label">Start Location</label>
+                            <input type="text" class="form-control" id="tripStartLocation">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripEndLocation" class="form-label">End Location</label>
+                            <input type="text" class="form-control" id="tripEndLocation">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tripVehicleId" class="form-label">Vehicle</label>
+                    <select class="form-select" id="tripVehicleId">
+                        <option value="">-- Select Vehicle --</option>
+                        <!-- This would be populated with actual vehicles -->
+                        <option value="1">Truck #1 - Ford F-150</option>
+                        <option value="2">Truck #2 - Chevrolet Silverado</option>
+                        <option value="3">Van #1 - Mercedes Sprinter</option>
+                        <option value="4">Truck #3 - Volvo FH16</option>
+                        <option value="5">Truck #4 - Kenworth T680</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tripNotes" class="form-label">Notes</label>
+                    <textarea class="form-control" id="tripNotes" rows="3"></textarea>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> After assigning, you will be redirected to the trip creation page to complete the details.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAssignBtn">Assign Trip</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Apply filters button
+            $('#applyFiltersBtn').click(function() {
+                const date = $('#availabilityDate').val();
+                const time = $('#availabilityTime').val();
+                const status = $('#availabilityStatus').val();
+                const skill = $('#skillFilter').val();
+                
+                // Show all rows first
+                $('#driversTable tbody tr').show();
+                
+                // Filter by status
+                if (status === 'available') {
+                    $('#driversTable tbody tr:not(.available-driver)').hide();
+                } else if (status === 'unavailable') {
+                    $('#driversTable tbody tr:not(.unavailable-driver)').hide();
+                }
+                
+                // Filter by skill (simple contains check)
+                if (skill) {
+                    $('#driversTable tbody tr:visible').each(function() {
+                        const skillsText = $(this).find('td:eq(4)').text();
+                        if (!skillsText.includes(skill)) {
+                            $(this).hide();
+                        }
+                    });
+                }
+                
+                // Update available count
+                $('#availableCount').text($('#driversTable tbody tr.available-driver:visible').length);
+            });
+            
+            // Assign Trip button click
+            $('.assign-trip-btn').click(function() {
+                const driverId = $(this).data('driver-id');
+                const driverName = $(this).data('driver-name');
+                
+                $('#selectedDriverId').val(driverId);
+                $('#selectedDriverName').text(driverName);
+                
+                $('#assignTripModal').modal('show');
+            });
+            
+            // Confirm assign trip button
+            $('#confirmAssignBtn').click(function() {
+                const driverId = $('#selectedDriverId').val();
+                const tripDate = $('#tripDate').val();
+                const startTime = $('#tripStartTime').val();
+                const endTime = $('#tripEndTime').val();
+                const startLocation = $('#tripStartLocation').val();
+                const endLocation = $('#tripEndLocation').val();
+                const vehicleId = $('#tripVehicleId').val();
+                const notes = $('#tripNotes').val();
+                
+                // Validate inputs
+                if (!tripDate || !startTime || !startLocation || !endLocation || !vehicleId) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                // Normally we'd submit this data to the server
+                // For demo purposes, we'll just redirect to the trip creation page
+                window.location.href = `/Trip/Create?driverId=${driverId}&startLocation=${encodeURIComponent(startLocation)}&endLocation=${encodeURIComponent(endLocation)}&vehicleId=${vehicleId}`;
+            });
+            
+            // Export CSV button
+            $('#exportCsvBtn').click(function() {
+                let csv = [];
+                let rows = document.querySelectorAll('#driversTable tr:visible');
+                
+                for (let i = 0; i < rows.length; i++) {
+                    let row = [], cols = rows[i].querySelectorAll('td, th');
+                    
+                    for (let j = 0; j < cols.length - 1; j++) { // Skip last column (actions)
+                        // Clean the text (remove multiple spaces, newlines etc)
+                        let text = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, ' ').replace(/\s+/g, ' ').trim();
+                        row.push('"' + text + '"');
+                    }
+                    
+                    csv.push(row.join(','));
+                }
+                
+                // Download CSV
+                const csvContent = csv.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'driver_availability.csv');
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+            
+            // Print button
+            $('#printReportBtn').click(function() {
+                window.print();
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        @media print {
+            .btn, button, .card-header, .no-print, .modal {
+                display: none !important;
+            }
+            
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            
+            .card-body {
+                padding: 0 !important;
+            }
+            
+            body {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+        }
+    </style>
+} 

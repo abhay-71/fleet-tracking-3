@@ -6,6 +6,9 @@
     <title>@ViewData["Title"] - Fleet Tracking</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/FleetTracking.styles.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
@@ -43,7 +46,20 @@
                                 <a class="nav-link text-light" asp-area="" asp-controller="Driver" asp-action="Index">Drivers</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link text-light" asp-area="" asp-controller="Maintenance" asp-action="Index">
+                                    <i class="fas fa-wrench"></i> Maintenance
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link text-light" asp-area="" asp-controller="Trip" asp-action="Index">Trips</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-area="" asp-controller="Geofence" asp-action="Index">Geofences</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-area="" asp-controller="VehicleHistory" asp-action="Index">
+                                    <i class="fas fa-history"></i> Vehicle History
+                                </a>
                             </li>
                         }
                     </ul>
@@ -65,7 +81,64 @@
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        // Configure toastr notifications
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+        
+        // Display notifications from TempData if they exist
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>
+                $(document).ready(function() {
+                    toastr.success('@TempData["SuccessMessage"]');
+                });
+            </text>
+        }
+        
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <text>
+                $(document).ready(function() {
+                    toastr.error('@TempData["ErrorMessage"]');
+                });
+            </text>
+        }
+        
+        @if (TempData["InfoMessage"] != null)
+        {
+            <text>
+                $(document).ready(function() {
+                    toastr.info('@TempData["InfoMessage"]');
+                });
+            </text>
+        }
+        
+        @if (TempData["WarningMessage"] != null)
+        {
+            <text>
+                $(document).ready(function() {
+                    toastr.warning('@TempData["WarningMessage"]');
+                });
+            </text>
+        }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html> 

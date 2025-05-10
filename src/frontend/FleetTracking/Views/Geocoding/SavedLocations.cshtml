@@ -1,0 +1,323 @@
+@model IEnumerable<FleetTracking.Models.SavedLocation>
+
+@{
+    ViewData["Title"] = "Saved Locations";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">Saved Locations</h1>
+            <p class="text-muted">Manage frequently used locations and addresses</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Index" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Geocoding
+            </a>
+            <a asp-action="CreateLocation" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Add New Location
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">All Locations</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchLocation" placeholder="Search locations...">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    @foreach (var location in Model)
+                                    {
+                                        <tr class="location-row" data-lat="@location.Latitude" data-lng="@location.Longitude">
+                                            <td>@location.Name</td>
+                                            <td>@location.TypeDisplayName</td>
+                                            <td>@location.Address</td>
+                                            <td>
+                                                @if (location.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary view-on-map" 
+                                                            data-lat="@location.Latitude" data-lng="@location.Longitude"
+                                                            data-name="@location.Name" data-address="@location.Address">
+                                                        <i class="bi bi-map"></i>
+                                                    </button>
+                                                    <a asp-action="EditLocation" asp-route-id="@location.Id" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <a asp-action="DeleteLocation" asp-route-id="@location.Id" class="btn btn-sm btn-outline-danger">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="bi bi-geo-alt text-muted" style="font-size: 3rem;"></i>
+                                                <h5 class="mt-3">No saved locations found</h5>
+                                                <p class="text-muted">Save your first location to get started</p>
+                                                <a asp-action="CreateLocation" class="btn btn-primary mt-2">Add Location</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Location Map</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="locationsMap" style="height: 500px; width: 100%;"></div>
+                </div>
+                <div class="card-footer bg-white py-2">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showAllLocations" checked>
+                                <label class="form-check-label small" for="showAllLocations">Show all locations</label>
+                            </div>
+                        </div>
+                        <div class="col-6 text-end">
+                            <button class="btn btn-sm btn-outline-secondary" id="exportLocationsBtn">
+                                <i class="bi bi-download"></i> Export Locations
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        #locationsMap {
+            z-index: 0;
+        }
+        .location-row {
+            cursor: pointer;
+        }
+        .location-row:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize map
+            const map = L.map('locationsMap').setView([34.0522, -118.2437], 2);
+            
+            // Add OSM tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Store all locations
+            const locations = @Html.Raw(Json.Serialize(Model));
+            
+            // Add markers for all locations
+            const markers = {};
+            
+            if (locations && locations.length > 0) {
+                // Create markers for each location
+                locations.forEach(function(location) {
+                    if (location.latitude && location.longitude) {
+                        let markerColor = getMarkerColorByType(location.type);
+                        
+                        const marker = L.marker([location.latitude, location.longitude])
+                            .bindPopup(`
+                                <strong>${location.name}</strong><br>
+                                <span class="text-muted">${location.typeDisplayName}</span><br>
+                                ${location.address}<br>
+                                ${location.notes ? '<small>' + location.notes + '</small><br>' : ''}
+                                <a href="/Geocoding/EditLocation/${location.id}" class="btn btn-sm btn-outline-primary mt-2">Edit</a>
+                            `)
+                            .addTo(map);
+                        
+                        markers[location.id] = marker;
+                    }
+                });
+                
+                // Fit map to markers
+                const markerArray = Object.values(markers);
+                if (markerArray.length > 0) {
+                    const group = new L.featureGroup(markerArray);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+            
+            // Get marker color based on location type
+            function getMarkerColorByType(type) {
+                switch(type) {
+                    case 'customer': return 'blue';
+                    case 'warehouse': return 'orange';
+                    case 'office': return 'green';
+                    case 'rest_area': return 'gray';
+                    case 'service_center': return 'red';
+                    default: return 'blue';
+                }
+            }
+            
+            // Location row click
+            $('.location-row').click(function() {
+                const id = $(this).data('id');
+                
+                // Highlight the row
+                $('.location-row').removeClass('table-primary');
+                $(this).addClass('table-primary');
+                
+                if (markers[id]) {
+                    markers[id].openPopup();
+                }
+            });
+            
+            // View on map button click
+            $('.view-on-map').click(function(e) {
+                e.stopPropagation(); // Prevent row click event
+                
+                const lat = $(this).data('lat');
+                const lng = $(this).data('lng');
+                
+                // Center map on location
+                map.setView([lat, lng], 15);
+                
+                // Find marker for this location
+                const id = $(this).closest('tr').data('id');
+                if (markers[id]) {
+                    markers[id].openPopup();
+                }
+            });
+            
+            // Search filter
+            $('#searchLocation').on('keyup', function() {
+                const value = $(this).val().toLowerCase();
+                
+                $('.location-row').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+            
+            // Export locations
+            $('#exportLocationsBtn').click(function() {
+                if (!locations || locations.length === 0) {
+                    return;
+                }
+                
+                // Export as GeoJSON
+                const geojson = {
+                    type: "FeatureCollection",
+                    features: []
+                };
+                
+                locations.forEach(function(location) {
+                    if (location.latitude && location.longitude) {
+                        geojson.features.push({
+                            type: "Feature",
+                            properties: {
+                                id: location.id,
+                                name: location.name,
+                                type: location.type,
+                                address: location.address,
+                                notes: location.notes,
+                                isActive: location.isActive
+                            },
+                            geometry: {
+                                type: "Point",
+                                coordinates: [location.longitude, location.latitude]
+                            }
+                        });
+                    }
+                });
+                
+                // Create download
+                const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'saved_locations_' + new Date().toISOString().slice(0, 10) + '.geojson';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+            
+            // Show/hide inactive locations
+            $('#showAllLocations').change(function() {
+                const showAll = $(this).is(':checked');
+                
+                if (showAll) {
+                    $('.location-row').show();
+                    
+                    // Show all markers
+                    Object.values(markers).forEach(marker => {
+                        if (!map.hasLayer(marker)) {
+                            map.addLayer(marker);
+                        }
+                    });
+                } else {
+                    // Hide inactive locations
+                    $('.location-row').each(function() {
+                        const isActive = $(this).find('.badge').hasClass('bg-success');
+                        if (!isActive) {
+                            $(this).hide();
+                            
+                            // Hide marker
+                            const id = $(this).data('id');
+                            if (markers[id] && map.hasLayer(markers[id])) {
+                                map.removeLayer(markers[id]);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+} 

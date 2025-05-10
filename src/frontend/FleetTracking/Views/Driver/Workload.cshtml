@@ -1,0 +1,506 @@
+@model IEnumerable<dynamic>
+
+@{
+    ViewData["Title"] = "Driver Workload Balancing";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Availability" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Availability
+        </a>
+        <a asp-action="Index" class="btn btn-primary">
+            <i class="fas fa-users"></i> All Drivers
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Active Drivers</h5>
+                <p class="display-4 mb-0">@Model.Count()</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Optimal Workload</h5>
+                <p class="display-4 mb-0">@Math.Round(Model.Average(d => d.UpcomingTrips))</p>
+                <small>trips per driver</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Overloaded Drivers</h5>
+                <p class="display-4 mb-0">@Model.Count(d => d.UpcomingTrips > Model.Average(x => x.UpcomingTrips) * 1.5)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Underutilized Drivers</h5>
+                <p class="display-4 mb-0">@Model.Count(d => d.UpcomingTrips < Model.Average(x => x.UpcomingTrips) * 0.5)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Driver Trip Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="workloadDistributionChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Driver Distance Comparison</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="distanceComparisonChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Driver Workload Analysis</h5>
+        <div>
+            <button class="btn btn-sm btn-outline-primary" id="balanceWorkloadBtn">
+                <i class="fas fa-balance-scale"></i> Auto-Balance
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="exportWorkloadBtn">
+                <i class="fas fa-file-export"></i> Export Report
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0" id="workloadTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Driver</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Upcoming Trips</th>
+                        <th>Next Trip</th>
+                        <th>Workload</th>
+                        <th>Completed</th>
+                        <th>Distance (km)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var avgTrips = Model.Average(d => d.UpcomingTrips);
+                    }
+                    
+                    @foreach (var item in Model)
+                    {
+                        var driver = item.Driver;
+                        var upcomingTrips = item.UpcomingTrips;
+                        var nextTrip = item.NextTrip;
+                        var workloadRatio = upcomingTrips / avgTrips;
+                        var workloadClass = workloadRatio > 1.5 ? "bg-danger" : 
+                                            workloadRatio > 1.2 ? "bg-warning" : 
+                                            workloadRatio < 0.5 ? "bg-info" : "bg-success";
+                        
+                        <tr data-driver-id="@driver.Id">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <img src="https://ui-avatars.com/api/?name=@(driver.User.FirstName)+@(driver.User.LastName)&background=random" class="rounded-circle" width="40" height="40" alt="@driver.User.FirstName @driver.User.LastName">
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="fw-bold">@driver.User.FirstName @driver.User.LastName</div>
+                                        <div class="small text-muted">@driver.LicenseNumber</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                @if (nextTrip == null)
+                                {
+                                    <span class="badge bg-success">Available</span>
+                                }
+                                else if (nextTrip.Status == "in_progress")
+                                {
+                                    <span class="badge bg-warning">On Trip</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info">Scheduled</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">@upcomingTrips</span>
+                            </td>
+                            <td>
+                                @if (nextTrip != null)
+                                {
+                                    <div>
+                                        <strong>Trip #@nextTrip.Id</strong><br>
+                                        <small>@nextTrip.StartTime.ToString("MM/dd HH:mm")</small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No trips scheduled</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div class="progress-bar @workloadClass" role="progressbar"
+                                             style="width: @(Math.Min(workloadRatio * 50, 100))%"
+                                             aria-valuenow="@(workloadRatio * 100)" aria-valuemin="0" aria-valuemax="100">
+                                            @(Math.Round(workloadRatio * 100))%
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@item.CompletedTrips</td>
+                            <td>@item.TotalDistance.ToString("N1")</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a asp-action="Schedule" asp-route-id="@driver.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </a>
+                                    @if (workloadRatio > 1.2)
+                                    {
+                                        <button class="btn btn-sm btn-outline-warning redistribute-btn" 
+                                                data-driver-id="@driver.Id" 
+                                                data-driver-name="@driver.User.FirstName @driver.User.LastName">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Workload Balancing Modal -->
+<div class="modal fade" id="redistributeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Redistribute Trips</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Redistributing trips from <strong id="sourceDriverName"></strong> to available drivers.</p>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">Scheduled Trips</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0" id="tripsToRedistributeTable">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Trip</th>
+                                    <th>Date/Time</th>
+                                    <th>Route</th>
+                                    <th>Reassign To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Select trips to redistribute and choose target drivers.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmRedistributeBtn">Redistribute Selected</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto Balance Modal -->
+<div class="modal fade" id="autoBalanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Auto-Balance Workload</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will automatically redistribute trips to balance the workload across all drivers.</p>
+                
+                <div class="mb-3">
+                    <label class="form-label">Balance Strategy</label>
+                    <select class="form-select" id="balanceStrategy">
+                        <option value="even">Even Distribution</option>
+                        <option value="experience">By Experience Level</option>
+                        <option value="skills">By Skill Match</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Optimization Target</label>
+                    <select class="form-select" id="optimizationTarget">
+                        <option value="trips">Trip Count</option>
+                        <option value="distance">Total Distance</option>
+                        <option value="duration">Total Duration</option>
+                    </select>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="respectScheduleConflicts" checked>
+                    <label class="form-check-label" for="respectScheduleConflicts">
+                        Respect schedule conflicts
+                    </label>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> This action will reassign trips between drivers. All affected parties will be notified.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAutoBalanceBtn">Balance Workload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Prepare chart data
+            const driverNames = @Html.Raw(Json.Serialize(Model.Select(d => d.Driver.User.FirstName + " " + d.Driver.User.LastName)));
+            const upcomingTrips = @Html.Raw(Json.Serialize(Model.Select(d => d.UpcomingTrips)));
+            const totalDistances = @Html.Raw(Json.Serialize(Model.Select(d => d.TotalDistance)));
+            
+            // Create workload distribution chart
+            const workloadCtx = document.getElementById('workloadDistributionChart').getContext('2d');
+            const workloadChart = new Chart(workloadCtx, {
+                type: 'bar',
+                data: {
+                    labels: driverNames,
+                    datasets: [{
+                        label: 'Upcoming Trips',
+                        data: upcomingTrips,
+                        backgroundColor: upcomingTrips.map(count => {
+                            const avg = upcomingTrips.reduce((a, b) => a + b, 0) / upcomingTrips.length;
+                            if (count > avg * 1.5) return 'rgba(255, 99, 132, 0.7)';
+                            if (count > avg * 1.2) return 'rgba(255, 205, 86, 0.7)';
+                            if (count < avg * 0.5) return 'rgba(54, 162, 235, 0.7)';
+                            return 'rgba(75, 192, 192, 0.7)';
+                        }),
+                        borderColor: 'rgba(0, 0, 0, 0.1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Trips'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Create distance comparison chart
+            const distanceCtx = document.getElementById('distanceComparisonChart').getContext('2d');
+            const distanceChart = new Chart(distanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: driverNames,
+                    datasets: [{
+                        label: 'Total Distance (km)',
+                        data: totalDistances,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(0, 0, 0, 0.1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Total Distance (km)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Redistribute trips button
+            $('.redistribute-btn').click(function() {
+                const driverId = $(this).data('driver-id');
+                const driverName = $(this).data('driver-name');
+                
+                $('#sourceDriverName').text(driverName);
+                
+                // In a real application, we would fetch the driver's trips from the server
+                // For this demo, we'll generate some dummy trips
+                const $tableBody = $('#tripsToRedistributeTable tbody');
+                $tableBody.empty();
+                
+                // Generate 3-5 dummy trips
+                const tripCount = Math.floor(Math.random() * 3) + 3;
+                const today = new Date();
+                
+                for (let i = 1; i <= tripCount; i++) {
+                    const tripDate = new Date(today);
+                    tripDate.setDate(today.getDate() + i);
+                    
+                    const $row = $(`
+                        <tr>
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input trip-checkbox" type="checkbox" value="${100 + i}">
+                                </div>
+                            </td>
+                            <td>Trip #${100 + i}</td>
+                            <td>${tripDate.toLocaleDateString()} ${(8 + i).toString().padStart(2, '0')}:00</td>
+                            <td>Location ${i} → Destination ${i}</td>
+                            <td>
+                                <select class="form-select form-select-sm target-driver">
+                                    <option value="">-- Select Driver --</option>
+                                    @foreach (var item in Model.Where(d => d.UpcomingTrips < Model.Average(x => x.UpcomingTrips)))
+                                    {
+                                        var driver = item.Driver;
+                                        if (driver.Id.ToString() != driverId.ToString())
+                                        {
+                                            <option value="@driver.Id">@driver.User.FirstName @driver.User.LastName</option>
+                                        }
+                                    }
+                                </select>
+                            </td>
+                        </tr>
+                    `);
+                    
+                    $tableBody.append($row);
+                }
+                
+                $('#redistributeModal').modal('show');
+            });
+            
+            // Confirm redistribute button
+            $('#confirmRedistributeBtn').click(function() {
+                // In a real application, this would send the reassignment data to the server
+                // For this demo, we'll just show a success message and close the modal
+                
+                const checkedCount = $('.trip-checkbox:checked').length;
+                if (checkedCount === 0) {
+                    alert('Please select at least one trip to redistribute');
+                    return;
+                }
+                
+                let valid = true;
+                $('.trip-checkbox:checked').each(function() {
+                    const $row = $(this).closest('tr');
+                    const targetDriver = $row.find('.target-driver').val();
+                    if (!targetDriver) {
+                        valid = false;
+                        $row.find('.target-driver').addClass('is-invalid');
+                    } else {
+                        $row.find('.target-driver').removeClass('is-invalid');
+                    }
+                });
+                
+                if (!valid) {
+                    alert('Please select a target driver for each selected trip');
+                    return;
+                }
+                
+                alert(`${checkedCount} trips have been redistributed successfully!`);
+                $('#redistributeModal').modal('hide');
+                
+                // In a real application, we would refresh the data
+                // For this demo, we'll just reload the page after a short delay
+                setTimeout(function() {
+                    location.reload();
+                }, 500);
+            });
+            
+            // Auto-balance button
+            $('#balanceWorkloadBtn').click(function() {
+                $('#autoBalanceModal').modal('show');
+            });
+            
+            // Confirm auto-balance button
+            $('#confirmAutoBalanceBtn').click(function() {
+                const strategy = $('#balanceStrategy').val();
+                const target = $('#optimizationTarget').val();
+                const respectConflicts = $('#respectScheduleConflicts').is(':checked');
+                
+                // In a real application, this would send the auto-balance request to the server
+                // For this demo, we'll just show a success message and close the modal
+                
+                alert(`Workload balanced successfully using ${strategy} strategy, optimizing for ${target}!`);
+                $('#autoBalanceModal').modal('hide');
+                
+                // In a real application, we would refresh the data
+                // For this demo, we'll just reload the page after a short delay
+                setTimeout(function() {
+                    location.reload();
+                }, 500);
+            });
+            
+            // Export workload report
+            $('#exportWorkloadBtn').click(function() {
+                let csv = [];
+                let rows = document.querySelectorAll('#workloadTable tr');
+                
+                for (let i = 0; i < rows.length; i++) {
+                    let row = [], cols = rows[i].querySelectorAll('td, th');
+                    
+                    for (let j = 0; j < cols.length - 1; j++) { // Skip last column (actions)
+                        let text = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, ' ').replace(/\s+/g, ' ').trim();
+                        row.push('"' + text + '"');
+                    }
+                    
+                    csv.push(row.join(','));
+                }
+                
+                // Download CSV
+                const csvContent = csv.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'driver_workload.csv');
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        });
+    </script>
+} 

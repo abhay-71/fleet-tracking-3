@@ -1,0 +1,386 @@
+@{
+    ViewData["Title"] = "Trip Analytics";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="History" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Trip History
+        </a>
+        <a asp-action="Index" class="btn btn-primary">
+            <i class="fas fa-list"></i> All Trips
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Trips</h5>
+                <p class="display-4 mb-0">@ViewData["TotalTrips"]</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Distance</h5>
+                <p class="display-4 mb-0">@((decimal)ViewData["TotalDistance"]).ToString("N1") km</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Avg. Fuel Efficiency</h5>
+                <p class="display-4 mb-0">@((double)ViewData["AverageFuelEfficiency"]).ToString("N2") km/L</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Trips This Month</h5>
+                <p class="display-4 mb-0" id="tripsThisMonth">-</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Trip Distance by Month</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyDistanceChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Fuel Efficiency Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="fuelEfficiencyChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Driver Performance</h5>
+                <select id="driverMetricSelect" class="form-select form-select-sm" style="width: auto;">
+                    <option value="tripCount">Trip Count</option>
+                    <option value="distance">Total Distance</option>
+                    <option value="speed">Average Speed</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <canvas id="driverPerformanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Vehicle Performance</h5>
+                <select id="vehicleMetricSelect" class="form-select form-select-sm" style="width: auto;">
+                    <option value="tripCount">Trip Count</option>
+                    <option value="distance">Total Distance</option>
+                    <option value="fuelEfficiency">Fuel Efficiency</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <canvas id="vehiclePerformanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Monthly Trip Summary</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0" id="monthlySummaryTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Month</th>
+                                <th>Trips</th>
+                                <th>Total Distance (km)</th>
+                                <th>Avg. Distance (km)</th>
+                                <th>Avg. Speed (km/h)</th>
+                                <th>Fuel Used (L)</th>
+                                <th>Fuel Efficiency (km/L)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlySummaryBody">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Sample data for charts (this would be replaced with real data from backend)
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const currentMonth = new Date().getMonth();
+            
+            // Calculate trips this month
+            $('#tripsThisMonth').text(Math.round(@ViewData["TotalTrips"] / 3)); // Dummy calculation
+            
+            // Monthly distance data
+            const monthlyDistanceData = generateRandomData(12, 1000, 5000);
+            
+            // Create monthly distance chart
+            const monthlyDistanceChart = new Chart(
+                document.getElementById('monthlyDistanceChart'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Distance (km)',
+                            data: monthlyDistanceData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Distance (km)'
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+            
+            // Fuel efficiency trend data
+            const fuelEfficiencyData = generateRandomData(12, 6, 15);
+            
+            // Create fuel efficiency chart
+            const fuelEfficiencyChart = new Chart(
+                document.getElementById('fuelEfficiencyChart'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Fuel Efficiency (km/L)',
+                            data: fuelEfficiencyData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgb(75, 192, 192)',
+                            borderWidth: 2,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'km/L'
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+            
+            // Driver performance data from ViewData
+            const driverPerformanceData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewData["DriverPerformance"]));
+            
+            // Create driver performance chart
+            const driverLabels = driverPerformanceData.map(d => d.DriverName);
+            const driverTripCounts = driverPerformanceData.map(d => d.TripCount);
+            const driverDistances = driverPerformanceData.map(d => d.TotalDistance);
+            const driverSpeeds = driverPerformanceData.map(d => d.AverageSpeed);
+            
+            const driverPerformanceChart = new Chart(
+                document.getElementById('driverPerformanceChart'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: driverLabels,
+                        datasets: [{
+                            label: 'Trip Count',
+                            data: driverTripCounts,
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                }
+            );
+            
+            // Update driver chart based on selection
+            $('#driverMetricSelect').change(function() {
+                const metric = $(this).val();
+                let chartData;
+                let label;
+                
+                switch(metric) {
+                    case 'tripCount':
+                        chartData = driverTripCounts;
+                        label = 'Trip Count';
+                        break;
+                    case 'distance':
+                        chartData = driverDistances;
+                        label = 'Total Distance (km)';
+                        break;
+                    case 'speed':
+                        chartData = driverSpeeds;
+                        label = 'Average Speed (km/h)';
+                        break;
+                }
+                
+                driverPerformanceChart.data.datasets[0].data = chartData;
+                driverPerformanceChart.data.datasets[0].label = label;
+                driverPerformanceChart.update();
+            });
+            
+            // Vehicle performance data from ViewData
+            const vehiclePerformanceData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewData["VehiclePerformance"]));
+            
+            // Create vehicle performance chart
+            const vehicleLabels = vehiclePerformanceData.map(v => v.VehicleName);
+            const vehicleTripCounts = vehiclePerformanceData.map(v => v.TripCount);
+            const vehicleDistances = vehiclePerformanceData.map(v => v.TotalDistance);
+            const vehicleFuelEfficiencies = vehiclePerformanceData.map(v => v.FuelEfficiency);
+            
+            const vehiclePerformanceChart = new Chart(
+                document.getElementById('vehiclePerformanceChart'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: vehicleLabels,
+                        datasets: [{
+                            label: 'Trip Count',
+                            data: vehicleTripCounts,
+                            backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                            borderColor: 'rgb(153, 102, 255)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                }
+            );
+            
+            // Update vehicle chart based on selection
+            $('#vehicleMetricSelect').change(function() {
+                const metric = $(this).val();
+                let chartData;
+                let label;
+                
+                switch(metric) {
+                    case 'tripCount':
+                        chartData = vehicleTripCounts;
+                        label = 'Trip Count';
+                        break;
+                    case 'distance':
+                        chartData = vehicleDistances;
+                        label = 'Total Distance (km)';
+                        break;
+                    case 'fuelEfficiency':
+                        chartData = vehicleFuelEfficiencies;
+                        label = 'Fuel Efficiency (km/L)';
+                        break;
+                }
+                
+                vehiclePerformanceChart.data.datasets[0].data = chartData;
+                vehiclePerformanceChart.data.datasets[0].label = label;
+                vehiclePerformanceChart.update();
+            });
+            
+            // Generate monthly summary data
+            const monthlySummaryData = [];
+            
+            for (let i = 0; i < 12; i++) {
+                const tripCount = Math.floor(Math.random() * 30) + 5;
+                const totalDistance = monthlyDistanceData[i];
+                const avgDistance = totalDistance / tripCount;
+                const avgSpeed = Math.floor(Math.random() * 30) + 40;
+                const fuelUsed = totalDistance / fuelEfficiencyData[i];
+                
+                monthlySummaryData.push({
+                    month: months[i],
+                    tripCount: tripCount,
+                    totalDistance: totalDistance,
+                    avgDistance: avgDistance,
+                    avgSpeed: avgSpeed,
+                    fuelUsed: fuelUsed,
+                    fuelEfficiency: fuelEfficiencyData[i]
+                });
+            }
+            
+            // Populate monthly summary table
+            const $tableBody = $('#monthlySummaryBody');
+            
+            monthlySummaryData.forEach(function(data) {
+                const $row = $('<tr>');
+                
+                $row.append(`<td>${data.month}</td>`);
+                $row.append(`<td>${data.tripCount}</td>`);
+                $row.append(`<td>${data.totalDistance.toFixed(1)}</td>`);
+                $row.append(`<td>${data.avgDistance.toFixed(1)}</td>`);
+                $row.append(`<td>${data.avgSpeed.toFixed(1)}</td>`);
+                $row.append(`<td>${data.fuelUsed.toFixed(1)}</td>`);
+                $row.append(`<td>${data.fuelEfficiency.toFixed(2)}</td>`);
+                
+                $tableBody.append($row);
+            });
+            
+            // Helper function to generate random data
+            function generateRandomData(count, min, max) {
+                const data = [];
+                for (let i = 0; i < count; i++) {
+                    data.push(Math.floor(Math.random() * (max - min + 1)) + min);
+                }
+                return data;
+            }
+        });
+    </script>
+} 

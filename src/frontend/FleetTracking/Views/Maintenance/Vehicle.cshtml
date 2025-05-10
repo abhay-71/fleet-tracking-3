@@ -1,0 +1,494 @@
+@{
+    ViewData["Title"] = "Vehicle Maintenance";
+    var vehicle = ViewData["Vehicle"] as FleetTracking.Models.Vehicle;
+    var maintenanceRecords = ViewData["MaintenanceRecords"] as List<FleetTracking.Models.MaintenanceRecord>;
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">@vehicle.Make @vehicle.Model Maintenance</h1>
+            <p class="text-muted">Registration: @vehicle.RegistrationNumber</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <a asp-action="Create" asp-route-vehicleId="@vehicle.Id" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> New Maintenance
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Vehicle Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 text-center mb-4">
+                            <div class="border rounded p-3 mb-3">
+                                <i class="bi bi-truck text-primary" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5>@vehicle.Make @vehicle.Model</h5>
+                            <p class="text-muted mb-0">@vehicle.Year</p>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-6">Registration</dt>
+                                <dd class="col-sm-6">@vehicle.RegistrationNumber</dd>
+
+                                <dt class="col-sm-6">VIN</dt>
+                                <dd class="col-sm-6">@vehicle.VIN</dd>
+
+                                <dt class="col-sm-6">Status</dt>
+                                <dd class="col-sm-6">
+                                    @if (vehicle.Status == "active")
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else if (vehicle.Status == "maintenance")
+                                    {
+                                        <span class="badge bg-warning">Maintenance</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@vehicle.Status</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-6">Odometer</dt>
+                                <dd class="col-sm-6">@vehicle.OdometerReading km</dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="maintenance-stats">
+                        <h6 class="text-muted mb-3">Maintenance Statistics</h6>
+                        <div id="statsLoader" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mb-0 mt-2">Loading statistics...</p>
+                        </div>
+                        <div id="statsContent" style="display: none;">
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <div class="bg-light rounded p-3">
+                                        <h3 id="totalMaintenance" class="mb-1">0</h3>
+                                        <p class="text-muted mb-0">Total Records</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="bg-light rounded p-3">
+                                        <h3 id="completedMaintenance" class="mb-1">0</h3>
+                                        <p class="text-muted mb-0">Completed</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="bg-light rounded p-3">
+                                        <h3 id="upcomingMaintenance" class="mb-1">0</h3>
+                                        <p class="text-muted mb-0">Upcoming</p>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="bg-light rounded p-3">
+                                        <h3 id="totalCost" class="mb-1">$0</h3>
+                                        <p class="text-muted mb-0">Total Cost</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-records-tab" data-bs-toggle="tab" data-bs-target="#all-records-tab-pane" type="button" role="tab" aria-controls="all-records-tab-pane" aria-selected="true">
+                                All Records <span class="badge bg-secondary">@maintenanceRecords.Count</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming-tab-pane" type="button" role="tab" aria-controls="upcoming-tab-pane" aria-selected="false">
+                                Upcoming <span class="badge bg-primary">@maintenanceRecords.Count(m => m.Status == "scheduled" && !m.IsOverdue)</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed-tab-pane" type="button" role="tab" aria-controls="completed-tab-pane" aria-selected="false">
+                                Completed <span class="badge bg-success">@maintenanceRecords.Count(m => m.Status == "completed")</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body p-0">
+                    <div class="tab-content">
+                        <!-- All Maintenance Records -->
+                        <div class="tab-pane fade show active" id="all-records-tab-pane" role="tabpanel" aria-labelledby="all-records-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="allRecordsTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Scheduled</th>
+                                            <th>Status</th>
+                                            <th>Cost</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in maintenanceRecords.OrderByDescending(m => m.Status == "scheduled" ? 1 : 0).ThenBy(m => m.ScheduledDate))
+                                        {
+                                            <tr class="@(item.Status == "scheduled" && item.IsOverdue ? "table-danger" : 
+                                                       item.Status == "in_progress" ? "table-warning" :
+                                                       item.Status == "completed" ? "" : "")">
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.Description</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>
+                                                    @switch (item.Status)
+                                                    {
+                                                        case "scheduled" when item.IsOverdue:
+                                                            <span class="badge bg-danger">Overdue</span>
+                                                            break;
+                                                        case "scheduled":
+                                                            <span class="badge bg-primary">Scheduled</span>
+                                                            break;
+                                                        case "in_progress":
+                                                            <span class="badge bg-warning text-dark">In Progress</span>
+                                                            break;
+                                                        case "completed":
+                                                            <span class="badge bg-success">Completed</span>
+                                                            break;
+                                                        case "cancelled":
+                                                            <span class="badge bg-secondary">Cancelled</span>
+                                                            break;
+                                                        default:
+                                                            <span class="badge bg-secondary">@item.Status</span>
+                                                            break;
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (item.Status == "completed")
+                                                    {
+                                                        @(item.ActualCost?.ToString("C") ?? "N/A")
+                                                    }
+                                                    else
+                                                    {
+                                                        @(item.EstimatedCost?.ToString("C") ?? "N/A")
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (item.Status != "completed" && item.Status != "cancelled")
+                                                    {
+                                                        <div class="btn-group btn-group-sm">
+                                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Edit">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </a>
+                                                            @if (item.Status != "completed")
+                                                            {
+                                                                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#completeModal" data-record-id="@item.Id" title="Mark as Complete">
+                                                                    <i class="bi bi-check-lg"></i>
+                                                                </button>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">No actions</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (!maintenanceRecords.Any())
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No maintenance records found for this vehicle.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming Maintenance -->
+                        <div class="tab-pane fade" id="upcoming-tab-pane" role="tabpanel" aria-labelledby="upcoming-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="upcomingTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Scheduled</th>
+                                            <th>Days Until Due</th>
+                                            <th>Estimated Cost</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in maintenanceRecords.Where(m => m.Status == "scheduled" && !m.IsOverdue).OrderBy(m => m.ScheduledDate))
+                                        {
+                                            <tr>
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.Description</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>@item.DaysUntilDue days</td>
+                                                <td>@(item.EstimatedCost?.ToString("C") ?? "N/A")</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Edit">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#completeModal" data-record-id="@item.Id" title="Mark as Complete">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (!maintenanceRecords.Any(m => m.Status == "scheduled" && !m.IsOverdue))
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No upcoming maintenance scheduled for this vehicle.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Completed Maintenance -->
+                        <div class="tab-pane fade" id="completed-tab-pane" role="tabpanel" aria-labelledby="completed-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="completedTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Scheduled</th>
+                                            <th>Completed</th>
+                                            <th>Actual Cost</th>
+                                            <th>Performed By</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in maintenanceRecords.Where(m => m.Status == "completed").OrderByDescending(m => m.CompletedDate))
+                                        {
+                                            <tr>
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.Description</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>@(item.CompletedDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                                <td>@(item.ActualCost?.ToString("C") ?? "N/A")</td>
+                                                <td>@(item.PerformedBy ?? "N/A")</td>
+                                            </tr>
+                                        }
+                                        @if (!maintenanceRecords.Any(m => m.Status == "completed"))
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No completed maintenance records for this vehicle.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Maintenance History</h5>
+                </div>
+                <div class="card-body">
+                    <div id="maintenanceChartContainer" style="height: 300px;">
+                        <canvas id="maintenanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Maintenance Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1" aria-labelledby="completeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completeModalLabel">Complete Maintenance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="completeForm" asp-action="Complete" method="post">
+                    <input type="hidden" id="recordId" name="id" value="" />
+                    
+                    <div class="mb-3">
+                        <label for="cost" class="form-label">Actual Cost</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="completeForm" class="btn btn-success">Complete Maintenance</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize tables with DataTables
+            $('#allRecordsTable, #upcomingTable, #completedTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                order: []
+            });
+            
+            // Set up the complete modal
+            $('#completeModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var recordId = button.data('record-id');
+                $('#recordId').val(recordId);
+            });
+            
+            // Show success message if exists
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                    setTimeout(function() {
+                        toastr.success('@TempData["SuccessMessage"]');
+                    }, 300);
+                </text>
+            }
+            
+            // Show error message if exists
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <text>
+                    setTimeout(function() {
+                        toastr.error('@TempData["ErrorMessage"]');
+                    }, 300);
+                </text>
+            }
+            
+            // Load maintenance statistics
+            loadMaintenanceStats();
+            
+            // Initialize maintenance history chart
+            initMaintenanceHistoryChart();
+        });
+        
+        function loadMaintenanceStats() {
+            $.ajax({
+                url: '@Url.Action("GetMaintenanceStats", "Maintenance", new { vehicleId = vehicle.Id })',
+                type: 'GET',
+                success: function(data) {
+                    $('#totalMaintenance').text(data.totalMaintenanceCount);
+                    $('#completedMaintenance').text(data.completedMaintenanceCount);
+                    $('#upcomingMaintenance').text(data.upcomingMaintenanceCount);
+                    $('#totalCost').text('$' + data.totalMaintenanceCost.toFixed(2));
+                    
+                    $('#statsLoader').hide();
+                    $('#statsContent').show();
+                },
+                error: function() {
+                    $('#statsLoader').html('<p class="text-danger">Error loading statistics</p>');
+                }
+            });
+        }
+        
+        function initMaintenanceHistoryChart() {
+            var ctx = document.getElementById('maintenanceChart').getContext('2d');
+            
+            // Extract maintenance data from model
+            var completedRecords = @Json.Serialize(maintenanceRecords.Where(m => m.Status == "completed").OrderBy(m => m.CompletedDate).ToList());
+            
+            if (completedRecords.length === 0) {
+                $('#maintenanceChartContainer').html('<p class="text-center text-muted py-5">No maintenance history data available to display.</p>');
+                return;
+            }
+            
+            var labels = completedRecords.map(function(r) { 
+                return r.maintenanceType ? r.maintenanceType.name : 'Maintenance #' + r.maintenanceTypeId;
+            });
+            
+            var estimatedCosts = completedRecords.map(function(r) { return r.estimatedCost || 0; });
+            var actualCosts = completedRecords.map(function(r) { return r.actualCost || 0; });
+            
+            var chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Estimated Cost',
+                            data: estimatedCosts,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Actual Cost',
+                            data: actualCosts,
+                            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Cost ($)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Maintenance Type'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+} 

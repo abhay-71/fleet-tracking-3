@@ -1,0 +1,161 @@
+@model FleetTracking.Models.AlertLog
+
+@{
+    ViewData["Title"] = "Acknowledge Alert";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">Acknowledge Alert</h1>
+            <p class="text-muted">Add resolution information for this alert</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="History" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to History
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            <!-- Alert Details Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Alert Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert @(Model.Severity == "critical" ? "alert-danger" : Model.Severity == "high" ? "alert-danger" : Model.Severity == "medium" ? "alert-warning" : "alert-info")">
+                        <h5 class="alert-heading">@Model.AlertName</h5>
+                        <p>@Model.Details</p>
+                    </div>
+                    
+                    <table class="table table-borderless table-sm">
+                        <tr>
+                            <th style="width: 40%;">Type:</th>
+                            <td>@Model.AlertType.Replace("_", " ").ToUpperInvariant()</td>
+                        </tr>
+                        <tr>
+                            <th>Severity:</th>
+                            <td><span class="badge @Model.SeverityBadgeClass">@Model.Severity.ToUpperInvariant()</span></td>
+                        </tr>
+                        <tr>
+                            <th>Time:</th>
+                            <td>@Model.Timestamp.ToString("MMM dd, yyyy HH:mm:ss")</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                @if (Model.Acknowledged)
+                                {
+                                    <span class="badge bg-success">Acknowledged</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">Pending</span>
+                                }
+                            </td>
+                        </tr>
+                        @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+                        {
+                            <tr>
+                                <th>Location:</th>
+                                <td>@Model.Latitude.Value.ToString("F6"), @Model.Longitude.Value.ToString("F6")</td>
+                            </tr>
+                        }
+                    </table>
+                    
+                    @if (Model.Acknowledged)
+                    {
+                        <div class="mt-3">
+                            <h6>Resolution</h6>
+                            <p>@(Model.Resolution ?? "No resolution details provided.")</p>
+                            <small class="text-muted">Acknowledged at: @Model.AcknowledgedAt?.ToString("MMM dd, yyyy HH:mm:ss")</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <!-- Acknowledgment Form Card -->
+            <div class="card">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Acknowledgment Form</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Acknowledged)
+                    {
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle-fill me-2"></i> This alert has already been acknowledged.
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="Acknowledge" method="post">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            
+                            <div class="mb-3">
+                                <label for="resolution" class="form-label">Resolution Details</label>
+                                <textarea class="form-control" id="resolution" name="resolution" rows="5" placeholder="Describe how this alert was resolved..." required></textarea>
+                                <div class="form-text">Provide details on what actions were taken to address this alert.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Alert Classification</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="classification" id="falseAlarm" value="false_alarm">
+                                    <label class="form-check-label" for="falseAlarm">
+                                        False Alarm
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="classification" id="resolved" value="resolved" checked>
+                                    <label class="form-check-label" for="resolved">
+                                        Issue Resolved
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="classification" id="escalated" value="escalated">
+                                    <label class="form-check-label" for="escalated">
+                                        Escalated
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="preventionCheck">
+                                <label class="form-check-label" for="preventionCheck">Add prevention measures</label>
+                            </div>
+                            
+                            <div class="mb-3 d-none" id="preventionSection">
+                                <label for="preventionMeasures" class="form-label">Prevention Measures</label>
+                                <textarea class="form-control" id="preventionMeasures" name="preventionMeasures" rows="3" placeholder="Describe measures to prevent this alert in the future..."></textarea>
+                            </div>
+                            
+                            <div class="text-end">
+                                <a asp-action="History" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Acknowledge Alert</button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Toggle prevention measures section
+            $('#preventionCheck').change(function() {
+                if ($(this).is(':checked')) {
+                    $('#preventionSection').removeClass('d-none');
+                } else {
+                    $('#preventionSection').addClass('d-none');
+                }
+            });
+        });
+    </script>
+} 

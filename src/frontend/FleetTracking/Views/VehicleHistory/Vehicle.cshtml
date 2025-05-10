@@ -1,0 +1,1195 @@
+@{
+    ViewData["Title"] = "Vehicle History";
+    var vehicle = ViewData["Vehicle"] as FleetTracking.Models.Vehicle;
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">@vehicle.Make @vehicle.Model History</h1>
+            <p class="text-muted">Registration: @vehicle.RegistrationNumber</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <button id="exportHistoryBtn" class="btn btn-outline-success">
+                    <i class="bi bi-download"></i> Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Vehicle Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Registration</dt>
+                        <dd class="col-sm-7">@vehicle.RegistrationNumber</dd>
+
+                        <dt class="col-sm-5">Make/Model</dt>
+                        <dd class="col-sm-7">@vehicle.Make @vehicle.Model</dd>
+
+                        <dt class="col-sm-5">Year</dt>
+                        <dd class="col-sm-7">@vehicle.Year</dd>
+
+                        <dt class="col-sm-5">VIN</dt>
+                        <dd class="col-sm-7">@vehicle.VIN</dd>
+
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            @if (vehicle.Status == "active")
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else if (vehicle.Status == "maintenance")
+                            {
+                                <span class="badge bg-warning">Maintenance</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">@vehicle.Status</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Last Activity</dt>
+                        <dd class="col-sm-7">@(vehicle.LastActivityDate?.ToString("MMM dd, yyyy HH:mm") ?? "No activity")</dd>
+
+                        <dt class="col-sm-5">Current Location</dt>
+                        <dd class="col-sm-7">@(vehicle.CurrentLocation ?? "Unknown")</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Filter Data</h5>
+                </div>
+                <div class="card-body">
+                    <form id="historyFilterForm">
+                        <div class="mb-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="startDate" value="@DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd")">
+                        </div>
+                        <div class="mb-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="endDate" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Data Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="location" id="locationCheck" checked>
+                                <label class="form-check-label" for="locationCheck">
+                                    Location Data
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="fuel" id="fuelCheck" checked>
+                                <label class="form-check-label" for="fuelCheck">
+                                    Fuel Data
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="speed" id="speedCheck" checked>
+                                <label class="form-check-label" for="speedCheck">
+                                    Speed Data
+                                </label>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="button" id="applyFiltersBtn" class="btn btn-primary">Apply Filters</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card mb-4">
+                <div class="card-header bg-white py-3">
+                    <ul class="nav nav-tabs card-header-tabs" id="historyTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-tab-pane" type="button" role="tab" aria-controls="map-tab-pane" aria-selected="true">Map View</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline-tab-pane" type="button" role="tab" aria-controls="timeline-tab-pane" aria-selected="false">Timeline</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="chart-tab" data-bs-toggle="tab" data-bs-target="#chart-tab-pane" type="button" role="tab" aria-controls="chart-tab-pane" aria-selected="false">Charts</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-tab-pane" type="button" role="tab" aria-controls="data-tab-pane" aria-selected="false">Data</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-tab-pane" type="button" role="tab" aria-controls="reports-tab-pane" aria-selected="false">Reports</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body p-0">
+                    <div class="tab-content" id="historyTabContent">
+                        <div class="tab-pane fade show active" id="map-tab-pane" role="tabpanel" aria-labelledby="map-tab" tabindex="0">
+                            <div id="historyMap" style="height: 600px; width: 100%;"></div>
+                        </div>
+                        <div class="tab-pane fade" id="timeline-tab-pane" role="tabpanel" aria-labelledby="timeline-tab" tabindex="0">
+                            <div class="p-4">
+                                <h5 class="mb-4">Vehicle Activity Timeline</h5>
+                                <div id="timeline-container" class="position-relative">
+                                    <div class="timeline-loader text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading timeline data...</p>
+                                    </div>
+                                    <div class="timeline-content" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div id="timelineControls" class="mb-3">
+                                                    <div class="btn-group btn-group-sm mb-3">
+                                                        <button type="button" class="btn btn-outline-primary" id="zoomDay">Day</button>
+                                                        <button type="button" class="btn btn-outline-primary" id="zoomWeek">Week</button>
+                                                        <button type="button" class="btn btn-outline-primary active" id="zoomMonth">Month</button>
+                                                        <button type="button" class="btn btn-outline-primary" id="zoomAll">All</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-chart-container">
+                                            <div id="timeline-chart" style="height: 500px;"></div>
+                                        </div>
+                                        <div class="mt-4">
+                                            <h6 class="text-muted mb-3">Timeline Events</h6>
+                                            <div id="timeline-events" class="timeline-events">
+                                                <!-- Timeline events will be populated here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="chart-tab-pane" role="tabpanel" aria-labelledby="chart-tab" tabindex="0">
+                            <div class="p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-white">
+                                                <h6 class="mb-0">Speed History</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="speedChart" height="250"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-white">
+                                                <h6 class="mb-0">Fuel Level History</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="fuelChart" height="250"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="card">
+                                            <div class="card-header bg-white">
+                                                <h6 class="mb-0">Odometer Reading</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="odometerChart" height="250"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="data-tab-pane" role="tabpanel" aria-labelledby="data-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="historyDataTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Location</th>
+                                            <th>Speed</th>
+                                            <th>Heading</th>
+                                            <th>Fuel Level</th>
+                                            <th>Engine Status</th>
+                                            <th>Odometer</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data will be loaded dynamically -->
+                                        <tr>
+                                            <td colspan="7" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Loading history data...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="reports-tab-pane" role="tabpanel" aria-labelledby="reports-tab" tabindex="0">
+                            <div class="p-4">
+                                <h5 class="mb-4">Vehicle History Reports</h5>
+                                <div class="row">
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Trip Summary Report</h5>
+                                                <p class="card-text">Generate a report of all trips made by this vehicle within a date range.</p>
+                                                <button type="button" class="btn btn-primary btn-sm" id="tripReportBtn">Generate Report</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Fuel Consumption Report</h5>
+                                                <p class="card-text">Analyze fuel usage and efficiency over time.</p>
+                                                <button type="button" class="btn btn-primary btn-sm" id="fuelReportBtn">Generate Report</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Location History Report</h5>
+                                                <p class="card-text">Full location history with timestamps and events.</p>
+                                                <button type="button" class="btn btn-primary btn-sm" id="locationReportBtn">Generate Report</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="reportContent" style="display: none;" class="mt-4">
+                                    <div class="card">
+                                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0" id="reportTitle">Report</h6>
+                                            <div>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" id="downloadReportBtn">
+                                                    <i class="bi bi-download"></i> Download
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" id="printReportBtn">
+                                                    <i class="bi bi-printer"></i> Print
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body" id="reportContentBody">
+                                            <!-- Report content will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Trip History</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="tripHistoryTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Start Location</th>
+                                    <th>End Location</th>
+                                    <th>Distance</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be loaded dynamically -->
+                                <tr>
+                                    <td colspan="7" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading trip history...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Export Vehicle History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label for="exportStartDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="exportStartDate" name="startDate" value="@DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportEndDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="exportEndDate" name="endDate" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Export Format</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="exportFormat" id="formatCSV" value="csv" checked>
+                            <label class="form-check-label" for="formatCSV">
+                                CSV
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmExportBtn">Export</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        #historyMap {
+            z-index: 0;
+        }
+        .history-polyline {
+            stroke-width: 3;
+        }
+        .speed-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vis-timeline@7.7.0/dist/vis-timeline-graph2d.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vis-timeline@7.7.0/dist/vis-timeline-graph2d.min.css" />
+    
+    <script>
+        $(document).ready(function () {
+            const vehicleId = @vehicle.Id;
+            let historyData = [];
+            let map;
+            let routeLayer;
+            let speedChart, fuelChart, odometerChart;
+            let timelineItems = [];
+            let timelineGroups = [];
+            let timeline = null;
+
+            // Initialize map
+            function initMap() {
+                map = L.map('historyMap').setView([34.0522, -118.2437], 10);
+                
+                // Add tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                
+                // Create a layer group for routes
+                routeLayer = L.layerGroup().addTo(map);
+            }
+
+            // Initialize charts
+            function initCharts() {
+                // Speed chart
+                const speedCtx = document.getElementById('speedChart').getContext('2d');
+                speedChart = new Chart(speedCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Speed (km/h)',
+                            data: [],
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: false,
+                                text: 'Speed History'
+                            }
+                        }
+                    }
+                });
+
+                // Fuel chart
+                const fuelCtx = document.getElementById('fuelChart').getContext('2d');
+                fuelChart = new Chart(fuelCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Fuel Level (%)',
+                            data: [],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: false,
+                                text: 'Fuel Level History'
+                            }
+                        }
+                    }
+                });
+
+                // Odometer chart
+                const odometerCtx = document.getElementById('odometerChart').getContext('2d');
+                odometerChart = new Chart(odometerCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Odometer Reading (km)',
+                            data: [],
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: false,
+                                text: 'Odometer Reading'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Load vehicle history data
+            function loadVehicleHistory(startDate, endDate) {
+                const url = `/VehicleHistory/GetVehicleHistoryData/${vehicleId}?startDate=${startDate}&endDate=${endDate}`;
+                
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    success: function(data) {
+                        historyData = data;
+                        updateVisualization();
+                    },
+                    error: function(error) {
+                        console.error('Error loading vehicle history:', error);
+                        alert('Failed to load vehicle history data. Please try again later.');
+                    }
+                });
+            }
+
+            // Load trip history data
+            function loadTripHistory(startDate, endDate) {
+                // This would be implemented in a real application
+                // For now, clear the loading indicator and show placeholder data
+                const tripData = [
+                    {
+                        id: 1,
+                        date: '2023-09-15',
+                        startLocation: 'Warehouse A',
+                        endLocation: 'Customer Site B',
+                        distance: '45.2 km',
+                        duration: '1h 15m',
+                        status: 'completed'
+                    },
+                    {
+                        id: 2,
+                        date: '2023-09-17',
+                        startLocation: 'Customer Site B',
+                        endLocation: 'Warehouse A',
+                        distance: '46.8 km',
+                        duration: '1h 22m',
+                        status: 'completed'
+                    }
+                ];
+
+                let tripHtml = '';
+                
+                if (tripData.length > 0) {
+                    tripData.forEach(trip => {
+                        tripHtml += `
+                            <tr>
+                                <td>${trip.date}</td>
+                                <td>${trip.startLocation}</td>
+                                <td>${trip.endLocation}</td>
+                                <td>${trip.distance}</td>
+                                <td>${trip.duration}</td>
+                                <td><span class="badge bg-success">${trip.status}</span></td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="/VehicleHistory/Route/${trip.id}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-map"></i> View
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tripHtml = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <p class="text-muted">No trip history found for the selected period</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                $('#tripHistoryTable tbody').html(tripHtml);
+            }
+
+            // Update data visualization
+            function updateVisualization() {
+                // Update map
+                updateMapVisualization();
+                
+                // Update charts
+                updateCharts();
+                
+                // Update data table
+                updateDataTable();
+            }
+
+            // Update map visualization
+            function updateMapVisualization() {
+                // Clear previous routes
+                routeLayer.clearLayers();
+                
+                if (historyData.length === 0) {
+                    // No data to display
+                    return;
+                }
+                
+                // Extract coordinates for route
+                const coordinates = historyData.map(point => [point.latitude, point.longitude]);
+                
+                // Create polyline for the route
+                const routePath = L.polyline(coordinates, {
+                    color: '#3388ff',
+                    weight: 4,
+                    opacity: 0.7,
+                    className: 'history-polyline'
+                }).addTo(routeLayer);
+                
+                // Add markers for start and end points
+                const startPoint = coordinates[0];
+                const endPoint = coordinates[coordinates.length - 1];
+                
+                const startMarker = L.marker(startPoint, {
+                    title: 'Start',
+                    icon: L.divIcon({
+                        className: 'start-marker',
+                        html: '<i class="bi bi-flag-fill text-success" style="font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 24]
+                    })
+                }).addTo(routeLayer);
+                
+                const endMarker = L.marker(endPoint, {
+                    title: 'End',
+                    icon: L.divIcon({
+                        className: 'end-marker',
+                        html: '<i class="bi bi-flag-checkered-fill text-danger" style="font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 24]
+                    })
+                }).addTo(routeLayer);
+                
+                // Add markers for significant points (e.g., stops, high speeds)
+                historyData.forEach((point, index) => {
+                    // Skip the first and last points (already have markers)
+                    if (index === 0 || index === historyData.length - 1) {
+                        return;
+                    }
+                    
+                    // Add markers for stops (speed near zero)
+                    if (point.speed < 2) {
+                        L.circleMarker([point.latitude, point.longitude], {
+                            radius: 5,
+                            color: '#ff6b6b',
+                            fillOpacity: 0.7
+                        }).bindPopup(`
+                            <strong>Stop</strong><br>
+                            Time: ${new Date(point.timestamp).toLocaleString()}<br>
+                            Duration: Unknown
+                        `).addTo(routeLayer);
+                    }
+                    
+                    // Add markers for high speeds
+                    if (point.speed > 80) {
+                        L.circleMarker([point.latitude, point.longitude], {
+                            radius: 5,
+                            color: '#ff9e00',
+                            fillOpacity: 0.7
+                        }).bindPopup(`
+                            <strong>High Speed</strong><br>
+                            Time: ${new Date(point.timestamp).toLocaleString()}<br>
+                            Speed: ${point.speed.toFixed(1)} km/h
+                        `).addTo(routeLayer);
+                    }
+                });
+                
+                // Fit map to show the route
+                map.fitBounds(routePath.getBounds());
+            }
+
+            // Update charts
+            function updateCharts() {
+                if (historyData.length === 0) {
+                    return;
+                }
+                
+                // Extract data for charts
+                const labels = historyData.map(point => new Date(point.timestamp).toLocaleTimeString());
+                const speedData = historyData.map(point => point.speed);
+                const fuelData = historyData.map(point => point.fuelLevel);
+                const odometerData = historyData.map(point => point.odometerReading);
+                
+                // Update speed chart
+                speedChart.data.labels = labels;
+                speedChart.data.datasets[0].data = speedData;
+                speedChart.update();
+                
+                // Update fuel chart
+                fuelChart.data.labels = labels;
+                fuelChart.data.datasets[0].data = fuelData;
+                fuelChart.update();
+                
+                // Update odometer chart
+                odometerChart.data.labels = labels;
+                odometerChart.data.datasets[0].data = odometerData;
+                odometerChart.update();
+            }
+
+            // Update data table
+            function updateDataTable() {
+                if (historyData.length === 0) {
+                    $('#historyDataTable tbody').html(`
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <p class="text-muted">No history data found for the selected period</p>
+                            </td>
+                        </tr>
+                    `);
+                    return;
+                }
+                
+                let tableRows = '';
+                
+                historyData.forEach(point => {
+                    // Determine engine status color
+                    const engineStatusClass = point.engineStatus === 'running' ? 'bg-success' : 'bg-secondary';
+                    
+                    // Determine speed color
+                    let speedColor = '#4caf50'; // green for normal
+                    if (point.speed > 80) {
+                        speedColor = '#ff9800'; // orange for high
+                    } else if (point.speed < 2) {
+                        speedColor = '#9e9e9e'; // gray for stopped
+                    }
+                    
+                    tableRows += `
+                        <tr>
+                            <td>${new Date(point.timestamp).toLocaleString()}</td>
+                            <td>${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}</td>
+                            <td>
+                                <span class="speed-indicator" style="background-color: ${speedColor}"></span>
+                                ${point.speed.toFixed(1)} km/h
+                            </td>
+                            <td>${point.heading.toFixed(0)}°</td>
+                            <td>${point.fuelLevel.toFixed(1)}%</td>
+                            <td><span class="badge ${engineStatusClass}">${point.engineStatus}</span></td>
+                            <td>${point.odometerReading.toFixed(1)} km</td>
+                        </tr>
+                    `;
+                });
+                
+                $('#historyDataTable tbody').html(tableRows);
+            }
+
+            // Handle filter button click
+            $('#applyFiltersBtn').click(function() {
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+                
+                loadVehicleHistory(startDate, endDate);
+                loadTripHistory(startDate, endDate);
+            });
+
+            // Handle export button click
+            $('#exportHistoryBtn').click(function() {
+                // Show export modal
+                $('#exportModal').modal('show');
+            });
+
+            // Handle export confirmation
+            $('#confirmExportBtn').click(function() {
+                const startDate = $('#exportStartDate').val();
+                const endDate = $('#exportEndDate').val();
+                
+                // Redirect to export endpoint
+                window.location.href = `/VehicleHistory/Export/${vehicleId}?startDate=${startDate}&endDate=${endDate}`;
+                
+                // Close modal
+                $('#exportModal').modal('hide');
+            });
+
+            // Initialize the page
+            initMap();
+            initCharts();
+            
+            // Load initial data
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+            loadVehicleHistory(startDate, endDate);
+            loadTripHistory(startDate, endDate);
+
+            // Initialize the timeline
+            initTimeline();
+            
+            // Initialize report buttons
+            initReportButtons();
+        });
+
+        function initTimeline() {
+            // Timeline will be initialized when data is loaded
+            $('#timeline-tab').on('shown.bs.tab', function (e) {
+                if (timeline === null && historyData.length > 0) {
+                    createTimeline();
+                }
+            });
+            
+            // Set up zoom controls
+            $('#zoomDay').click(function() {
+                $(this).addClass('active').siblings().removeClass('active');
+                if (timeline) {
+                    const now = new Date();
+                    timeline.setWindow(moment().subtract(1, 'days'), moment());
+                }
+            });
+            
+            $('#zoomWeek').click(function() {
+                $(this).addClass('active').siblings().removeClass('active');
+                if (timeline) {
+                    timeline.setWindow(moment().subtract(7, 'days'), moment());
+                }
+            });
+            
+            $('#zoomMonth').click(function() {
+                $(this).addClass('active').siblings().removeClass('active');
+                if (timeline) {
+                    timeline.setWindow(moment().subtract(30, 'days'), moment());
+                }
+            });
+            
+            $('#zoomAll').click(function() {
+                $(this).addClass('active').siblings().removeClass('active');
+                if (timeline) {
+                    timeline.fit();
+                }
+            });
+        }
+        
+        function createTimeline() {
+            if (historyData.length === 0) return;
+            
+            // Create timeline items from history data
+            timelineItems = [];
+            
+            // Add trip events
+            historyData.filter(d => d.event && d.event !== "").forEach((point, index) => {
+                timelineItems.push({
+                    id: `event-${index}`,
+                    content: point.event,
+                    start: new Date(point.timestamp),
+                    type: 'point',
+                    group: 'events',
+                    title: `${point.event} at ${moment(point.timestamp).format('MMM DD, YYYY HH:mm:ss')} - ${point.location || 'Unknown location'}`
+                });
+            });
+            
+            // Create timeline groups
+            timelineGroups = [
+                {id: 'events', content: 'Events'},
+                {id: 'speed', content: 'Speed (km/h)'},
+                {id: 'fuel', content: 'Fuel Level (%)'}
+            ];
+            
+            // Create the timeline
+            const container = document.getElementById('timeline-chart');
+            
+            const startDate = new Date($('#startDate').val());
+            const endDate = new Date($('#endDate').val());
+            
+            const options = {
+                min: startDate,
+                max: endDate,
+                stack: false,
+                showMajorLabels: true,
+                showCurrentTime: false,
+                zoomMin: 1000 * 60 * 60, // 1 hour
+                zoomMax: 1000 * 60 * 60 * 24 * 31, // 1 month
+                orientation: 'top',
+                dataAxis: {
+                    visible: true,
+                    left: {
+                        range: {
+                            min: 0
+                        }
+                    }
+                }
+            };
+            
+            // Create a DataSet of speed and fuel points for the graph
+            const speedPoints = historyData.map((point, index) => ({
+                x: new Date(point.timestamp),
+                y: point.speed || 0,
+                group: 'speed'
+            }));
+            
+            const fuelPoints = historyData.map((point, index) => ({
+                x: new Date(point.timestamp),
+                y: point.fuelLevel || 0,
+                group: 'fuel'
+            }));
+            
+            // Create the graph dataset
+            const graphItems = [
+                ...speedPoints,
+                ...fuelPoints
+            ];
+            
+            timeline = new vis.Graph2d(container, graphItems, timelineGroups, options);
+            
+            // Populate the timeline events section
+            populateTimelineEvents();
+            
+            // Show timeline content
+            $('.timeline-loader').hide();
+            $('.timeline-content').show();
+        }
+        
+        function populateTimelineEvents() {
+            const eventsContainer = $('#timeline-events');
+            eventsContainer.empty();
+            
+            const events = historyData.filter(d => d.event && d.event !== "");
+            
+            if (events.length === 0) {
+                eventsContainer.html('<p class="text-muted">No events recorded in the selected time period.</p>');
+                return;
+            }
+            
+            const eventsList = $('<div class="timeline-events-list"></div>');
+            
+            events.forEach((point, index) => {
+                const eventItem = $(`
+                    <div class="timeline-event-item mb-3">
+                        <div class="d-flex align-items-start">
+                            <div class="timeline-event-icon me-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-geo-alt"></i>
+                                </div>
+                            </div>
+                            <div class="timeline-event-content">
+                                <h6 class="mb-1">${point.event}</h6>
+                                <p class="text-muted mb-1">${moment(point.timestamp).format('MMM DD, YYYY HH:mm:ss')}</p>
+                                <p class="mb-0">${point.location || 'Unknown location'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                eventsList.append(eventItem);
+            });
+            
+            eventsContainer.append(eventsList);
+        }
+        
+        function initReportButtons() {
+            $('#tripReportBtn').click(function() {
+                generateReport('Trip Summary Report', 'trip');
+            });
+            
+            $('#fuelReportBtn').click(function() {
+                generateReport('Fuel Consumption Report', 'fuel');
+            });
+            
+            $('#locationReportBtn').click(function() {
+                generateReport('Location History Report', 'location');
+            });
+            
+            $('#downloadReportBtn').click(function() {
+                // Implement download functionality
+                alert('Download functionality will be implemented soon');
+            });
+            
+            $('#printReportBtn').click(function() {
+                window.print();
+            });
+        }
+        
+        function generateReport(title, type) {
+            $('#reportTitle').text(title);
+            
+            // Show the report container
+            $('#reportContent').show();
+            
+            // Simulate report loading
+            $('#reportContentBody').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Generating report...</p></div>');
+            
+            setTimeout(function() {
+                // Generate different reports based on type
+                if (type === 'trip') {
+                    generateTripReport();
+                } else if (type === 'fuel') {
+                    generateFuelReport();
+                } else if (type === 'location') {
+                    generateLocationReport();
+                }
+            }, 1500);
+        }
+        
+        function generateTripReport() {
+            if (historyData.length === 0) {
+                $('#reportContentBody').html('<div class="alert alert-warning">No data available for the selected period.</div>');
+                return;
+            }
+            
+            // Process data to identify trips
+            const trips = identifyTrips(historyData);
+            
+            let reportHtml = `
+                <h5>Trip Summary for ${@vehicle.Make} ${@vehicle.Model} (${@vehicle.RegistrationNumber})</h5>
+                <p>Period: ${$('#startDate').val()} to ${$('#endDate').val()}</p>
+                <hr>
+            `;
+            
+            if (trips.length === 0) {
+                reportHtml += '<div class="alert alert-info">No trips detected in the selected period.</div>';
+            } else {
+                reportHtml += `
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Duration</th>
+                                    <th>Start Location</th>
+                                    <th>End Location</th>
+                                    <th>Distance</th>
+                                    <th>Avg. Speed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                trips.forEach(trip => {
+                    const duration = moment.duration(moment(trip.endTime).diff(moment(trip.startTime)));
+                    const hours = Math.floor(duration.asHours());
+                    const mins = Math.floor(duration.asMinutes()) % 60;
+                    
+                    reportHtml += `
+                        <tr>
+                            <td>${moment(trip.startTime).format('MMM DD, YYYY HH:mm')}</td>
+                            <td>${moment(trip.endTime).format('MMM DD, YYYY HH:mm')}</td>
+                            <td>${hours}h ${mins}m</td>
+                            <td>${trip.startLocation || 'Unknown'}</td>
+                            <td>${trip.endLocation || 'Unknown'}</td>
+                            <td>${trip.distance.toFixed(2)} km</td>
+                            <td>${trip.avgSpeed.toFixed(2)} km/h</td>
+                        </tr>
+                    `;
+                });
+                
+                reportHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>Trip Summary Statistics</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light mb-3">
+                                    <div class="card-body text-center">
+                                        <h3>${trips.length}</h3>
+                                        <p class="text-muted mb-0">Total Trips</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light mb-3">
+                                    <div class="card-body text-center">
+                                        <h3>${trips.reduce((sum, trip) => sum + trip.distance, 0).toFixed(2)} km</h3>
+                                        <p class="text-muted mb-0">Total Distance</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light mb-3">
+                                    <div class="card-body text-center">
+                                        <h3>${(trips.reduce((sum, trip) => sum + trip.avgSpeed, 0) / trips.length).toFixed(2)} km/h</h3>
+                                        <p class="text-muted mb-0">Avg Speed</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light mb-3">
+                                    <div class="card-body text-center">
+                                        <h3>${calculateTotalDuration(trips)}</h3>
+                                        <p class="text-muted mb-0">Total Duration</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            $('#reportContentBody').html(reportHtml);
+        }
+        
+        function generateFuelReport() {
+            // Implementation for fuel report
+            $('#reportContentBody').html('<div class="alert alert-info">Fuel consumption report functionality will be implemented soon.</div>');
+        }
+        
+        function generateLocationReport() {
+            // Implementation for location report
+            $('#reportContentBody').html('<div class="alert alert-info">Location history report functionality will be implemented soon.</div>');
+        }
+        
+        function identifyTrips(data) {
+            // Simple algorithm to identify trips from GPS data
+            const trips = [];
+            let currentTrip = null;
+            let inTrip = false;
+            
+            data.forEach((point, index) => {
+                // Trip start - engine starts and speed > 0
+                if (!inTrip && point.engineStatus === 'running' && point.speed > 0) {
+                    inTrip = true;
+                    currentTrip = {
+                        startTime: point.timestamp,
+                        startLocation: point.location,
+                        waypoints: [point],
+                        distance: 0,
+                        maxSpeed: point.speed,
+                        avgSpeed: 0
+                    };
+                } 
+                // During trip
+                else if (inTrip && point.engineStatus === 'running') {
+                    currentTrip.waypoints.push(point);
+                    currentTrip.maxSpeed = Math.max(currentTrip.maxSpeed, point.speed);
+                    
+                    // Calculate distance if previous point exists
+                    if (currentTrip.waypoints.length > 1) {
+                        const prevPoint = currentTrip.waypoints[currentTrip.waypoints.length - 2];
+                        const distanceAdded = calculateDistance(
+                            prevPoint.latitude, prevPoint.longitude,
+                            point.latitude, point.longitude
+                        );
+                        currentTrip.distance += distanceAdded;
+                    }
+                }
+                // Trip end - engine stops or this is the last point
+                else if (inTrip && (point.engineStatus === 'off' || index === data.length - 1)) {
+                    inTrip = false;
+                    currentTrip.endTime = point.timestamp;
+                    currentTrip.endLocation = point.location;
+                    
+                    // Calculate average speed
+                    const totalSpeed = currentTrip.waypoints.reduce((sum, p) => sum + p.speed, 0);
+                    currentTrip.avgSpeed = totalSpeed / currentTrip.waypoints.length;
+                    
+                    trips.push(currentTrip);
+                    currentTrip = null;
+                }
+            });
+            
+            return trips;
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            // Haversine formula to calculate distance between two points
+            const R = 6371; // Radius of the earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1); 
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2); 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            const d = R * c; // Distance in km
+            return d;
+        }
+        
+        function deg2rad(deg) {
+            return deg * (Math.PI/180);
+        }
+        
+        function calculateTotalDuration(trips) {
+            let totalMinutes = trips.reduce((sum, trip) => {
+                const duration = moment.duration(moment(trip.endTime).diff(moment(trip.startTime)));
+                return sum + duration.asMinutes();
+            }, 0);
+            
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = Math.floor(totalMinutes % 60);
+            
+            return `${hours}h ${mins}m`;
+        }
+    </script>
+} 

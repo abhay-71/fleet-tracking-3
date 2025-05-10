@@ -1,0 +1,466 @@
+@model FleetTracking.Models.Driver
+
+@{
+    ViewData["Title"] = "Driver Schedule";
+    var driverName = ViewData["DriverName"] as string;
+    var upcomingTrips = ViewData["UpcomingTrips"] as List<FleetTracking.Models.Trip>;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Schedule: @driverName</h1>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Driver Details
+        </a>
+        <a asp-action="Skills" asp-route-id="@Model.Id" class="btn btn-primary">
+            <i class="fas fa-award"></i> Skills & Certifications
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Driver Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img src="https://ui-avatars.com/api/?name=@(Model.User.FirstName)+@(Model.User.LastName)&background=random&size=128" class="rounded-circle" alt="@Model.User.FirstName @Model.User.LastName">
+                    <h4 class="mt-3">@Model.User.FirstName @Model.User.LastName</h4>
+                    <div class="badge bg-@(Model.Status == "active" ? "success" : "secondary")">@Model.Status</div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>License Number:</strong>
+                        <span>@Model.LicenseNumber</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>License Expiry:</strong>
+                        <span>@(Model.LicenseExpiry?.ToString("MM/dd/yyyy") ?? "Not Available")</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>Experience:</strong>
+                        <span>@(Model.HireDate.HasValue ? (DateTime.Now - Model.HireDate.Value).Days / 365 : 0) years</span>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-grid gap-2">
+                    <a asp-action="Availability" class="btn btn-outline-primary">
+                        <i class="fas fa-users"></i> Driver Availability
+                    </a>
+                    <button type="button" class="btn btn-outline-success" id="addTripBtn">
+                        <i class="fas fa-plus"></i> Add Trip
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Current Month Schedule</h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="prevMonthBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="currentMonthBtn">
+                        Today
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="nextMonthBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <h5 class="text-center mb-4" id="currentMonthDisplay"></h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="scheduleCalendar">
+                        <thead>
+                            <tr>
+                                <th>Sun</th>
+                                <th>Mon</th>
+                                <th>Tue</th>
+                                <th>Wed</th>
+                                <th>Thu</th>
+                                <th>Fri</th>
+                                <th>Sat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendarBody">
+                            <!-- Calendar will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Upcoming Trips</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Trip ID</th>
+                        <th>Date</th>
+                        <th>Start → End</th>
+                        <th>Vehicle</th>
+                        <th>Status</th>
+                        <th>Distance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (upcomingTrips != null && upcomingTrips.Any())
+                    {
+                        foreach (var trip in upcomingTrips)
+                        {
+                            <tr data-trip-id="@trip.Id" data-start-time="@trip.StartTime.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                <td>@trip.Id</td>
+                                <td>@trip.StartTime.ToString("MM/dd/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@trip.StartLocation → @trip.EndLocation">
+                                        @trip.StartLocation → @trip.EndLocation
+                                    </span>
+                                </td>
+                                <td>@trip.Vehicle.DisplayName</td>
+                                <td>
+                                    <span class="badge bg-@(trip.Status == "scheduled" ? "info" : trip.Status == "in_progress" ? "warning" : "success")">
+                                        @trip.Status
+                                    </span>
+                                </td>
+                                <td>@trip.Distance.ToString("N1") km</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a asp-controller="Trip" asp-action="Details" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        @if (trip.Status == "scheduled")
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-warning" data-trip-id="@trip.Id" data-bs-toggle="modal" data-bs-target="#reassignTripModal">
+                                                <i class="fas fa-exchange-alt"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center">No upcoming trips scheduled for this driver.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Trip Modal -->
+<div class="modal fade" id="addTripModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Trip for @driverName</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="tripDate" class="form-label">Trip Date</label>
+                    <input type="date" class="form-control" id="tripDate" value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripStartTime" class="form-label">Start Time</label>
+                            <input type="time" class="form-control" id="tripStartTime" value="08:00">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripEndTime" class="form-label">Estimated End Time</label>
+                            <input type="time" class="form-control" id="tripEndTime" value="17:00">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripStartLocation" class="form-label">Start Location</label>
+                            <input type="text" class="form-control" id="tripStartLocation">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="tripEndLocation" class="form-label">End Location</label>
+                            <input type="text" class="form-control" id="tripEndLocation">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tripVehicleId" class="form-label">Vehicle</label>
+                    <select class="form-select" id="tripVehicleId">
+                        <option value="">-- Select Vehicle --</option>
+                        <!-- Would be populated with actual vehicles -->
+                        <option value="1">Truck #1 - Ford F-150</option>
+                        <option value="2">Truck #2 - Chevrolet Silverado</option>
+                        <option value="3">Van #1 - Mercedes Sprinter</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tripNotes" class="form-label">Notes</label>
+                    <textarea class="form-control" id="tripNotes" rows="3"></textarea>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> After adding, you will be redirected to the trip creation page to complete the details.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAddTripBtn">Add Trip</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reassign Trip Modal -->
+<div class="modal fade" id="reassignTripModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reassign Trip</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="tripToReassignId">
+                <p>Reassign trip <strong id="tripIdDisplay"></strong> to another driver:</p>
+                
+                <div class="mb-3">
+                    <label for="newDriverId" class="form-label">Select Driver</label>
+                    <select class="form-select" id="newDriverId">
+                        <option value="">-- Select Driver --</option>
+                        <!-- Would be populated with actual drivers -->
+                        <option value="1">John Doe</option>
+                        <option value="2">Jane Smith</option>
+                        <option value="3">Bob Johnson</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="reassignReason" class="form-label">Reason for Reassignment</label>
+                    <textarea class="form-control" id="reassignReason" rows="3"></textarea>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="notifyDrivers" checked>
+                    <label class="form-check-label" for="notifyDrivers">
+                        Notify both drivers of the change
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmReassignBtn">Reassign Trip</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            let currentMonth = new Date();
+            
+            // Initialize calendar
+            updateCalendar(currentMonth);
+            
+            // Add trip button
+            $('#addTripBtn').click(function() {
+                $('#addTripModal').modal('show');
+            });
+            
+            // Confirm add trip button
+            $('#confirmAddTripBtn').click(function() {
+                const tripDate = $('#tripDate').val();
+                const startTime = $('#tripStartTime').val();
+                const endTime = $('#tripEndTime').val();
+                const startLocation = $('#tripStartLocation').val();
+                const endLocation = $('#tripEndLocation').val();
+                const vehicleId = $('#tripVehicleId').val();
+                const notes = $('#tripNotes').val();
+                
+                // Validate inputs
+                if (!tripDate || !startTime || !startLocation || !endLocation || !vehicleId) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                // Redirect to trip creation page with pre-filled values
+                window.location.href = `/Trip/Create?driverId=@Model.Id&startLocation=${encodeURIComponent(startLocation)}&endLocation=${encodeURIComponent(endLocation)}&vehicleId=${vehicleId}`;
+            });
+            
+            // Trip reassignment
+            $('#reassignTripModal').on('show.bs.modal', function(event) {
+                const button = $(event.relatedTarget);
+                const tripId = button.data('trip-id');
+                $('#tripToReassignId').val(tripId);
+                $('#tripIdDisplay').text(tripId);
+            });
+            
+            // Confirm reassign button
+            $('#confirmReassignBtn').click(function() {
+                const tripId = $('#tripToReassignId').val();
+                const newDriverId = $('#newDriverId').val();
+                const reason = $('#reassignReason').val();
+                const notify = $('#notifyDrivers').is(':checked');
+                
+                // Validate inputs
+                if (!newDriverId) {
+                    alert('Please select a driver');
+                    return;
+                }
+                
+                // In a real application, this would call an API to reassign the trip
+                // For this demo, we'll just show a success message and close the modal
+                alert(`Trip #${tripId} has been reassigned.`);
+                $('#reassignTripModal').modal('hide');
+                
+                // Remove the reassigned trip from the table
+                $(`tr[data-trip-id="${tripId}"]`).fadeOut();
+            });
+            
+            // Month navigation buttons
+            $('#prevMonthBtn').click(function() {
+                currentMonth.setMonth(currentMonth.getMonth() - 1);
+                updateCalendar(currentMonth);
+            });
+            
+            $('#nextMonthBtn').click(function() {
+                currentMonth.setMonth(currentMonth.getMonth() + 1);
+                updateCalendar(currentMonth);
+            });
+            
+            $('#currentMonthBtn').click(function() {
+                currentMonth = new Date();
+                updateCalendar(currentMonth);
+            });
+            
+            // Function to update the calendar
+            function updateCalendar(date) {
+                // Update month display
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                $('#currentMonthDisplay').text(`${monthNames[date.getMonth()]} ${date.getFullYear()}`);
+                
+                // Clear the calendar
+                const $calendarBody = $('#calendarBody');
+                $calendarBody.empty();
+                
+                // Get first day of the month
+                const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+                // Get last day of the month
+                const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+                
+                // Get the day of the week for the first day (0 = Sunday, 6 = Saturday)
+                const firstDayOfWeek = firstDay.getDay();
+                
+                // Create calendar rows
+                let day = 1;
+                const totalDays = lastDay.getDate();
+                let html = '';
+                
+                // Collect trip data for the month
+                const tripData = {};
+                $('tr[data-trip-id]').each(function() {
+                    const tripId = $(this).data('trip-id');
+                    const startTime = new Date($(this).data('start-time'));
+                    
+                    // Only consider trips in the current month
+                    if (startTime.getMonth() === date.getMonth() && startTime.getFullYear() === date.getFullYear()) {
+                        const day = startTime.getDate();
+                        if (!tripData[day]) {
+                            tripData[day] = [];
+                        }
+                        tripData[day].push({
+                            id: tripId,
+                            startTime: startTime
+                        });
+                    }
+                });
+                
+                // Build calendar
+                for (let i = 0; i < 6; i++) {
+                    html += '<tr style="height: 100px;">';
+                    
+                    for (let j = 0; j < 7; j++) {
+                        if (i === 0 && j < firstDayOfWeek) {
+                            // Empty cells before the first day
+                            html += '<td class="bg-light"></td>';
+                        } else if (day > totalDays) {
+                            // Empty cells after the last day
+                            html += '<td class="bg-light"></td>';
+                        } else {
+                            // Regular day cell
+                            const today = new Date();
+                            const isToday = today.getDate() === day && 
+                                          today.getMonth() === date.getMonth() && 
+                                          today.getFullYear() === date.getFullYear();
+                            
+                            const cellClass = isToday ? 'bg-info bg-opacity-10' : '';
+                            
+                            html += `<td class="${cellClass}">
+                                <div class="position-relative h-100">
+                                    <span class="position-absolute top-0 start-0 p-1 ${isToday ? 'fw-bold' : ''}">${day}</span>
+                                    <div class="pt-4">`;
+                            
+                            // Add trip indicators
+                            if (tripData[day]) {
+                                for (let trip of tripData[day]) {
+                                    const hours = trip.startTime.getHours().toString().padStart(2, '0');
+                                    const mins = trip.startTime.getMinutes().toString().padStart(2, '0');
+                                    html += `<div class="bg-primary bg-opacity-75 text-white small p-1 rounded mb-1" 
+                                                title="Trip #${trip.id}">
+                                                <i class="fas fa-truck-moving"></i> ${hours}:${mins} Trip #${trip.id}
+                                            </div>`;
+                                }
+                            }
+                            
+                            html += `</div></div></td>`;
+                            day++;
+                        }
+                    }
+                    
+                    html += '</tr>';
+                    
+                    // Stop if we've displayed all days
+                    if (day > totalDays) {
+                        break;
+                    }
+                }
+                
+                $calendarBody.html(html);
+            }
+        });
+    </script>
+} 

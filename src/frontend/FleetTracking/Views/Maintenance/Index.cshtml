@@ -1,0 +1,441 @@
+@model List<FleetTracking.Models.MaintenanceRecord>
+
+@{
+    ViewData["Title"] = "Maintenance Schedule";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Maintenance Schedule</h1>
+            <p class="text-muted">Manage and track maintenance activities for your fleet</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> New Maintenance
+                </a>
+                <a asp-action="Forecast" class="btn btn-outline-primary">
+                    <i class="bi bi-graph-up"></i> Maintenance Forecast
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white py-3">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming-tab-pane" type="button" role="tab" aria-controls="upcoming-tab-pane" aria-selected="true">
+                                Upcoming <span class="badge bg-primary">@Model.Count(m => m.Status == "scheduled" && !m.IsOverdue)</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="overdue-tab" data-bs-toggle="tab" data-bs-target="#overdue-tab-pane" type="button" role="tab" aria-controls="overdue-tab-pane" aria-selected="false">
+                                Overdue <span class="badge bg-danger">@Model.Count(m => m.Status == "scheduled" && m.IsOverdue)</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inprogress-tab" data-bs-toggle="tab" data-bs-target="#inprogress-tab-pane" type="button" role="tab" aria-controls="inprogress-tab-pane" aria-selected="false">
+                                In Progress <span class="badge bg-warning">@Model.Count(m => m.Status == "in_progress")</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed-tab-pane" type="button" role="tab" aria-controls="completed-tab-pane" aria-selected="false">
+                                Completed <span class="badge bg-success">@Model.Count(m => m.Status == "completed")</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-tab-pane" type="button" role="tab" aria-controls="all-tab-pane" aria-selected="false">
+                                All Records <span class="badge bg-secondary">@Model.Count</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body p-0">
+                    <div class="tab-content">
+                        <!-- Upcoming Maintenance -->
+                        <div class="tab-pane fade show active" id="upcoming-tab-pane" role="tabpanel" aria-labelledby="upcoming-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="upcomingTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vehicle</th>
+                                            <th>Maintenance Type</th>
+                                            <th>Scheduled</th>
+                                            <th>Days Until Due</th>
+                                            <th>Estimated Cost</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.Where(m => m.Status == "scheduled" && !m.IsOverdue).OrderBy(m => m.ScheduledDate))
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <a asp-action="Vehicle" asp-route-id="@item.VehicleId" class="text-decoration-none">
+                                                        @(item.Vehicle?.RegistrationNumber ?? $"Vehicle #{item.VehicleId}")
+                                                    </a>
+                                                </td>
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>@item.DaysUntilDue days</td>
+                                                <td>@(item.EstimatedCost?.ToString("C") ?? "N/A")</td>
+                                                <td>
+                                                    <span class="badge bg-primary">@item.StatusDisplay</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Edit">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#completeModal" data-record-id="@item.Id" title="Mark as Complete">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (!Model.Any(m => m.Status == "scheduled" && !m.IsOverdue))
+                                        {
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No upcoming maintenance scheduled.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Overdue Maintenance -->
+                        <div class="tab-pane fade" id="overdue-tab-pane" role="tabpanel" aria-labelledby="overdue-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="overdueTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vehicle</th>
+                                            <th>Maintenance Type</th>
+                                            <th>Scheduled</th>
+                                            <th>Days Overdue</th>
+                                            <th>Estimated Cost</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.Where(m => m.Status == "scheduled" && m.IsOverdue).OrderBy(m => m.ScheduledDate))
+                                        {
+                                            <tr class="table-danger">
+                                                <td>
+                                                    <a asp-action="Vehicle" asp-route-id="@item.VehicleId" class="text-decoration-none">
+                                                        @(item.Vehicle?.RegistrationNumber ?? $"Vehicle #{item.VehicleId}")
+                                                    </a>
+                                                </td>
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>@Math.Abs(item.DaysUntilDue) days</td>
+                                                <td>@(item.EstimatedCost?.ToString("C") ?? "N/A")</td>
+                                                <td>
+                                                    <span class="badge bg-danger">@item.StatusDisplay</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Edit">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#completeModal" data-record-id="@item.Id" title="Mark as Complete">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (!Model.Any(m => m.Status == "scheduled" && m.IsOverdue))
+                                        {
+                                            <tr>
+                                                <td colspan="7" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No overdue maintenance.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- In Progress Maintenance -->
+                        <div class="tab-pane fade" id="inprogress-tab-pane" role="tabpanel" aria-labelledby="inprogress-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="inProgressTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vehicle</th>
+                                            <th>Maintenance Type</th>
+                                            <th>Scheduled</th>
+                                            <th>Estimated Cost</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.Where(m => m.Status == "in_progress").OrderBy(m => m.ScheduledDate))
+                                        {
+                                            <tr class="table-warning">
+                                                <td>
+                                                    <a asp-action="Vehicle" asp-route-id="@item.VehicleId" class="text-decoration-none">
+                                                        @(item.Vehicle?.RegistrationNumber ?? $"Vehicle #{item.VehicleId}")
+                                                    </a>
+                                                </td>
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>@(item.EstimatedCost?.ToString("C") ?? "N/A")</td>
+                                                <td>
+                                                    <span class="badge bg-warning text-dark">@item.StatusDisplay</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Edit">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#completeModal" data-record-id="@item.Id" title="Mark as Complete">
+                                                            <i class="bi bi-check-lg"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (!Model.Any(m => m.Status == "in_progress"))
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No maintenance currently in progress.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Completed Maintenance -->
+                        <div class="tab-pane fade" id="completed-tab-pane" role="tabpanel" aria-labelledby="completed-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="completedTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vehicle</th>
+                                            <th>Maintenance Type</th>
+                                            <th>Scheduled</th>
+                                            <th>Completed</th>
+                                            <th>Actual Cost</th>
+                                            <th>Performed By</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.Where(m => m.Status == "completed").OrderByDescending(m => m.CompletedDate))
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <a asp-action="Vehicle" asp-route-id="@item.VehicleId" class="text-decoration-none">
+                                                        @(item.Vehicle?.RegistrationNumber ?? $"Vehicle #{item.VehicleId}")
+                                                    </a>
+                                                </td>
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>@(item.CompletedDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                                <td>@(item.ActualCost?.ToString("C") ?? "N/A")</td>
+                                                <td>@(item.PerformedBy ?? "N/A")</td>
+                                            </tr>
+                                        }
+                                        @if (!Model.Any(m => m.Status == "completed"))
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No completed maintenance records.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- All Maintenance Records -->
+                        <div class="tab-pane fade" id="all-tab-pane" role="tabpanel" aria-labelledby="all-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="allTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vehicle</th>
+                                            <th>Maintenance Type</th>
+                                            <th>Scheduled</th>
+                                            <th>Status</th>
+                                            <th>Cost</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.OrderByDescending(m => m.Status == "scheduled" ? 1 : 0).ThenBy(m => m.ScheduledDate))
+                                        {
+                                            <tr class="@(item.Status == "scheduled" && item.IsOverdue ? "table-danger" : 
+                                                       item.Status == "in_progress" ? "table-warning" :
+                                                       item.Status == "completed" ? "" : "")">
+                                                <td>
+                                                    <a asp-action="Vehicle" asp-route-id="@item.VehicleId" class="text-decoration-none">
+                                                        @(item.Vehicle?.RegistrationNumber ?? $"Vehicle #{item.VehicleId}")
+                                                    </a>
+                                                </td>
+                                                <td>@(item.MaintenanceType?.Name ?? $"Maintenance #{item.MaintenanceTypeId}")</td>
+                                                <td>@item.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                                                <td>
+                                                    @switch (item.Status)
+                                                    {
+                                                        case "scheduled" when item.IsOverdue:
+                                                            <span class="badge bg-danger">Overdue</span>
+                                                            break;
+                                                        case "scheduled":
+                                                            <span class="badge bg-primary">Scheduled</span>
+                                                            break;
+                                                        case "in_progress":
+                                                            <span class="badge bg-warning text-dark">In Progress</span>
+                                                            break;
+                                                        case "completed":
+                                                            <span class="badge bg-success">Completed</span>
+                                                            break;
+                                                        case "cancelled":
+                                                            <span class="badge bg-secondary">Cancelled</span>
+                                                            break;
+                                                        default:
+                                                            <span class="badge bg-secondary">@item.Status</span>
+                                                            break;
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (item.Status == "completed")
+                                                    {
+                                                        @(item.ActualCost?.ToString("C") ?? "N/A")
+                                                    }
+                                                    else
+                                                    {
+                                                        @(item.EstimatedCost?.ToString("C") ?? "N/A")
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (item.Status != "completed" && item.Status != "cancelled")
+                                                    {
+                                                        <div class="btn-group btn-group-sm">
+                                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Edit">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </a>
+                                                            @if (item.Status != "completed")
+                                                            {
+                                                                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#completeModal" data-record-id="@item.Id" title="Mark as Complete">
+                                                                    <i class="bi bi-check-lg"></i>
+                                                                </button>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">No actions</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (!Model.Any())
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-4">
+                                                    <p class="text-muted mb-0">No maintenance records found.</p>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Maintenance Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1" aria-labelledby="completeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completeModalLabel">Complete Maintenance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="completeForm" asp-action="Complete" method="post">
+                    <input type="hidden" id="recordId" name="id" value="" />
+                    
+                    <div class="mb-3">
+                        <label for="cost" class="form-label">Actual Cost</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="completeForm" class="btn btn-success">Complete Maintenance</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tables with DataTables
+            $('#upcomingTable, #overdueTable, #inProgressTable, #completedTable, #allTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                order: []
+            });
+            
+            // Set up the complete modal
+            $('#completeModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var recordId = button.data('record-id');
+                $('#recordId').val(recordId);
+            });
+            
+            // Show success message if exists
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                    setTimeout(function() {
+                        toastr.success('@TempData["SuccessMessage"]');
+                    }, 300);
+                </text>
+            }
+            
+            // Show error message if exists
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <text>
+                    setTimeout(function() {
+                        toastr.error('@TempData["ErrorMessage"]');
+                    }, 300);
+                </text>
+            }
+        });
+    </script>
+} 

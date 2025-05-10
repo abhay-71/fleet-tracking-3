@@ -41,6 +41,21 @@ func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 		handleVehicleByID(w, r, db)
 	})
 
+	// GPS data ingestion endpoints
+	gpsHandler := NewGPSDataHandler(db)
+	mux.HandleFunc("POST "+apiV1+"/gps/data", gpsHandler.IngestGPSData)
+	mux.HandleFunc("POST "+apiV1+"/gps/batch", gpsHandler.IngestBatchGPSData)
+
+	// Geofencing endpoints
+	geofenceHandler := NewGeofenceHandler(db)
+	mux.HandleFunc("GET "+apiV1+"/geofences", geofenceHandler.ListGeofences)
+	mux.HandleFunc("POST "+apiV1+"/geofences", geofenceHandler.CreateGeofence)
+	mux.HandleFunc("GET "+apiV1+"/geofences/{id}", geofenceHandler.GetGeofence)
+	mux.HandleFunc("PUT "+apiV1+"/geofences/{id}", geofenceHandler.UpdateGeofence)
+	mux.HandleFunc("DELETE "+apiV1+"/geofences/{id}", geofenceHandler.DeleteGeofence)
+	mux.HandleFunc("POST "+apiV1+"/geofences/check", geofenceHandler.CheckPoint)
+	mux.HandleFunc("POST "+apiV1+"/geofences/batch-check", geofenceHandler.BatchCheck)
+
 	// Trip endpoints
 	tripHandler := NewTripHandler(db)
 

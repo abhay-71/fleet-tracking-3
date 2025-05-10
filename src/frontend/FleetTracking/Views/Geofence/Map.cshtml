@@ -1,0 +1,965 @@
+@{
+    ViewData["Title"] = "Geofence Map";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">Geofence Map</h1>
+            <p class="text-muted">Create and manage geofences on interactive map</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Index" class="btn btn-outline-primary me-2">
+                <i class="bi bi-list"></i> List View
+            </a>
+            <a asp-action="Create" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Create New Geofence
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-9">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">Geofence Visualization</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-end">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-secondary active" id="defaultMapBtn">Default</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="satelliteMapBtn">Satellite</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="geofenceMap" style="height: 70vh; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Geofences</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="Search geofences..." id="searchGeofence">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <div class="list-group geofence-list" id="geofenceList">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading geofences...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Drawing Tools</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" id="drawCircleBtn">
+                            <i class="bi bi-circle"></i> Draw Circle
+                        </button>
+                        <button class="btn btn-outline-primary" id="drawPolygonBtn">
+                            <i class="bi bi-hexagon"></i> Draw Polygon
+                        </button>
+                        <button class="btn btn-outline-primary" id="drawRectangleBtn">
+                            <i class="bi bi-square"></i> Draw Rectangle
+                        </button>
+                        <button class="btn btn-outline-primary" id="drawComplexPolygonBtn">
+                            <i class="bi bi-bounding-box-circles"></i> Draw Complex Polygon
+                        </button>
+                        <button class="btn btn-outline-danger" id="cancelDrawingBtn">
+                            <i class="bi bi-x-circle"></i> Cancel Drawing
+                        </button>
+                    </div>
+
+                    <hr>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-secondary" id="batchOperationsBtn" data-bs-toggle="modal" data-bs-target="#batchOperationsModal">
+                            <i class="bi bi-collection"></i> Batch Operations
+                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary" id="importGeofencesBtn" data-bs-toggle="modal" data-bs-target="#importGeofencesModal">
+                                <i class="bi bi-upload"></i> Import
+                            </button>
+                            <button class="btn btn-outline-secondary" id="exportGeofencesBtn">
+                                <i class="bi bi-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div id="drawingInfo" class="d-none">
+                        <h6>New Geofence</h6>
+                        <form id="quickGeofenceForm">
+                            <div class="mb-3">
+                                <label for="geofenceName" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="geofenceName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="geofenceDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="geofenceDescription" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="geofenceCategory" class="form-label">Category</label>
+                                <select class="form-select" id="geofenceCategory" required>
+                                    <option value="restricted">Restricted Area</option>
+                                    <option value="warehouse">Warehouse</option>
+                                    <option value="customer">Customer Site</option>
+                                    <option value="poi">Point of Interest</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="geofenceColor" class="form-label">Color</label>
+                                <input type="color" class="form-control" id="geofenceColor" value="#FF5733">
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="geofenceActive" checked>
+                                <label class="form-check-label" for="geofenceActive">Active</label>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success">Save Geofence</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Geofence Details Modal -->
+<div class="modal fade" id="geofenceDetailsModal" tabindex="-1" aria-labelledby="geofenceDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="geofenceDetailsModalLabel">Geofence Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="geofence-details-content">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading details...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="editGeofenceBtn">Edit</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Operations Modal -->
+<div class="modal fade" id="batchOperationsModal" tabindex="-1" aria-labelledby="batchOperationsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="batchOperationsModalLabel">Batch Operations</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="batchOperationsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="activate-tab" data-bs-toggle="tab" data-bs-target="#activate-tab-pane" type="button" role="tab">Activate/Deactivate</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="category-tab" data-bs-toggle="tab" data-bs-target="#category-tab-pane" type="button" role="tab">Change Category</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="delete-tab" data-bs-toggle="tab" data-bs-target="#delete-tab-pane" type="button" role="tab">Delete</button>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3" id="batchOperationsTabContent">
+                    <div class="tab-pane fade show active" id="activate-tab-pane" role="tabpanel" aria-labelledby="activate-tab" tabindex="0">
+                        <div class="mb-3">
+                            <label class="form-label">Select Status</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="batchStatus" id="activateGeofences" value="activate" checked>
+                                <label class="form-check-label" for="activateGeofences">
+                                    Activate Geofences
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="batchStatus" id="deactivateGeofences" value="deactivate">
+                                <label class="form-check-label" for="deactivateGeofences">
+                                    Deactivate Geofences
+                                </label>
+                            </div>
+                        </div>
+                        <div class="geofence-batch-selection"></div>
+                    </div>
+                    <div class="tab-pane fade" id="category-tab-pane" role="tabpanel" aria-labelledby="category-tab" tabindex="0">
+                        <div class="mb-3">
+                            <label for="batchCategory" class="form-label">Select New Category</label>
+                            <select class="form-select" id="batchCategory">
+                                <option value="restricted">Restricted Area</option>
+                                <option value="warehouse">Warehouse</option>
+                                <option value="customer">Customer Site</option>
+                                <option value="poi">Point of Interest</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="geofence-batch-selection"></div>
+                    </div>
+                    <div class="tab-pane fade" id="delete-tab-pane" role="tabpanel" aria-labelledby="delete-tab" tabindex="0">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Warning: This operation cannot be undone. All selected geofences will be permanently deleted.
+                        </div>
+                        <div class="geofence-batch-selection"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyBatchOperations">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Geofences Modal -->
+<div class="modal fade" id="importGeofencesModal" tabindex="-1" aria-labelledby="importGeofencesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importGeofencesModalLabel">Import Geofences</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="importFormat" class="form-label">Select Format</label>
+                    <select class="form-select" id="importFormat">
+                        <option value="json">JSON</option>
+                        <option value="geojson">GeoJSON</option>
+                        <option value="kml">KML</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="importFile" class="form-label">Upload File</label>
+                    <input class="form-control" type="file" id="importFile">
+                </div>
+                <div class="alert alert-info">
+                    <small>
+                        <i class="bi bi-info-circle-fill"></i> Supported formats: JSON, GeoJSON, and KML.
+                        For JSON format, see the export file for the expected structure.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="importGeofencesButton">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <style>
+        #geofenceMap {
+            z-index: 0;
+        }
+        .geofence-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .geofence-list-item {
+            cursor: pointer;
+        }
+        .geofence-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Initialize map
+            const map = L.map('geofenceMap').setView([34.0522, -118.2437], 10);
+            let currentMapLayer = 'default';
+            
+            // Define map layers
+            const defaultLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            });
+
+            // Map type toggle
+            $('#defaultMapBtn').click(function() {
+                if (currentMapLayer !== 'default') {
+                    satelliteLayer.remove();
+                    defaultLayer.addTo(map);
+                    currentMapLayer = 'default';
+                    $(this).addClass('active');
+                    $('#satelliteMapBtn').removeClass('active');
+                }
+            });
+            
+            $('#satelliteMapBtn').click(function() {
+                if (currentMapLayer !== 'satellite') {
+                    defaultLayer.remove();
+                    satelliteLayer.addTo(map);
+                    currentMapLayer = 'satellite';
+                    $(this).addClass('active');
+                    $('#defaultMapBtn').removeClass('active');
+                }
+            });
+
+            // Initialize FeatureGroup for drawn items
+            const drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            // Initialize Leaflet.draw control
+            const drawControl = new L.Control.Draw({
+                draw: {
+                    polyline: false,
+                    polygon: {
+                        allowIntersection: false,
+                        showArea: true
+                    },
+                    circle: true,
+                    rectangle: true,
+                    marker: false,
+                    circlemarker: false
+                },
+                edit: {
+                    featureGroup: drawnItems,
+                    remove: true
+                }
+            });
+            
+            // Don't add control by default - we'll use our custom buttons
+            // map.addControl(drawControl);
+
+            // Drawing events
+            $('#drawCircleBtn').click(function() {
+                new L.Draw.Circle(map).enable();
+            });
+            
+            $('#drawPolygonBtn').click(function() {
+                new L.Draw.Polygon(map, {
+                    allowIntersection: false,
+                    showArea: true
+                }).enable();
+            });
+            
+            $('#drawRectangleBtn').click(function() {
+                new L.Draw.Rectangle(map).enable();
+            });
+            
+            // Complex Polygon Drawing
+            $('#drawComplexPolygonBtn').click(function() {
+                new L.Draw.Polygon(map, {
+                    allowIntersection: true,
+                    showArea: true
+                }).enable();
+                
+                toastr.info('Complex polygon mode: Intersections are allowed.', null, { timeOut: 3000 });
+            });
+            
+            $('#cancelDrawingBtn').click(function() {
+                map.fire('draw:drawstop');
+            });
+
+            // Handle created shapes
+            map.on('draw:created', function(e) {
+                const layer = e.layer;
+                drawnItems.addLayer(layer);
+                
+                // Show drawing info form
+                $('#drawingInfo').removeClass('d-none');
+                
+                // Handle form submission for quick geofence creation
+                $('#quickGeofenceForm').off('submit').on('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const name = $('#geofenceName').val();
+                    const description = $('#geofenceDescription').val();
+                    const category = $('#geofenceCategory').val();
+                    const color = $('#geofenceColor').val();
+                    const active = $('#geofenceActive').is(':checked');
+                    
+                    // Create geofence object based on the shape type
+                    let geofence = {
+                        name: name,
+                        description: description,
+                        category: category,
+                        color: color,
+                        companyId: 1, // This would be dynamic in a real application
+                        active: active,
+                        coordinates: '',
+                        type: ''
+                    };
+                    
+                    if (layer instanceof L.Circle) {
+                        // Handle circle
+                        const center = layer.getLatLng();
+                        const radius = layer.getRadius() / 1000; // Convert to km
+                        
+                        geofence.type = 'circle';
+                        geofence.coordinates = JSON.stringify({
+                            center_lat: center.lat,
+                            center_lng: center.lng,
+                            radius: radius
+                        });
+                        geofence.radius = radius;
+                    } else if (layer instanceof L.Rectangle) {
+                        // Handle rectangle
+                        const bounds = layer.getBounds();
+                        
+                        geofence.type = 'rectangle';
+                        geofence.coordinates = JSON.stringify({
+                            northeast_lat: bounds.getNorthEast().lat,
+                            northeast_lng: bounds.getNorthEast().lng,
+                            southwest_lat: bounds.getSouthWest().lat,
+                            southwest_lng: bounds.getSouthWest().lng
+                        });
+                    } else if (layer instanceof L.Polygon) {
+                        // Handle polygon
+                        const latlngs = layer.getLatLngs()[0];
+                        const vertices = latlngs.map(latlng => [latlng.lat, latlng.lng]);
+                        
+                        geofence.type = 'polygon';
+                        geofence.coordinates = JSON.stringify({
+                            vertices: vertices
+                        });
+                    }
+                    
+                    // Send to server
+                    $.ajax({
+                        url: '/Geofence/Create',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(geofence),
+                        success: function(response) {
+                            // Success feedback
+                            toastr.success('Geofence created successfully');
+                            
+                            // Reset form and drawing layer
+                            $('#quickGeofenceForm')[0].reset();
+                            $('#drawingInfo').addClass('d-none');
+                            drawnItems.clearLayers();
+                            
+                            // Refresh geofence list
+                            loadGeofences();
+                        },
+                        error: function(error) {
+                            toastr.error('Failed to create geofence');
+                            console.error(error);
+                        }
+                    });
+                });
+            });
+
+            // Export geofences
+            $('#exportGeofencesBtn').click(function() {
+                $.ajax({
+                    url: '/Geofence/GetAllGeofences',
+                    type: 'GET',
+                    success: function(geofences) {
+                        if (geofences && geofences.length > 0) {
+                            // Convert to GeoJSON
+                            const geojson = {
+                                type: "FeatureCollection",
+                                features: []
+                            };
+                            
+                            geofences.forEach(function(geofence) {
+                                try {
+                                    let feature = {
+                                        type: "Feature",
+                                        properties: {
+                                            id: geofence.id,
+                                            name: geofence.name,
+                                            description: geofence.description,
+                                            type: geofence.type,
+                                            category: geofence.category,
+                                            color: geofence.color,
+                                            active: geofence.active,
+                                            createdAt: geofence.createdAt,
+                                            updatedAt: geofence.updatedAt
+                                        },
+                                        geometry: null
+                                    };
+                                    
+                                    if (geofence.type === 'circle') {
+                                        const circleData = JSON.parse(geofence.coordinates);
+                                        feature.geometry = {
+                                            type: "Point",
+                                            coordinates: [circleData.center_lng, circleData.center_lat]
+                                        };
+                                        feature.properties.radius = geofence.radius || circleData.radius;
+                                    } else if (geofence.type === 'rectangle') {
+                                        const rectData = JSON.parse(geofence.coordinates);
+                                        feature.geometry = {
+                                            type: "Polygon",
+                                            coordinates: [[
+                                                [rectData.southwest_lng, rectData.southwest_lat],
+                                                [rectData.northeast_lng, rectData.southwest_lat],
+                                                [rectData.northeast_lng, rectData.northeast_lat],
+                                                [rectData.southwest_lng, rectData.northeast_lat],
+                                                [rectData.southwest_lng, rectData.southwest_lat]
+                                            ]]
+                                        };
+                                    } else if (geofence.type === 'polygon') {
+                                        const polyData = JSON.parse(geofence.coordinates);
+                                        feature.geometry = {
+                                            type: "Polygon",
+                                            coordinates: [
+                                                polyData.vertices.map(vertex => [vertex[1], vertex[0]])
+                                            ]
+                                        };
+                                        // Close the polygon
+                                        if (polyData.vertices.length > 0) {
+                                            const first = polyData.vertices[0];
+                                            const last = polyData.vertices[polyData.vertices.length - 1];
+                                            if (first[0] !== last[0] || first[1] !== last[1]) {
+                                                feature.geometry.coordinates[0].push([first[1], first[0]]);
+                                            }
+                                        }
+                                    }
+                                    
+                                    geojson.features.push(feature);
+                                } catch (e) {
+                                    console.error('Error processing geofence for export:', e);
+                                }
+                            });
+                            
+                            // Create and download file
+                            const blob = new Blob([JSON.stringify(geojson, null, 2)], {type: "application/json"});
+                            saveAs(blob, "geofences_export_" + new Date().toISOString().slice(0, 10) + ".geojson");
+                            
+                            toastr.success('Geofences exported successfully');
+                        } else {
+                            toastr.warning('No geofences to export');
+                        }
+                    },
+                    error: function(error) {
+                        toastr.error('Failed to export geofences');
+                        console.error(error);
+                    }
+                });
+            });
+
+            // Import geofences
+            $('#importGeofencesButton').click(function() {
+                const fileInput = document.getElementById('importFile');
+                const format = $('#importFormat').val();
+                
+                if (fileInput.files.length === 0) {
+                    toastr.warning('Please select a file to import');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        let geofences = [];
+                        
+                        if (format === 'json') {
+                            // Direct JSON import
+                            const importedData = JSON.parse(e.target.result);
+                            if (Array.isArray(importedData)) {
+                                geofences = importedData;
+                            }
+                        } else if (format === 'geojson') {
+                            // GeoJSON import
+                            const geojson = JSON.parse(e.target.result);
+                            
+                            if (geojson.type === 'FeatureCollection' && Array.isArray(geojson.features)) {
+                                geojson.features.forEach(function(feature) {
+                                    if (feature.geometry) {
+                                        const props = feature.properties || {};
+                                        let geofence = {
+                                            name: props.name || 'Imported Geofence',
+                                            description: props.description || '',
+                                            category: props.category || 'custom',
+                                            color: props.color || '#FF5733',
+                                            active: props.active !== undefined ? props.active : true,
+                                            companyId: 1
+                                        };
+                                        
+                                        if (feature.geometry.type === 'Point' && props.radius) {
+                                            // Circle
+                                            geofence.type = 'circle';
+                                            geofence.radius = props.radius;
+                                            geofence.coordinates = JSON.stringify({
+                                                center_lat: feature.geometry.coordinates[1],
+                                                center_lng: feature.geometry.coordinates[0],
+                                                radius: props.radius
+                                            });
+                                        } else if (feature.geometry.type === 'Polygon') {
+                                            // Check if it's a rectangle or polygon
+                                            const coords = feature.geometry.coordinates[0];
+                                            
+                                            if (coords.length === 5 && 
+                                                coords[0][0] === coords[3][0] && coords[1][0] === coords[2][0] && 
+                                                coords[0][1] === coords[1][1] && coords[2][1] === coords[3][1]) {
+                                                // It's likely a rectangle
+                                                geofence.type = 'rectangle';
+                                                geofence.coordinates = JSON.stringify({
+                                                    northeast_lat: coords[2][1],
+                                                    northeast_lng: coords[2][0],
+                                                    southwest_lat: coords[0][1],
+                                                    southwest_lng: coords[0][0]
+                                                });
+                                            } else {
+                                                // It's a polygon
+                                                geofence.type = 'polygon';
+                                                const vertices = coords.map(coord => [coord[1], coord[0]]);
+                                                geofence.coordinates = JSON.stringify({
+                                                    vertices: vertices
+                                                });
+                                            }
+                                        }
+                                        
+                                        geofences.push(geofence);
+                                    }
+                                });
+                            }
+                        } else if (format === 'kml') {
+                            // KML import
+                            const kmlDoc = new DOMParser().parseFromString(e.target.result, 'text/xml');
+                            const geojson = toGeoJSON.kml(kmlDoc);
+                            
+                            if (geojson.type === 'FeatureCollection' && Array.isArray(geojson.features)) {
+                                geojson.features.forEach(function(feature) {
+                                    if (feature.geometry) {
+                                        const props = feature.properties || {};
+                                        let geofence = {
+                                            name: props.name || props.Name || 'Imported Geofence',
+                                            description: props.description || props.Description || '',
+                                            category: 'custom',
+                                            color: '#FF5733', // Default color
+                                            active: true,
+                                            companyId: 1
+                                        };
+                                        
+                                        if (feature.geometry.type === 'Point') {
+                                            // Circle - assume a default radius since KML doesn't specify
+                                            geofence.type = 'circle';
+                                            geofence.radius = 1; // 1 km default
+                                            geofence.coordinates = JSON.stringify({
+                                                center_lat: feature.geometry.coordinates[1],
+                                                center_lng: feature.geometry.coordinates[0],
+                                                radius: 1
+                                            });
+                                        } else if (feature.geometry.type === 'Polygon') {
+                                            // Polygon
+                                            geofence.type = 'polygon';
+                                            const vertices = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+                                            geofence.coordinates = JSON.stringify({
+                                                vertices: vertices
+                                            });
+                                        }
+                                        
+                                        geofences.push(geofence);
+                                    }
+                                });
+                            }
+                        }
+                        
+                        if (geofences.length > 0) {
+                            // Send to server
+                            $.ajax({
+                                url: '/Geofence/ImportGeofences',
+                                type: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify(geofences),
+                                success: function(response) {
+                                    toastr.success(`Successfully imported ${response.count} geofences`);
+                                    $('#importGeofencesModal').modal('hide');
+                                    loadGeofences();
+                                },
+                                error: function(error) {
+                                    toastr.error('Failed to import geofences');
+                                    console.error(error);
+                                }
+                            });
+                        } else {
+                            toastr.warning('No valid geofences found in the file');
+                        }
+                    } catch (error) {
+                        toastr.error('Error parsing import file');
+                        console.error(error);
+                    }
+                };
+                
+                reader.readAsText(file);
+            });
+
+            // Load geofences for batch operations
+            function loadBatchGeofences() {
+                $.ajax({
+                    url: '/Geofence/GetAllGeofences',
+                    type: 'GET',
+                    success: function(geofences) {
+                        $('.geofence-batch-selection').empty();
+                        
+                        if (geofences && geofences.length > 0) {
+                            let html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr>';
+                            html += '<th><input type="checkbox" id="selectAllGeofences" class="form-check-input"></th>';
+                            html += '<th>Name</th><th>Type</th><th>Category</th><th>Status</th></tr></thead><tbody>';
+                            
+                            geofences.forEach(function(geofence) {
+                                html += `<tr>
+                                    <td><input type="checkbox" class="form-check-input geofence-checkbox" value="${geofence.id}"></td>
+                                    <td>${geofence.name}</td>
+                                    <td>${geofence.typeDisplayName}</td>
+                                    <td>${geofence.categoryDisplayName}</td>
+                                    <td>${geofence.active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+                                </tr>`;
+                            });
+                            
+                            html += '</tbody></table></div>';
+                            $('.geofence-batch-selection').html(html);
+                            
+                            // Select all checkbox functionality
+                            $('#selectAllGeofences').change(function() {
+                                $('.geofence-checkbox').prop('checked', $(this).is(':checked'));
+                            });
+                        } else {
+                            $('.geofence-batch-selection').html('<div class="alert alert-info">No geofences available</div>');
+                        }
+                    },
+                    error: function(error) {
+                        $('.geofence-batch-selection').html('<div class="alert alert-danger">Failed to load geofences</div>');
+                        console.error(error);
+                    }
+                });
+            }
+
+            // Handle batch operations modal
+            $('#batchOperationsModal').on('show.bs.modal', function() {
+                loadBatchGeofences();
+            });
+            
+            // Apply batch operations
+            $('#applyBatchOperations').click(function() {
+                const selectedGeofences = $('.geofence-checkbox:checked').map(function() {
+                    return parseInt($(this).val());
+                }).get();
+                
+                if (selectedGeofences.length === 0) {
+                    toastr.warning('Please select at least one geofence');
+                    return;
+                }
+                
+                const activeTab = $('.nav-link.active').attr('id');
+                let operation = '';
+                let data = { geofenceIds: selectedGeofences };
+                
+                if (activeTab === 'activate-tab') {
+                    operation = 'UpdateStatus';
+                    data.status = $('input[name="batchStatus"]:checked').val() === 'activate';
+                } else if (activeTab === 'category-tab') {
+                    operation = 'UpdateCategory';
+                    data.category = $('#batchCategory').val();
+                } else if (activeTab === 'delete-tab') {
+                    operation = 'Delete';
+                }
+                
+                // Send to server
+                $.ajax({
+                    url: `/Geofence/BatchOperation/${operation}`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(response) {
+                        toastr.success(`Successfully applied changes to ${selectedGeofences.length} geofences`);
+                        $('#batchOperationsModal').modal('hide');
+                        loadGeofences();
+                    },
+                    error: function(error) {
+                        toastr.error('Failed to apply batch changes');
+                        console.error(error);
+                    }
+                });
+            });
+
+            // Load geofences from API
+            function loadGeofences() {
+                $.ajax({
+                    url: '/Geofence/GetAllGeofences',
+                    type: 'GET',
+                    success: function(geofences) {
+                        // Clear existing layers
+                        drawnItems.clearLayers();
+                        
+                        // Clear the list
+                        $('#geofenceList').empty();
+                        
+                        if (geofences && geofences.length > 0) {
+                            geofences.forEach(function(geofence) {
+                                // Add to map based on type
+                                let layer;
+                                
+                                try {
+                                    if (geofence.type === 'circle') {
+                                        const circleData = JSON.parse(geofence.coordinates);
+                                        layer = L.circle([circleData.center_lat, circleData.center_lng], {
+                                            radius: (geofence.radius || circleData.radius) * 1000, // Convert km to m
+                                            color: geofence.color || '#FF5733',
+                                            fillOpacity: 0.2
+                                        });
+                                    } else if (geofence.type === 'rectangle') {
+                                        const rectData = JSON.parse(geofence.coordinates);
+                                        layer = L.rectangle([
+                                            [rectData.southwest_lat, rectData.southwest_lng],
+                                            [rectData.northeast_lat, rectData.northeast_lng]
+                                        ], {
+                                            color: geofence.color || '#33FF57',
+                                            fillOpacity: 0.2
+                                        });
+                                    } else if (geofence.type === 'polygon') {
+                                        const polyData = JSON.parse(geofence.coordinates);
+                                        layer = L.polygon(polyData.vertices, {
+                                            color: geofence.color || '#5733FF',
+                                            fillOpacity: 0.2
+                                        });
+                                    }
+                                    
+                                    if (layer) {
+                                        // Store geofence data with the layer
+                                        layer.geofence = geofence;
+                                        
+                                        // Add popup
+                                        layer.bindPopup(`
+                                            <strong>${geofence.name}</strong><br>
+                                            <span class="text-muted">${geofence.categoryDisplayName}</span><br>
+                                            <a href="#" class="view-details" data-id="${geofence.id}">View Details</a>
+                                        `);
+                                        
+                                        drawnItems.addLayer(layer);
+                                        
+                                        // Add to list
+                                        $('#geofenceList').append(`
+                                            <div class="list-group-item list-group-item-action geofence-list-item" data-id="${geofence.id}">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="geofence-color" style="background-color: ${geofence.color || '#ccc'}"></div>
+                                                    <div>
+                                                        <div class="fw-bold">${geofence.name}</div>
+                                                        <small class="text-muted">${geofence.typeDisplayName}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `);
+                                    }
+                                } catch (e) {
+                                    console.error('Error parsing geofence:', e);
+                                }
+                            });
+                            
+                            // Add click event to list items
+                            $('.geofence-list-item').click(function() {
+                                const geofenceId = $(this).data('id');
+                                // Find the layer with this geofence ID
+                                drawnItems.eachLayer(function(layer) {
+                                    if (layer.geofence && layer.geofence.id === geofenceId) {
+                                        // Center map on this layer
+                                        map.fitBounds(layer.getBounds());
+                                        // Open the popup
+                                        layer.openPopup();
+                                    }
+                                });
+                            });
+                            
+                        } else {
+                            $('#geofenceList').html('<div class="text-center py-4"><p>No geofences found</p></div>');
+                        }
+                    },
+                    error: function(error) {
+                        console.error('Error loading geofences:', error);
+                        $('#geofenceList').html('<div class="text-center py-4"><p class="text-danger">Failed to load geofences</p></div>');
+                    }
+                });
+            }
+            
+            // Initial load of geofences
+            loadGeofences();
+            
+            // Filter geofences in the list
+            $('#searchGeofence').on('keyup', function() {
+                const value = $(this).val().toLowerCase();
+                $('.geofence-list-item').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+            
+            // Handle view details click in popups
+            $(document).on('click', '.view-details', function(e) {
+                e.preventDefault();
+                const geofenceId = $(this).data('id');
+                
+                // Show modal with loading state
+                $('#geofenceDetailsModal').modal('show');
+                $('.geofence-details-content').html(`
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading details...</p>
+                    </div>
+                `);
+                
+                // Set the edit button href
+                $('#editGeofenceBtn').attr('href', `/Geofence/Edit/${geofenceId}`);
+                
+                // Load geofence details
+                $.ajax({
+                    url: `/Geofence/Details/${geofenceId}`,
+                    type: 'GET',
+                    success: function(response) {
+                        // Extract just the HTML we need (this is a simplistic approach)
+                        const detailsHtml = $(response).find('.card-body').html();
+                        $('.geofence-details-content').html(detailsHtml);
+                    },
+                    error: function(error) {
+                        $('.geofence-details-content').html(`
+                            <div class="alert alert-danger">
+                                Failed to load geofence details
+                            </div>
+                        `);
+                    }
+                });
+            });
+        });
+    </script>
+} 

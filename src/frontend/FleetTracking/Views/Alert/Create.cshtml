@@ -1,0 +1,181 @@
+@model FleetTracking.Models.Alert
+
+@{
+    ViewData["Title"] = "Create Alert";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">Create Alert</h1>
+            <p class="text-muted">Configure a new notification alert</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">Alert Information</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" id="alertForm">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Basic Information</h6>
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Type" class="form-label"></label>
+                            <select asp-for="Type" asp-items="ViewBag.AlertTypes" class="form-select" id="alertType">
+                                <option value="">-- Select Type --</option>
+                            </select>
+                            <span asp-validation-for="Type" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Category" class="form-label"></label>
+                            <select asp-for="Category" asp-items="ViewBag.AlertCategories" class="form-select">
+                                <option value="">-- Select Category --</option>
+                            </select>
+                            <span asp-validation-for="Category" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Severity" class="form-label"></label>
+                            <select asp-for="Severity" asp-items="ViewBag.SeverityLevels" class="form-select">
+                                <option value="">-- Select Severity --</option>
+                            </select>
+                            <span asp-validation-for="Severity" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input asp-for="Active" class="form-check-input" />
+                            <label asp-for="Active" class="form-check-label"></label>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input asp-for="AutoResolve" class="form-check-input" />
+                            <label asp-for="AutoResolve" class="form-check-label"></label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Target and Conditions</h6>
+                        <div id="geofenceSection" class="mb-3 d-none">
+                            <label asp-for="GeofenceId" class="form-label"></label>
+                            <select asp-for="GeofenceId" asp-items="ViewBag.Geofences" class="form-select">
+                                <option value="">-- Select Geofence --</option>
+                            </select>
+                            <span asp-validation-for="GeofenceId" class="text-danger"></span>
+                        </div>
+                        <div id="vehicleSection" class="mb-3">
+                            <label asp-for="VehicleId" class="form-label"></label>
+                            <select asp-for="VehicleId" asp-items="ViewBag.Vehicles" class="form-select">
+                                <option value="">-- Select Vehicle --</option>
+                            </select>
+                            <span asp-validation-for="VehicleId" class="text-danger"></span>
+                        </div>
+                        <div id="driverSection" class="mb-3">
+                            <label asp-for="DriverId" class="form-label"></label>
+                            <select asp-for="DriverId" asp-items="ViewBag.Drivers" class="form-select">
+                                <option value="">-- Select Driver --</option>
+                            </select>
+                            <span asp-validation-for="DriverId" class="text-danger"></span>
+                        </div>
+                        <div id="conditionSection" class="mb-3 d-none">
+                            <label asp-for="Condition" class="form-label"></label>
+                            <select asp-for="Condition" asp-items="ViewBag.Conditions" class="form-select">
+                                <option value="">-- Select Condition --</option>
+                            </select>
+                            <span asp-validation-for="Condition" class="text-danger"></span>
+                        </div>
+                        <div id="thresholdSection" class="row d-none">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Threshold" class="form-label"></label>
+                                <input asp-for="Threshold" class="form-control" />
+                                <span asp-validation-for="Threshold" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Unit" class="form-label"></label>
+                                <select asp-for="Unit" asp-items="ViewBag.Units" class="form-select">
+                                    <option value="">-- Select Unit --</option>
+                                </select>
+                                <span asp-validation-for="Unit" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-3 mt-4">Notification Settings</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Notification Channels</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var channel in ViewBag.NotificationChannels)
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" name="selectedChannels" value="@channel.Value" id="channel_@channel.Value">
+                                        <label class="form-check-label" for="channel_@channel.Value">@channel.Text</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Recipients</label>
+                            <select multiple class="form-select" name="selectedRecipients" id="recipients">
+                                @foreach (var user in ViewBag.Users)
+                                {
+                                    <option value="@user.Value">@user.Text</option>
+                                }
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple recipients</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">Create Alert</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function() {
+            // Handle alert type change
+            $('#alertType').change(function() {
+                const type = $(this).val();
+                
+                // Hide all conditional sections
+                $('#geofenceSection, #conditionSection, #thresholdSection').addClass('d-none');
+                
+                if (type === 'geofence_entry' || type === 'geofence_exit') {
+                    // Show geofence selection for geofence alerts
+                    $('#geofenceSection').removeClass('d-none');
+                } else if (type === 'speed') {
+                    // Show speed threshold inputs
+                    $('#conditionSection, #thresholdSection').removeClass('d-none');
+                } else if (type === 'idle_time') {
+                    // Show time threshold inputs
+                    $('#conditionSection, #thresholdSection').removeClass('d-none');
+                }
+            });
+            
+            // Handle recipient selection
+            $('#selectAllRecipients').click(function() {
+                $('#recipients option').prop('selected', true);
+            });
+        });
+    </script>
+} 

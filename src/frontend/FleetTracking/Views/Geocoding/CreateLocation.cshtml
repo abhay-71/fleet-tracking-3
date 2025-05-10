@@ -1,0 +1,297 @@
+@model FleetTracking.Models.SavedLocation
+
+@{
+    ViewData["Title"] = "Add Location";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">Add Location</h1>
+            <p class="text-muted">Create a new saved location</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="SavedLocations" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Locations
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Location Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateLocation" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Location Name</label>
+                            <input asp-for="Name" class="form-control" required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Type" class="form-label">Location Type</label>
+                            <select asp-for="Type" class="form-select">
+                                <option value="customer">Customer</option>
+                                <option value="warehouse">Warehouse</option>
+                                <option value="office">Office</option>
+                                <option value="rest_area">Rest Area</option>
+                                <option value="service_center">Service Center</option>
+                                <option value="other">Other</option>
+                            </select>
+                            <span asp-validation-for="Type" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">Address</label>
+                            <div class="input-group">
+                                <input asp-for="Address" class="form-control" id="addressInput" />
+                                <button class="btn btn-outline-secondary" type="button" id="searchAddressBtn">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Latitude" class="form-label">Latitude</label>
+                                    <input asp-for="Latitude" class="form-control" id="latitudeInput" required />
+                                    <span asp-validation-for="Latitude" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Longitude" class="form-label">Longitude</label>
+                                    <input asp-for="Longitude" class="form-control" id="longitudeInput" required />
+                                    <span asp-validation-for="Longitude" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notes</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label">Active</label>
+                        </div>
+                        
+                        <div class="text-end">
+                            <a asp-action="SavedLocations" class="btn btn-outline-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Add Location</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Map Placement</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="locationMap" style="height: 400px; width: 100%;"></div>
+                </div>
+                <div class="card-footer bg-white py-3">
+                    <p class="mb-0 small text-muted">
+                        <i class="bi bi-info-circle"></i> You can click on the map to set the location, or 
+                        search for an address above and adjust the marker position if needed.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Address Search Results Modal -->
+<div class="modal fade" id="addressSearchModal" tabindex="-1" aria-labelledby="addressSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addressSearchModalLabel">Address Search Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="addressSearchResults">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Searching for address...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        #locationMap {
+            z-index: 0;
+        }
+    </style>
+}
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize map with default location
+            const map = L.map('locationMap').setView([34.0522, -118.2437], 10);
+            
+            // Add OSM tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Initialize marker with default position
+            let marker = L.marker([34.0522, -118.2437], {
+                draggable: true
+            }).addTo(map);
+            
+            // Update lat/lng inputs when marker is moved
+            marker.on('dragend', function(event) {
+                const position = marker.getLatLng();
+                $('#latitudeInput').val(position.lat.toFixed(6));
+                $('#longitudeInput').val(position.lng.toFixed(6));
+                updateMarkerPopup(position.lat.toFixed(6), position.lng.toFixed(6));
+            });
+            
+            // Update marker position when lat/lng inputs change
+            $('#latitudeInput, #longitudeInput').change(function() {
+                const lat = parseFloat($('#latitudeInput').val());
+                const lng = parseFloat($('#longitudeInput').val());
+                
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    marker.setLatLng([lat, lng]);
+                    map.setView([lat, lng], 12);
+                    updateMarkerPopup(lat.toFixed(6), lng.toFixed(6));
+                }
+            });
+            
+            // Click on map to set location
+            map.on('click', function(e) {
+                marker.setLatLng(e.latlng);
+                $('#latitudeInput').val(e.latlng.lat.toFixed(6));
+                $('#longitudeInput').val(e.latlng.lng.toFixed(6));
+                updateMarkerPopup(e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6));
+            });
+            
+            // Update marker popup
+            function updateMarkerPopup(lat, lng) {
+                marker.bindPopup(`<strong>Selected Position</strong><br>Lat: ${lat}, Lng: ${lng}`).openPopup();
+            }
+            
+            // Initial marker popup
+            updateMarkerPopup(34.0522, -118.2437);
+            
+            // Search for address
+            $('#searchAddressBtn').click(function() {
+                const address = $('#addressInput').val().trim();
+                
+                if (!address) {
+                    return;
+                }
+                
+                // Show modal with loading state
+                $('#addressSearchModal').modal('show');
+                $('#addressSearchResults').html(`
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Searching for address...</p>
+                    </div>
+                `);
+                
+                // Call geocoding API
+                $.ajax({
+                    url: '/Geocoding/Search',
+                    type: 'GET',
+                    data: {
+                        query: address,
+                        type: 'forward'
+                    },
+                    success: function(results) {
+                        if (results.error) {
+                            $('#addressSearchResults').html(`
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> ${results.error}
+                                </div>
+                            `);
+                            return;
+                        }
+                        
+                        if (Array.isArray(results) && results.length > 0) {
+                            let html = '<div class="list-group">';
+                            
+                            results.forEach(function(result) {
+                                html += `
+                                    <button type="button" class="list-group-item list-group-item-action select-address"
+                                            data-lat="${result.latitude}" data-lng="${result.longitude}"
+                                            data-address="${result.formattedAddress}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">${result.formattedAddress}</h6>
+                                        </div>
+                                        <small>Coordinates: ${result.latitude.toFixed(6)}, ${result.longitude.toFixed(6)}</small>
+                                    </button>
+                                `;
+                            });
+                            
+                            html += '</div>';
+                            $('#addressSearchResults').html(html);
+                        } else {
+                            $('#addressSearchResults').html(`
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-circle-fill"></i> No results found for "${address}"
+                                </div>
+                            `);
+                        }
+                    },
+                    error: function(error) {
+                        $('#addressSearchResults').html(`
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Error searching for address
+                            </div>
+                        `);
+                    }
+                });
+            });
+            
+            // Select address from search results
+            $(document).on('click', '.select-address', function() {
+                const lat = $(this).data('lat');
+                const lng = $(this).data('lng');
+                const address = $(this).data('address');
+                
+                // Update form fields
+                $('#addressInput').val(address);
+                $('#latitudeInput').val(lat);
+                $('#longitudeInput').val(lng);
+                
+                // Update marker
+                marker.setLatLng([lat, lng]);
+                map.setView([lat, lng], 12);
+                updateMarkerPopup(lat, lng);
+                
+                // Close modal
+                $('#addressSearchModal').modal('hide');
+            });
+        });
+    </script>
+} 

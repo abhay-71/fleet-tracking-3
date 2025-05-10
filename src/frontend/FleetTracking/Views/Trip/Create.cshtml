@@ -13,9 +13,9 @@
     </div>
 </div>
 
-<div class="card shadow-sm">
+<div class="card shadow-sm mb-4">
     <div class="card-body">
-        <form asp-action="Create">
+        <form asp-action="Create" id="tripForm">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             
             <div class="row">
@@ -43,18 +43,35 @@
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label asp-for="StartLocation" class="form-label"></label>
-                        <input asp-for="StartLocation" class="form-control" />
+                        <div class="input-group">
+                            <input asp-for="StartLocation" class="form-control" id="startLocationInput" />
+                            <button type="button" class="btn btn-outline-secondary" id="searchStartBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
                         <span asp-validation-for="StartLocation" class="text-danger"></span>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label asp-for="EndLocation" class="form-label"></label>
-                        <input asp-for="EndLocation" class="form-control" />
+                        <div class="input-group">
+                            <input asp-for="EndLocation" class="form-control" id="endLocationInput" />
+                            <button type="button" class="btn btn-outline-secondary" id="searchEndBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
                         <span asp-validation-for="EndLocation" class="text-danger"></span>
                     </div>
                 </div>
             </div>
+
+            <input type="hidden" id="startLatitude" name="StartLatitude" />
+            <input type="hidden" id="startLongitude" name="StartLongitude" />
+            <input type="hidden" id="endLatitude" name="EndLatitude" />
+            <input type="hidden" id="endLongitude" name="EndLongitude" />
+            <input type="hidden" id="estimatedDistance" name="Distance" />
+            <input type="hidden" id="waypointsJson" name="WaypointsJson" />
             
             <div class="row">
                 <div class="col-md-6">
@@ -94,6 +111,306 @@
     </div>
 </div>
 
+<!-- Route Planning Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Route Planning</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Click on the map to add waypoints to your route. Drag markers to adjust positions.
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-primary me-2"><i class="fas fa-map-marker-alt"></i></span>
+                    <span><strong>Estimated Distance:</strong> <span id="totalDistance">0.00</span> km</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-primary me-2"><i class="fas fa-clock"></i></span>
+                    <span><strong>Estimated Duration:</strong> <span id="totalDuration">0</span> min</span>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary" id="optimizeRouteBtn">
+                        <i class="fas fa-route"></i> Optimize Route
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" id="clearWaypointsBtn">
+                        <i class="fas fa-trash"></i> Clear Waypoints
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="routeMap" style="height: 400px; width: 100%;"></div>
+        
+        <div class="mt-3">
+            <h6>Waypoints</h6>
+            <ul class="list-group" id="waypointsList">
+                <li class="list-group-item text-center text-muted">No waypoints added yet. Click on the map to add waypoints.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize map
+            var map = L.map('routeMap').setView([51.505, -0.09], 13); // Default view
+            
+            // Add base layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Variables for route planning
+            var startMarker = null;
+            var endMarker = null;
+            var waypointMarkers = [];
+            var routeControl = null;
+            
+            // Initialize routing control
+            function initRouteControl() {
+                if (routeControl) {
+                    map.removeControl(routeControl);
+                }
+                
+                var waypoints = [];
+                if (startMarker) {
+                    waypoints.push(startMarker.getLatLng());
+                }
+                
+                waypointMarkers.forEach(function(marker) {
+                    waypoints.push(marker.getLatLng());
+                });
+                
+                if (endMarker) {
+                    waypoints.push(endMarker.getLatLng());
+                }
+                
+                if (waypoints.length >= 2) {
+                    routeControl = L.Routing.control({
+                        waypoints: waypoints,
+                        routeWhileDragging: true,
+                        showAlternatives: true,
+                        altLineOptions: {
+                            styles: [
+                                {color: 'black', opacity: 0.15, weight: 9},
+                                {color: 'white', opacity: 0.8, weight: 6},
+                                {color: 'blue', opacity: 0.5, weight: 2}
+                            ]
+                        }
+                    }).addTo(map);
+                    
+                    routeControl.on('routesfound', function(e) {
+                        var routes = e.routes;
+                        var summary = routes[0].summary;
+                        
+                        // Update distance and duration
+                        $('#totalDistance').text((summary.totalDistance / 1000).toFixed(2));
+                        $('#totalDuration').text(Math.round(summary.totalTime / 60));
+                        
+                        // Update hidden input for distance
+                        $('#estimatedDistance').val((summary.totalDistance / 1000).toFixed(2));
+                    });
+                }
+            }
+            
+            // Search address (geocoding)
+            function searchAddress(address, isStart) {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            var lat = parseFloat(data[0].lat);
+                            var lng = parseFloat(data[0].lon);
+                            
+                            if (isStart) {
+                                if (startMarker) {
+                                    startMarker.setLatLng([lat, lng]);
+                                } else {
+                                    startMarker = L.marker([lat, lng], {
+                                        icon: L.divIcon({
+                                            html: '<i class="fas fa-flag-checkered fa-2x text-success"></i>',
+                                            iconSize: [20, 20],
+                                            className: 'map-marker-icon'
+                                        }),
+                                        draggable: true
+                                    }).addTo(map);
+                                    
+                                    startMarker.on('dragend', function() {
+                                        var pos = startMarker.getLatLng();
+                                        $('#startLatitude').val(pos.lat);
+                                        $('#startLongitude').val(pos.lng);
+                                        initRouteControl();
+                                    });
+                                }
+                                
+                                $('#startLatitude').val(lat);
+                                $('#startLongitude').val(lng);
+                            } else {
+                                if (endMarker) {
+                                    endMarker.setLatLng([lat, lng]);
+                                } else {
+                                    endMarker = L.marker([lat, lng], {
+                                        icon: L.divIcon({
+                                            html: '<i class="fas fa-flag fa-2x text-danger"></i>',
+                                            iconSize: [20, 20],
+                                            className: 'map-marker-icon'
+                                        }),
+                                        draggable: true
+                                    }).addTo(map);
+                                    
+                                    endMarker.on('dragend', function() {
+                                        var pos = endMarker.getLatLng();
+                                        $('#endLatitude').val(pos.lat);
+                                        $('#endLongitude').val(pos.lng);
+                                        initRouteControl();
+                                    });
+                                }
+                                
+                                $('#endLatitude').val(lat);
+                                $('#endLongitude').val(lng);
+                            }
+                            
+                            // Center map
+                            map.setView([lat, lng], 13);
+                            
+                            // Update route
+                            initRouteControl();
+                        }
+                    });
+            }
+            
+            // Event listeners for search buttons
+            $('#searchStartBtn').click(function() {
+                searchAddress($('#startLocationInput').val(), true);
+            });
+            
+            $('#searchEndBtn').click(function() {
+                searchAddress($('#endLocationInput').val(), false);
+            });
+            
+            // Add waypoint on map click
+            map.on('click', function(e) {
+                // Only allow waypoints if start and end are set
+                if (!startMarker || !endMarker) {
+                    alert('Please set start and end locations first');
+                    return;
+                }
+                
+                var marker = L.marker(e.latlng, {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-map-pin fa-2x text-primary"></i>',
+                        iconSize: [20, 20],
+                        className: 'map-marker-icon'
+                    }),
+                    draggable: true
+                }).addTo(map);
+                
+                marker.on('dragend', function() {
+                    updateWaypointsList();
+                    initRouteControl();
+                });
+                
+                waypointMarkers.push(marker);
+                updateWaypointsList();
+                initRouteControl();
+            });
+            
+            // Update waypoints list
+            function updateWaypointsList() {
+                var $list = $('#waypointsList');
+                $list.empty();
+                
+                if (waypointMarkers.length === 0) {
+                    $list.append('<li class="list-group-item text-center text-muted">No waypoints added yet. Click on the map to add waypoints.</li>');
+                    return;
+                }
+                
+                waypointMarkers.forEach(function(marker, index) {
+                    var latlng = marker.getLatLng();
+                    var $item = $(`
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Waypoint ${index + 1}: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}</span>
+                            <button type="button" class="btn btn-sm btn-danger remove-waypoint" data-index="${index}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </li>
+                    `);
+                    $list.append($item);
+                });
+                
+                // Save waypoints to hidden input
+                saveWaypoints();
+            }
+            
+            // Remove waypoint
+            $(document).on('click', '.remove-waypoint', function() {
+                var index = $(this).data('index');
+                map.removeLayer(waypointMarkers[index]);
+                waypointMarkers.splice(index, 1);
+                updateWaypointsList();
+                initRouteControl();
+            });
+            
+            // Clear all waypoints
+            $('#clearWaypointsBtn').click(function() {
+                waypointMarkers.forEach(function(marker) {
+                    map.removeLayer(marker);
+                });
+                waypointMarkers = [];
+                updateWaypointsList();
+                initRouteControl();
+            });
+            
+            // Optimize route
+            $('#optimizeRouteBtn').click(function() {
+                if (waypointMarkers.length === 0) {
+                    alert('No waypoints to optimize');
+                    return;
+                }
+                
+                // TODO: Implement actual route optimization
+                // For now, we'll just sort waypoints by distance from start
+                if (startMarker) {
+                    var startPos = startMarker.getLatLng();
+                    waypointMarkers.sort(function(a, b) {
+                        var distA = startPos.distanceTo(a.getLatLng());
+                        var distB = startPos.distanceTo(b.getLatLng());
+                        return distA - distB;
+                    });
+                    
+                    updateWaypointsList();
+                    initRouteControl();
+                }
+            });
+            
+            // Save waypoints to hidden input
+            function saveWaypoints() {
+                var waypoints = waypointMarkers.map(function(marker) {
+                    var latlng = marker.getLatLng();
+                    return {
+                        latitude: latlng.lat,
+                        longitude: latlng.lng,
+                        sequenceNumber: waypointMarkers.indexOf(marker) + 1
+                    };
+                });
+                
+                $('#waypointsJson').val(JSON.stringify(waypoints));
+            }
+            
+            // Form submission
+            $('#tripForm').submit(function() {
+                // Final update of waypoints
+                saveWaypoints();
+                return true;
+            });
+        });
+    </script>
 } 

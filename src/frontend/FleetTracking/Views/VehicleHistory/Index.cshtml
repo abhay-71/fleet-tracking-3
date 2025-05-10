@@ -1,0 +1,186 @@
+@model IEnumerable<FleetTracking.Models.Vehicle>
+
+@{
+    ViewData["Title"] = "Vehicle History";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 mb-0">Vehicle History</h1>
+            <p class="text-muted">View historical routes and data for all vehicles</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-controller="Monitoring" asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-speedometer2"></i> Live Monitoring
+                </a>
+                <a asp-controller="Trip" asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-map"></i> Trip Management
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">Select a Vehicle</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" id="vehicleSearch" class="form-control" placeholder="Search vehicles...">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Registration</th>
+                                    <th>Make/Model</th>
+                                    <th>Year</th>
+                                    <th>Last Activity</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicleTableBody">
+                                @foreach (var vehicle in Model ?? Enumerable.Empty<FleetTracking.Models.Vehicle>())
+                                {
+                                    <tr>
+                                        <td>@vehicle.RegistrationNumber</td>
+                                        <td>@vehicle.Make @vehicle.Model</td>
+                                        <td>@vehicle.Year</td>
+                                        <td>@(vehicle.LastActivityDate?.ToString("MMM dd, yyyy HH:mm") ?? "No activity")</td>
+                                        <td>
+                                            @if (vehicle.Status == "active")
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else if (vehicle.Status == "maintenance")
+                                            {
+                                                <span class="badge bg-warning">Maintenance</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@vehicle.Status</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a asp-action="Vehicle" asp-route-id="@vehicle.Id" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-graph-up"></i> History
+                                                </a>
+                                                <a asp-controller="Trip" asp-action="ByVehicle" asp-route-id="@vehicle.Id" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-map"></i> Trips
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+
+                                @if ((Model?.Count() ?? 0) == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">
+                                            <div class="d-flex flex-column align-items-center">
+                                                <i class="bi bi-truck text-muted" style="font-size: 3rem;"></i>
+                                                <h5 class="mt-3">No vehicles found</h5>
+                                                <p class="text-muted">Add vehicles to start tracking their history</p>
+                                                <a asp-controller="Vehicle" asp-action="Create" class="btn btn-primary mt-2">
+                                                    Add Vehicle
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h2 id="totalVehiclesCount">@(Model?.Count() ?? 0)</h2>
+                            <p class="text-muted">Total Vehicles</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h2 id="activeVehiclesCount">@(Model?.Count(v => v.Status == "active") ?? 0)</h2>
+                            <p class="text-muted">Active</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h2 id="inactiveVehiclesCount">@(Model?.Count(v => v.Status != "active") ?? 0)</h2>
+                            <p class="text-muted">Inactive</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recentActivity">
+                        <div class="list-group">
+                            @{
+                                var recentActivity = Model?.OrderByDescending(v => v.LastActivityDate).Take(5) ?? Enumerable.Empty<FleetTracking.Models.Vehicle>();
+                            }
+                            
+                            @foreach (var vehicle in recentActivity)
+                            {
+                                <a href="@Url.Action("Vehicle", new { id = vehicle.Id })" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">@vehicle.RegistrationNumber - @vehicle.Make @vehicle.Model</h6>
+                                        <small>@(vehicle.LastActivityDate?.ToString("MMM dd, HH:mm") ?? "Unknown")</small>
+                                    </div>
+                                    <p class="mb-1">Last seen at @(vehicle.CurrentLocation ?? "Unknown location")</p>
+                                </a>
+                            }
+                            
+                            @if (!recentActivity.Any())
+                            {
+                                <div class="text-center py-3">
+                                    <p class="text-muted">No recent activity</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $("#vehicleSearch").on("keyup", function () {
+                var value = $(this).val().toLowerCase();
+                $("#vehicleTableBody tr").filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+    </script>
+} 

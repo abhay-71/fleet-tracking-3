@@ -104,5 +104,57 @@ namespace FleetTracking.Models
         [NotMapped]
         [Display(Name = "Scheduled End")]
         public string FormattedEndTime => EndTime.HasValue ? EndTime.Value.ToString("MM/dd/yyyy HH:mm") : "-";
+
+        [Display(Name = "Start Date")]
+        public DateTime StartDate { get; set; }
+
+        [Display(Name = "End Date")]
+        public DateTime EndDate { get; set; }
+
+        [Display(Name = "Max Speed (km/h)")]
+        public double MaxSpeed { get; set; }
+
+        [Display(Name = "Fuel Consumed (L)")]
+        public double FuelConsumed { get; set; }
+
+        [Display(Name = "Driver")]
+        public string DriverName { get; set; }
+
+        [Display(Name = "Stop Count")]
+        public int StopCount { get; set; }
+
+        [Display(Name = "Idle Time")]
+        public TimeSpan IdleTime { get; set; }
+
+        [Display(Name = "Geofence Events")]
+        public int GeofenceEvents { get; set; }
+
+        // Collection of waypoints
+        public List<TripWaypoint> Waypoints { get; set; }
+
+        public Trip()
+        {
+            Waypoints = new List<TripWaypoint>();
+        }
+
+        // Calculate fuel economy (km/L)
+        public double GetFuelEconomy()
+        {
+            if (FuelConsumed <= 0)
+                return 0;
+                
+            return Distance / FuelConsumed;
+        }
+
+        // Calculate average trip speed excluding stops
+        public double GetMovingAverageSpeed()
+        {
+            double movingTime = (EndDate - StartDate).TotalHours - IdleTime.TotalHours;
+            
+            if (movingTime <= 0)
+                return 0;
+                
+            return Distance / movingTime;
+        }
     }
 } 
