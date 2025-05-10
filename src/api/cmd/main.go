@@ -54,7 +54,13 @@ func main() {
 	var handler http.Handler = router
 	handler = middleware.Logging(handler)
 	handler = middleware.Recovery(handler)
-	handler = middleware.Auth(cfg.Auth)(handler)
+
+	// Create auth config for JWT middleware
+	authConfig := middleware.AuthConfig{
+		JWTKey:    []byte(cfg.Auth.JWTSecret),
+		JWTIssuer: "fleetvigil-api",
+	}
+	handler = middleware.JWTAuth(authConfig)(handler)
 
 	// Configure and start server
 	server := &http.Server{

@@ -29,8 +29,8 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	sendJSONResponse(w, http.StatusOK, response)
 }
 
-// handleAuth handles authentication requests
-func handleAuth(w http.ResponseWriter, r *http.Request, db *database.DB) {
+// handleAuthLegacy handles authentication requests (placeholder implementation)
+func handleAuthLegacy(w http.ResponseWriter, r *http.Request, db *database.DB) {
 	// This is a placeholder for the authentication logic
 	// In Phase 1, we're just setting up the infrastructure
 	response := Response{

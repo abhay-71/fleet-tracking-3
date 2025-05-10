@@ -41,11 +41,11 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// handleAuth handles authentication-related requests
-func handleAuth(w http.ResponseWriter, r *http.Request, db *database.DB) {
+// processAuth handles authentication-related requests
+func processAuth(w http.ResponseWriter, r *http.Request, db *database.DB) {
 	// In Phase 1, we're just setting up the infrastructure
 	// This will be expanded in Phase 2 with actual database integration
-	
+
 	// For now, simulate a login process
 	if r.Method == "POST" && r.URL.Path == "/api/v1/auth/login" {
 		handleLogin(w, r, db)
@@ -76,7 +76,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, db *database.DB) {
 
 	// In Phase 1, we're just simulating a successful login
 	// This will be replaced with actual database authentication in Phase 2
-	
+
 	// For the admin user created in the migration, we'll allow login
 	if req.Username == "admin" && req.Password == "admin" {
 		// Load configuration to get JWT settings
@@ -178,4 +178,4 @@ func handleRefresh(w http.ResponseWriter, r *http.Request, db *database.DB) {
 		Status:  "success",
 		Message: "Token refresh endpoint ready. Token refresh will be implemented in Phase 2.",
 	})
-} 
+}
