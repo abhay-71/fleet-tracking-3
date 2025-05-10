@@ -1,4 +1,6 @@
 using FleetTracking.Data;
+using FleetTracking.Hubs;
+using FleetTracking.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +17,17 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddControllersWithViews();
+
+// Add SignalR support
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.MaximumReceiveMessageSize = 102400; // 100 KB
+});
+
+// Register vehicle status service
+builder.Services.AddHostedService<VehicleStatusService>();
+builder.Services.AddSingleton<VehicleStatusService>();
 
 // Configure Identity options
 builder.Services.Configure<IdentityOptions>(options =>
@@ -89,5 +102,8 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
+
+// Map SignalR hubs
+app.MapHub<VehicleStatusHub>("/hubs/vehicleStatus");
 
 app.Run(); 

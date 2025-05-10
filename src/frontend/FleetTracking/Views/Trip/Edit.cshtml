@@ -1,0 +1,135 @@
+@model FleetTracking.Models.Trip
+
+@{
+    ViewData["Title"] = "Edit Trip";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="CreatedAt" />
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="VehicleId" class="form-label"></label>
+                        <select asp-for="VehicleId" class="form-select" asp-items="ViewBag.VehicleId">
+                            <option value="">-- Select Vehicle --</option>
+                        </select>
+                        <span asp-validation-for="VehicleId" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="DriverId" class="form-label"></label>
+                        <select asp-for="DriverId" class="form-select" asp-items="ViewBag.DriverId">
+                            <option value="">-- Select Driver --</option>
+                        </select>
+                        <span asp-validation-for="DriverId" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="StartLocation" class="form-label"></label>
+                        <input asp-for="StartLocation" class="form-control" />
+                        <span asp-validation-for="StartLocation" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="EndLocation" class="form-label"></label>
+                        <input asp-for="EndLocation" class="form-control" />
+                        <span asp-validation-for="EndLocation" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="StartTime" class="form-label"></label>
+                        <input asp-for="StartTime" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="StartTime" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="EndTime" class="form-label"></label>
+                        <input asp-for="EndTime" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="EndTime" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label asp-for="Status" class="form-label"></label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label asp-for="Distance" class="form-label"></label>
+                        <input asp-for="Distance" class="form-control" />
+                        <span asp-validation-for="Distance" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label asp-for="FuelUsed" class="form-label"></label>
+                        <input asp-for="FuelUsed" class="form-control" />
+                        <span asp-validation-for="FuelUsed" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label asp-for="AverageSpeed" class="form-label"></label>
+                        <input asp-for="AverageSpeed" class="form-control" />
+                        <span asp-validation-for="AverageSpeed" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

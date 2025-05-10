@@ -1,0 +1,245 @@
+@{
+    ViewData["Title"] = "Fleet Monitoring Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="VehicleStatus" class="btn btn-primary">
+            <i class="fas fa-car"></i> Vehicle Status
+        </a>
+        <a asp-action="Map" class="btn btn-info">
+            <i class="fas fa-map-marked-alt"></i> Map View
+        </a>
+        <a asp-action="Alerts" class="btn btn-warning">
+            <i class="fas fa-bell"></i> Alerts
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Fleet Overview Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title">Fleet Overview</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Active Vehicles</div>
+                    <div class="badge bg-success">24</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Idle Vehicles</div>
+                    <div class="badge bg-warning">8</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Maintenance</div>
+                    <div class="badge bg-danger">3</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>Total Vehicles</div>
+                    <div class="badge bg-primary">35</div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a asp-controller="Vehicle" asp-action="Index" class="btn btn-sm btn-outline-primary w-100">View All Vehicles</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Driver Status Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title">Driver Status</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Active Drivers</div>
+                    <div class="badge bg-success">18</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Off Duty</div>
+                    <div class="badge bg-secondary">12</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>On Break</div>
+                    <div class="badge bg-info">4</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>Total Drivers</div>
+                    <div class="badge bg-primary">34</div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a asp-controller="Driver" asp-action="Index" class="btn btn-sm btn-outline-primary w-100">View All Drivers</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Trips Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title">Active Trips</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>In Progress</div>
+                    <div class="badge bg-success">14</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Scheduled Today</div>
+                    <div class="badge bg-info">7</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Completed Today</div>
+                    <div class="badge bg-secondary">9</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>Delayed Trips</div>
+                    <div class="badge bg-warning">3</div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a asp-controller="Trip" asp-action="Index" class="btn btn-sm btn-outline-primary w-100">View All Trips</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts & Notifications Card -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title">Alerts & Notifications</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Critical Alerts</div>
+                    <div class="badge bg-danger">2</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Warnings</div>
+                    <div class="badge bg-warning">5</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>Maintenance Due</div>
+                    <div class="badge bg-info">8</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>New Notifications</div>
+                    <div class="badge bg-primary">12</div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a asp-action="Alerts" class="btn btn-sm btn-outline-primary w-100">View All Alerts</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Alerts -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">Recent Alerts</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 text-danger">
+                                <i class="fas fa-exclamation-circle"></i> Idle Time Exceeded
+                            </h6>
+                            <small>15m ago</small>
+                        </div>
+                        <p class="mb-1">Vehicle: Truck #123 has been idle for 35 minutes</p>
+                    </div>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 text-warning">
+                                <i class="fas fa-exclamation-triangle"></i> Geofence Exit
+                            </h6>
+                            <small>45m ago</small>
+                        </div>
+                        <p class="mb-1">Vehicle: Van #456 has exited assigned route zone</p>
+                    </div>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 text-info">
+                                <i class="fas fa-info-circle"></i> Maintenance Reminder
+                            </h6>
+                            <small>1h ago</small>
+                        </div>
+                        <p class="mb-1">Vehicle: SUV #789 is due for maintenance in 3 days</p>
+                    </div>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 text-success">
+                                <i class="fas fa-check-circle"></i> Trip Completed
+                            </h6>
+                            <small>2h ago</small>
+                        </div>
+                        <p class="mb-1">Trip #1234 has been completed successfully</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 text-end">
+                <a asp-action="Alerts" class="btn btn-sm btn-outline-primary">View All Alerts</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Vehicles -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">Active Vehicles</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Truck #123</h6>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <p class="mb-1">Driver: John Smith • Location: Downtown</p>
+                        <small>Speed: 45 km/h • Fuel: 78%</small>
+                    </div>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Van #456</h6>
+                            <span class="badge bg-warning">Idle</span>
+                        </div>
+                        <p class="mb-1">Driver: Sarah Johnson • Location: North End</p>
+                        <small>Idle for: 15m • Fuel: 62%</small>
+                    </div>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">SUV #789</h6>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <p class="mb-1">Driver: Michael Davis • Location: Highway 401</p>
+                        <small>Speed: 95 km/h • Fuel: 45%</small>
+                    </div>
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Truck #234</h6>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <p class="mb-1">Driver: Robert Wilson • Location: East End</p>
+                        <small>Speed: 32 km/h • Fuel: 89%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 text-end">
+                <a asp-action="VehicleStatus" class="btn btn-sm btn-outline-primary">View All Vehicles</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add script section for SignalR -->
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        // This will be implemented later to add real-time updates
+        document.addEventListener('DOMContentLoaded', function() {
+            // SignalR connection will be initialized here
+        });
+    </script>
+} 

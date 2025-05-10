@@ -1,0 +1,443 @@
+@model FleetTracking.Models.VehicleStatus
+
+@{
+    ViewData["Title"] = "Vehicle Details";
+    var vehicle = ViewData["Vehicle"] as FleetTracking.Models.Vehicle;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@vehicle.Year @vehicle.Make @vehicle.Model</h1>
+    <div>
+        <a asp-action="VehicleStatus" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Vehicles
+        </a>
+        <a asp-controller="Vehicle" asp-action="Edit" asp-route-id="@Model.VehicleId" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Edit Vehicle
+        </a>
+        <button id="refreshBtn" class="btn btn-info">
+            <i class="fas fa-sync"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Real-time Status Card -->
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Real-time Status</h5>
+                <span class="badge bg-@(Model.Status == "active" ? "success" : Model.Status == "idle" ? "warning" : Model.Status == "maintenance" ? "danger" : "secondary")">
+                    @Model.StatusDisplay
+                </span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Last Update</dt>
+                    <dd class="col-sm-8">
+                        <span class="@(Model.SecondsSinceLastUpdate > 300 ? "text-danger" : "")">
+                            @if (Model.SecondsSinceLastUpdate < 60)
+                            {
+                                <span>Just now</span>
+                            }
+                            else if (Model.SecondsSinceLastUpdate < 3600)
+                            {
+                                <span>@(Math.Floor(Model.SecondsSinceLastUpdate / 60.0))m ago</span>
+                            }
+                            else
+                            {
+                                <span>@(Math.Floor(Model.SecondsSinceLastUpdate / 3600.0))h ago</span>
+                            }
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-4">Driver</dt>
+                    <dd class="col-sm-8">
+                        @if (string.IsNullOrEmpty(Model.DriverName))
+                        {
+                            <span class="text-muted">Not Assigned</span>
+                        }
+                        else
+                        {
+                            @Model.DriverName
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Location</dt>
+                    <dd class="col-sm-8">
+                        @if (string.IsNullOrEmpty(Model.CurrentLocation))
+                        {
+                            <span class="text-muted">Unknown</span>
+                        }
+                        else
+                        {
+                            @Model.CurrentLocation
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Speed</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Status == "active")
+                        {
+                            @Model.FormattedSpeed
+                        }
+                        else
+                        {
+                            <span class="text-muted">0 km/h</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Heading</dt>
+                    <dd class="col-sm-8">@Model.Heading°</dd>
+
+                    <dt class="col-sm-4">Engine</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.EngineOn)
+                        {
+                            <span class="text-success">Running</span>
+                        }
+                        else
+                        {
+                            <span class="text-secondary">Off</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Doors</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.DoorsLocked)
+                        {
+                            <span class="text-success">Locked</span>
+                        }
+                        else
+                        {
+                            <span class="text-warning">Unlocked</span>
+                        }
+                    </dd>
+
+                    @if (Model.Status == "idle" && Model.IdleTimeSeconds > 0)
+                    {
+                        <dt class="col-sm-4">Idle Time</dt>
+                        <dd class="col-sm-8 @(Model.IdleTimeSeconds > 600 ? "text-danger" : "")">
+                            @Model.FormattedIdleTime
+                        </dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Condition Card -->
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Vehicle Condition</h5>
+            </div>
+            <div class="card-body">
+                <!-- Fuel Level -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <div>Fuel Level</div>
+                        <div>@Model.FuelLevelPercentage%</div>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar @(Model.FuelLevelPercentage < 20 ? "bg-danger" : Model.FuelLevelPercentage < 40 ? "bg-warning" : "bg-success")" 
+                             role="progressbar" 
+                             style="width: @Model.FuelLevelPercentage%;" 
+                             aria-valuenow="@Model.FuelLevelPercentage" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Engine Temperature -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <div>Engine Temperature</div>
+                        <div>@Model.EngineTemperature°C</div>
+                    </div>
+                    @{
+                        var tempPercentage = (int)Math.Min(100, Math.Max(0, ((Model.EngineTemperature - 50) / 100) * 100));
+                        var tempClass = tempPercentage > 75 ? "bg-danger" : tempPercentage > 50 ? "bg-warning" : "bg-success";
+                    }
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar @tempClass" 
+                             role="progressbar" 
+                             style="width: @tempPercentage%;" 
+                             aria-valuenow="@tempPercentage" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-6">Odometer</dt>
+                    <dd class="col-sm-6">@Model.OdometerReading.ToString("N0") km</dd>
+
+                    <dt class="col-sm-6">Last Service</dt>
+                    <dd class="col-sm-6">@vehicle.LastServiceDate?.ToString("d")</dd>
+
+                    <dt class="col-sm-6">Service Due</dt>
+                    <dd class="col-sm-6">
+                        @if (vehicle.NextServiceDate.HasValue)
+                        {
+                            var daysUntilService = (vehicle.NextServiceDate.Value - DateTime.Today).TotalDays;
+                            if (daysUntilService < 0)
+                            {
+                                <span class="text-danger">Overdue</span>
+                            }
+                            else if (daysUntilService < 7)
+                            {
+                                <span class="text-warning">@vehicle.NextServiceDate.Value.ToString("d")</span>
+                            }
+                            else
+                            {
+                                <span>@vehicle.NextServiceDate.Value.ToString("d")</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not scheduled</span>
+                        }
+                    </dd>
+
+                    @if (Model.MaintenanceDue)
+                    {
+                        <dt class="col-sm-6">Maintenance</dt>
+                        <dd class="col-sm-6"><span class="text-danger">Required</span></dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Trip Card -->
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Current Trip</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.CurrentTripId.HasValue)
+                {
+                    <dl class="row mb-3">
+                        <dt class="col-sm-4">Trip ID</dt>
+                        <dd class="col-sm-8">#@Model.CurrentTripId</dd>
+
+                        <dt class="col-sm-4">Location</dt>
+                        <dd class="col-sm-8">@Model.CurrentLocation</dd>
+
+                        <dt class="col-sm-4">Next Stop</dt>
+                        <dd class="col-sm-8">
+                            @if (string.IsNullOrEmpty(Model.NextWaypoint))
+                            {
+                                <span class="text-muted">No waypoints</span>
+                            }
+                            else
+                            {
+                                @Model.NextWaypoint
+                            }
+                        </dd>
+
+                        @if (Model.EstimatedArrival.HasValue)
+                        {
+                            <dt class="col-sm-4">ETA</dt>
+                            <dd class="col-sm-8">@Model.EstimatedArrival.Value.ToString("g")</dd>
+                        }
+                    </dl>
+
+                    <div class="text-center">
+                        <a asp-controller="Trip" asp-action="Details" asp-route-id="@Model.CurrentTripId" class="btn btn-sm btn-primary">
+                            <i class="fas fa-route"></i> View Trip Details
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> This vehicle is not currently assigned to any trip.
+                    </div>
+
+                    <div class="text-center">
+                        <a asp-controller="Trip" asp-action="Create" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> Create New Trip
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Map Card -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Location Map</h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="vehicleMap" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Alerts & Notifications</h5>
+                @if (Model.ActiveAlerts.Any())
+                {
+                    <span class="badge bg-danger">@Model.ActiveAlerts.Count</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">0</span>
+                }
+            </div>
+            <div class="card-body p-0">
+                @if (Model.ActiveAlerts.Any())
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var alert in Model.ActiveAlerts)
+                        {
+                            <div class="list-group-item">
+                                <i class="fas fa-exclamation-triangle text-danger"></i> @alert
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-success m-3 mb-0">
+                        <i class="fas fa-check-circle"></i> No active alerts for this vehicle.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+    <script>
+        // Vehicle data
+        const vehicleId = @Model.VehicleId;
+        const initialLat = @Model.Latitude;
+        const initialLng = @Model.Longitude;
+        let map;
+        let marker;
+        
+        // Initialize map
+        function initMap() {
+            const location = { lat: initialLat || 0, lng: initialLng || 0 };
+            
+            map = new google.maps.Map(document.getElementById("vehicleMap"), {
+                zoom: 14,
+                center: location,
+            });
+            
+            // Vehicle marker
+            marker = new google.maps.Marker({
+                position: location,
+                map: map,
+                title: "@vehicle.Year @vehicle.Make @vehicle.Model",
+                icon: {
+                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                    scale: 6,
+                    rotation: @Model.Heading
+                }
+            });
+            
+            // Add info window
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div>
+                        <strong>@vehicle.Year @vehicle.Make @vehicle.Model</strong><br>
+                        Speed: @Model.FormattedSpeed<br>
+                        Status: @Model.StatusDisplay
+                    </div>
+                `
+            });
+            
+            marker.addListener("click", () => {
+                infoWindow.open(map, marker);
+            });
+        }
+        
+        // Initialize SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/vehicleStatus")
+            .withAutomaticReconnect()
+            .build();
+            
+        // Connect to SignalR hub
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("SignalR connected");
+            } catch (err) {
+                console.error("SignalR connection error: ", err);
+                setTimeout(startConnection, 5000);
+            }
+        }
+        
+        // Handle vehicle status updates
+        connection.on("ReceiveVehicleStatus", function(vehicleStatus) {
+            if (vehicleStatus.vehicleId === vehicleId) {
+                updateVehicleStatus(vehicleStatus);
+            }
+        });
+        
+        // Handle alerts
+        connection.on("ReceiveAlert", function(alertType, message, alertVehicleId) {
+            if (alertVehicleId === vehicleId) {
+                // Show alert notification
+                console.log(`Alert for vehicle ${vehicleId}: ${message}`);
+                // This would be implemented to show a toast notification
+            }
+        });
+        
+        // Update vehicle status on the page
+        function updateVehicleStatus(status) {
+            // This would update all the displays with new values
+            console.log("Received vehicle update", status);
+            
+            // Update map marker position
+            if (marker && map) {
+                const newPosition = { lat: status.latitude, lng: status.longitude };
+                marker.setPosition(newPosition);
+                
+                // Update marker rotation to match heading
+                marker.setIcon({
+                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                    scale: 6,
+                    rotation: status.heading
+                });
+                
+                // Center map on vehicle
+                map.setCenter(newPosition);
+            }
+        }
+        
+        // Manual refresh button
+        document.getElementById('refreshBtn').addEventListener('click', async function() {
+            try {
+                const response = await fetch(`/Monitoring/GetVehicleStatus/${vehicleId}`);
+                if (response.ok) {
+                    const status = await response.json();
+                    updateVehicleStatus(status);
+                }
+            } catch (err) {
+                console.error("Error refreshing vehicle status: ", err);
+            }
+        });
+        
+        // Start the connection when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startConnection();
+        });
+    </script>
+} 

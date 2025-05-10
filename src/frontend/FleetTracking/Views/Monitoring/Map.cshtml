@@ -1,0 +1,565 @@
+@{
+    ViewData["Title"] = "Fleet Map";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a asp-action="VehicleStatus" class="btn btn-primary">
+            <i class="fas fa-car"></i> Vehicle Status
+        </a>
+        <button id="refreshBtn" class="btn btn-info">
+            <i class="fas fa-sync"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-9">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-0">
+                <div id="fleetMap" style="height: 750px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Legend</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="vehicle-icon-active me-2"></div>
+                    <div>Active vehicles</div>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="vehicle-icon-idle me-2"></div>
+                    <div>Idle vehicles</div>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="vehicle-icon-stopped me-2"></div>
+                    <div>Stopped vehicles</div>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="vehicle-icon-maintenance me-2"></div>
+                    <div>Maintenance</div>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="vehicle-icon-offline me-2"></div>
+                    <div>Offline vehicles</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Map Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="showAllVehicles" checked>
+                    <label class="form-check-label" for="showAllVehicles">
+                        Show All Vehicles
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="showActiveVehicles" checked>
+                    <label class="form-check-label" for="showActiveVehicles">
+                        Active Vehicles
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="showIdleVehicles" checked>
+                    <label class="form-check-label" for="showIdleVehicles">
+                        Idle Vehicles
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="showStoppedVehicles" checked>
+                    <label class="form-check-label" for="showStoppedVehicles">
+                        Stopped Vehicles
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="showMaintenanceVehicles" checked>
+                    <label class="form-check-label" for="showMaintenanceVehicles">
+                        Maintenance Vehicles
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="showOfflineVehicles">
+                    <label class="form-check-label" for="showOfflineVehicles">
+                        Offline Vehicles
+                    </label>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="mb-3">
+                    <label class="form-label">Map Type</label>
+                    <select id="mapType" class="form-select">
+                        <option value="roadmap">Road Map</option>
+                        <option value="satellite">Satellite</option>
+                        <option value="hybrid">Hybrid</option>
+                        <option value="terrain">Terrain</option>
+                    </select>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="showTraffic">
+                    <label class="form-check-label" for="showTraffic">
+                        Show Traffic
+                    </label>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="autoCenter" checked>
+                    <label class="form-check-label" for="autoCenter">
+                        Auto-center Map
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Vehicle Filter</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="text" id="vehicleSearch" class="form-control" placeholder="Search vehicles...">
+                </div>
+                <div id="vehicleList" class="vehicle-list">
+                    <!-- Vehicle list will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .vehicle-icon-active,
+        .vehicle-icon-idle,
+        .vehicle-icon-stopped,
+        .vehicle-icon-maintenance,
+        .vehicle-icon-offline {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+
+        .vehicle-icon-active {
+            background-color: #28a745;
+        }
+
+        .vehicle-icon-idle {
+            background-color: #ffc107;
+        }
+
+        .vehicle-icon-stopped {
+            background-color: #6c757d;
+        }
+
+        .vehicle-icon-maintenance {
+            background-color: #dc3545;
+        }
+
+        .vehicle-icon-offline {
+            background-color: #dee2e6;
+            border: 1px solid #6c757d;
+        }
+
+        .vehicle-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .vehicle-list-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .vehicle-list-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .vehicle-list-item.selected {
+            background-color: #e9ecef;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=visualization,geometry&callback=initMap" async defer></script>
+    <script>
+        // Global variables
+        let map;
+        let trafficLayer;
+        let markers = {};
+        let autoCenter = true;
+        let bounds;
+        let selectedVehicleId = null;
+        let vehicleData = [];
+
+        // Initialize map
+        function initMap() {
+            // Default center position (can be set to company headquarters)
+            const defaultPosition = { lat: 40.7128, lng: -74.0060 }; // NYC as an example
+            
+            // Create the map
+            map = new google.maps.Map(document.getElementById("fleetMap"), {
+                zoom: 10,
+                center: defaultPosition,
+                mapTypeId: "roadmap",
+                mapTypeControl: true,
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                    position: google.maps.ControlPosition.TOP_LEFT,
+                },
+                fullscreenControl: true,
+                streetViewControl: true,
+                zoomControl: true
+            });
+            
+            // Traffic layer
+            trafficLayer = new google.maps.TrafficLayer();
+            document.getElementById('showTraffic').addEventListener('change', function() {
+                if (this.checked) {
+                    trafficLayer.setMap(map);
+                } else {
+                    trafficLayer.setMap(null);
+                }
+            });
+            
+            // Map type selector
+            document.getElementById('mapType').addEventListener('change', function() {
+                map.setMapTypeId(this.value);
+            });
+            
+            // Auto center toggle
+            document.getElementById('autoCenter').addEventListener('change', function() {
+                autoCenter = this.checked;
+            });
+            
+            // Fetch initial vehicle data
+            fetchVehicleData();
+            
+            // Initialize SignalR
+            startSignalRConnection();
+        }
+        
+        // Fetch vehicle data from the server
+        async function fetchVehicleData() {
+            try {
+                const response = await fetch('/Monitoring/GetVehicleStatuses');
+                if (response.ok) {
+                    vehicleData = await response.json();
+                    
+                    // Create bounds for auto-centering
+                    bounds = new google.maps.LatLngBounds();
+                    
+                    // Create markers for vehicles
+                    vehicleData.forEach(vehicle => {
+                        createOrUpdateVehicleMarker(vehicle);
+                    });
+                    
+                    // Fit map to bounds if there are vehicles
+                    if (Object.keys(markers).length > 0 && autoCenter) {
+                        map.fitBounds(bounds);
+                    }
+                    
+                    // Populate vehicle list
+                    populateVehicleList(vehicleData);
+                }
+            } catch (err) {
+                console.error("Error fetching vehicle data: ", err);
+            }
+        }
+        
+        // Create or update a vehicle marker
+        function createOrUpdateVehicleMarker(vehicle) {
+            // Skip if no location data
+            if (!vehicle.latitude || !vehicle.longitude) return;
+            
+            const position = { lat: vehicle.latitude, lng: vehicle.longitude };
+            const visible = shouldVehicleBeVisible(vehicle);
+            
+            // Determine icon color based on status
+            const iconColor = getVehicleIconColor(vehicle.status);
+            
+            if (markers[vehicle.vehicleId]) {
+                // Update existing marker
+                markers[vehicle.vehicleId].setPosition(position);
+                markers[vehicle.vehicleId].setVisible(visible);
+                
+                // Update icon rotation to match vehicle heading
+                markers[vehicle.vehicleId].setIcon({
+                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                    scale: 6,
+                    fillColor: iconColor,
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 1,
+                    rotation: vehicle.heading || 0
+                });
+                
+                // Update info window content
+                markers[vehicle.vehicleId].infoWindow.setContent(createInfoWindowContent(vehicle));
+            } else {
+                // Create new marker
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    visible: visible,
+                    title: vehicle.vehicleName,
+                    icon: {
+                        path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                        scale: 6,
+                        fillColor: iconColor,
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 1,
+                        rotation: vehicle.heading || 0
+                    }
+                });
+                
+                // Create info window
+                const infoWindow = new google.maps.InfoWindow({
+                    content: createInfoWindowContent(vehicle)
+                });
+                marker.infoWindow = infoWindow;
+                
+                // Add click event
+                marker.addListener('click', function() {
+                    // Close any open info windows
+                    Object.values(markers).forEach(m => m.infoWindow.close());
+                    
+                    // Open this info window
+                    infoWindow.open(map, marker);
+                    
+                    // Highlight this vehicle in the list
+                    selectVehicleInList(vehicle.vehicleId);
+                });
+                
+                // Store marker reference
+                markers[vehicle.vehicleId] = marker;
+            }
+            
+            // Extend bounds to include this vehicle
+            bounds.extend(position);
+        }
+        
+        // Create info window content
+        function createInfoWindowContent(vehicle) {
+            const status = vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1);
+            const driver = vehicle.driverName || 'Not Assigned';
+            const speed = vehicle.speed ? `${vehicle.speed.toFixed(1)} km/h` : '0 km/h';
+            const location = vehicle.currentLocation || 'Unknown';
+            
+            // Format info window
+            return `
+                <div style="padding: 8px; max-width: 200px;">
+                    <div style="font-weight: bold; margin-bottom: 8px;">${vehicle.vehicleName}</div>
+                    <div><strong>Status:</strong> ${status}</div>
+                    <div><strong>Driver:</strong> ${driver}</div>
+                    <div><strong>Speed:</strong> ${speed}</div>
+                    <div><strong>Location:</strong> ${location}</div>
+                    <div class="mt-2">
+                        <a href="/Monitoring/VehicleDetails/${vehicle.vehicleId}" class="btn btn-sm btn-primary">
+                            Details
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Get marker color based on vehicle status
+        function getVehicleIconColor(status) {
+            switch (status) {
+                case 'active': return '#28a745'; // green
+                case 'idle': return '#ffc107'; // yellow
+                case 'stopped': return '#6c757d'; // gray
+                case 'maintenance': return '#dc3545'; // red
+                default: return '#adb5bd'; // light gray
+            }
+        }
+        
+        // Determine if a vehicle marker should be visible
+        function shouldVehicleBeVisible(vehicle) {
+            if (document.getElementById('showAllVehicles').checked) return true;
+            
+            switch (vehicle.status) {
+                case 'active':
+                    return document.getElementById('showActiveVehicles').checked;
+                case 'idle':
+                    return document.getElementById('showIdleVehicles').checked;
+                case 'stopped':
+                    return document.getElementById('showStoppedVehicles').checked;
+                case 'maintenance':
+                    return document.getElementById('showMaintenanceVehicles').checked;
+                case 'offline':
+                    return document.getElementById('showOfflineVehicles').checked;
+                default:
+                    return false;
+            }
+        }
+        
+        // Populate vehicle list
+        function populateVehicleList(vehicles) {
+            const vehicleList = document.getElementById('vehicleList');
+            vehicleList.innerHTML = '';
+            
+            vehicles.forEach(vehicle => {
+                const item = document.createElement('div');
+                item.className = 'vehicle-list-item';
+                if (vehicle.vehicleId === selectedVehicleId) {
+                    item.classList.add('selected');
+                }
+                
+                const statusClass = `vehicle-icon-${vehicle.status}`;
+                
+                item.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="${statusClass} me-2"></div>
+                        <div>
+                            <div><strong>${vehicle.vehicleName}</strong></div>
+                            <div class="small text-muted">${vehicle.vehicleRegistration}</div>
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('click', () => {
+                    selectVehicle(vehicle.vehicleId);
+                });
+                
+                vehicleList.appendChild(item);
+            });
+        }
+        
+        // Select a vehicle (highlight on list and map)
+        function selectVehicle(vehicleId) {
+            selectedVehicleId = vehicleId;
+            
+            // Clear selected class from all items
+            const items = document.querySelectorAll('.vehicle-list-item');
+            items.forEach(item => item.classList.remove('selected'));
+            
+            // Add selected class to this item
+            selectVehicleInList(vehicleId);
+            
+            // Center map on vehicle and open info window
+            if (markers[vehicleId]) {
+                map.panTo(markers[vehicleId].getPosition());
+                
+                // Close all info windows
+                Object.values(markers).forEach(marker => marker.infoWindow.close());
+                
+                // Open this info window
+                markers[vehicleId].infoWindow.open(map, markers[vehicleId]);
+            }
+        }
+        
+        // Highlight a vehicle in the list
+        function selectVehicleInList(vehicleId) {
+            // Clear selected class from all items
+            const items = document.querySelectorAll('.vehicle-list-item');
+            items.forEach(item => item.classList.remove('selected'));
+            
+            // Find the item for this vehicle
+            const vehicleItems = Array.from(items);
+            const index = vehicleData.findIndex(v => v.vehicleId === vehicleId);
+            
+            if (index >= 0 && index < vehicleItems.length) {
+                vehicleItems[index].classList.add('selected');
+                
+                // Scroll to item if needed
+                vehicleItems[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        // Initialize SignalR connection
+        function startSignalRConnection() {
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/vehicleStatus")
+                .withAutomaticReconnect()
+                .build();
+                
+            // Handle vehicle status updates
+            connection.on("ReceiveVehicleStatus", function(vehicle) {
+                // Update vehicle data
+                const index = vehicleData.findIndex(v => v.vehicleId === vehicle.vehicleId);
+                if (index >= 0) {
+                    vehicleData[index] = vehicle;
+                } else {
+                    vehicleData.push(vehicle);
+                }
+                
+                // Update marker
+                createOrUpdateVehicleMarker(vehicle);
+                
+                // Update vehicle list
+                populateVehicleList(vehicleData);
+                
+                // Re-center map if auto-center is enabled
+                if (autoCenter && Object.keys(markers).length > 0) {
+                    map.fitBounds(bounds);
+                }
+            });
+            
+            // Start connection
+            connection.start()
+                .then(() => console.log("SignalR connected"))
+                .catch(err => console.error("SignalR connection error: ", err));
+        }
+        
+        // Add event listeners for filter checkboxes
+        document.querySelectorAll('[id^="show"]').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                // Handle "Show All" special case
+                if (checkbox.id === 'showAllVehicles') {
+                    const isChecked = checkbox.checked;
+                    
+                    // Update the other checkboxes
+                    document.getElementById('showActiveVehicles').checked = isChecked;
+                    document.getElementById('showIdleVehicles').checked = isChecked;
+                    document.getElementById('showStoppedVehicles').checked = isChecked;
+                    document.getElementById('showMaintenanceVehicles').checked = isChecked;
+                    document.getElementById('showOfflineVehicles').checked = isChecked;
+                }
+                
+                // Update marker visibility
+                Object.entries(markers).forEach(([vehicleId, marker]) => {
+                    const vehicle = vehicleData.find(v => v.vehicleId.toString() === vehicleId);
+                    if (vehicle) {
+                        marker.setVisible(shouldVehicleBeVisible(vehicle));
+                    }
+                });
+            });
+        });
+        
+        // Vehicle search filter
+        document.getElementById('vehicleSearch').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            // Filter vehicle list
+            const filteredVehicles = vehicleData.filter(vehicle => 
+                vehicle.vehicleName.toLowerCase().includes(searchTerm) || 
+                vehicle.vehicleRegistration.toLowerCase().includes(searchTerm)
+            );
+            
+            // Update the list
+            populateVehicleList(filteredVehicles);
+        });
+        
+        // Manual refresh button
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            fetchVehicleData();
+        });
+    </script>
+} 

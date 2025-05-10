@@ -1,0 +1,311 @@
+@model IEnumerable<FleetTracking.Models.VehicleStatus>
+
+@{
+    ViewData["Title"] = "Vehicle Status";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a asp-action="Map" class="btn btn-info">
+            <i class="fas fa-map-marked-alt"></i> Map View
+        </a>
+        <button id="refreshBtn" class="btn btn-primary">
+            <i class="fas fa-sync"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-transparent">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <input type="text" id="vehicleSearch" class="form-control" placeholder="Search vehicles...">
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-8 d-flex justify-content-end">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                    <button type="button" class="btn btn-outline-success" data-filter="active">Active</button>
+                    <button type="button" class="btn btn-outline-warning" data-filter="idle">Idle</button>
+                    <button type="button" class="btn btn-outline-danger" data-filter="maintenance">Maintenance</button>
+                    <button type="button" class="btn btn-outline-secondary" data-filter="offline">Offline</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover" id="vehicleStatusTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Vehicle</th>
+                        <th>Driver</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th>Speed</th>
+                        <th>Fuel</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vehicle in Model)
+                    {
+                        var statusClass = vehicle.Status switch
+                        {
+                            "active" => "success",
+                            "idle" => "warning",
+                            "stopped" => "secondary",
+                            "maintenance" => "danger",
+                            _ => "secondary"
+                        };
+
+                        <tr data-status="@vehicle.Status" data-vehicle-id="@vehicle.VehicleId">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="vehicle-status-indicator bg-@statusClass me-2"></div>
+                                    <div>
+                                        <strong>@vehicle.VehicleName</strong>
+                                        <div class="small text-muted">@vehicle.VehicleRegistration</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @if (string.IsNullOrEmpty(vehicle.DriverName))
+                                {
+                                    <span class="text-muted">Not Assigned</span>
+                                }
+                                else
+                                {
+                                    @vehicle.DriverName
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-@statusClass">@vehicle.StatusDisplay</span>
+                                @if (vehicle.Status == "idle" && vehicle.IdleTimeSeconds > 0)
+                                {
+                                    <div class="small text-muted">Idle for @vehicle.FormattedIdleTime</div>
+                                }
+                            </td>
+                            <td>
+                                @if (string.IsNullOrEmpty(vehicle.CurrentLocation))
+                                {
+                                    <span class="text-muted">Unknown</span>
+                                }
+                                else
+                                {
+                                    @vehicle.CurrentLocation
+                                }
+                            </td>
+                            <td>
+                                @if (vehicle.Status == "active")
+                                {
+                                    @vehicle.FormattedSpeed
+                                }
+                                else
+                                {
+                                    <span class="text-muted">0 km/h</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="progress" style="height: 6px; width: 80px;">
+                                    <div class="progress-bar @(vehicle.FuelLevelPercentage < 20 ? "bg-danger" : vehicle.FuelLevelPercentage < 40 ? "bg-warning" : "bg-success")" 
+                                         role="progressbar" 
+                                         style="width: @vehicle.FuelLevelPercentage%;" 
+                                         aria-valuenow="@vehicle.FuelLevelPercentage" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <div class="small mt-1">@vehicle.FuelLevelPercentage%</div>
+                            </td>
+                            <td>
+                                <span class="@(vehicle.SecondsSinceLastUpdate > 300 ? "text-danger" : "text-muted")">
+                                    @if (vehicle.SecondsSinceLastUpdate < 60)
+                                    {
+                                        <span>Just now</span>
+                                    }
+                                    else if (vehicle.SecondsSinceLastUpdate < 3600)
+                                    {
+                                        <span>@(Math.Floor(vehicle.SecondsSinceLastUpdate / 60.0))m ago</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(Math.Floor(vehicle.SecondsSinceLastUpdate / 3600.0))h ago</span>
+                                    }
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a asp-action="VehicleDetails" asp-route-id="@vehicle.VehicleId" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a asp-controller="Vehicle" asp-action="Edit" asp-route-id="@vehicle.VehicleId" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .vehicle-status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        #vehicleStatusTable tbody tr:hover {
+            background-color: rgba(0,0,0,.05);
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        // Initialize SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/vehicleStatus")
+            .withAutomaticReconnect()
+            .build();
+            
+        // DOM Elements
+        const vehicleTable = document.getElementById('vehicleStatusTable');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const searchInput = document.getElementById('vehicleSearch');
+        const filterButtons = document.querySelectorAll('[data-filter]');
+        
+        // Current filter
+        let activeFilter = 'all';
+        
+        // Connect to SignalR hub
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("SignalR connected");
+            } catch (err) {
+                console.error("SignalR connection error: ", err);
+                setTimeout(startConnection, 5000);
+            }
+        }
+        
+        // Handle vehicle status updates
+        connection.on("ReceiveVehicleStatus", function(vehicleStatus) {
+            updateVehicleRow(vehicleStatus);
+        });
+        
+        // Handle status changes
+        connection.on("VehicleStatusChange", function(vehicleId, vehicleName, oldStatus, newStatus) {
+            // Could add notification here
+            console.log(`Vehicle ${vehicleName} changed from ${oldStatus} to ${newStatus}`);
+        });
+        
+        // Update a vehicle row with new data
+        function updateVehicleRow(vehicleStatus) {
+            const row = document.querySelector(`tr[data-vehicle-id="${vehicleStatus.vehicleId}"]`);
+            
+            if (row) {
+                // Update existing row
+                // This would be implemented to update all the values in the row
+                row.setAttribute('data-status', vehicleStatus.status);
+                
+                // Update status classes and values
+                // This would be implemented to update the status indicator, badges, etc.
+            } else {
+                // New vehicle that wasn't in the original data
+                // Would implement row creation and append to table
+            }
+            
+            // Apply current filter
+            applyFilter(activeFilter);
+        }
+        
+        // Filter vehicles by status
+        function applyFilter(filter) {
+            activeFilter = filter;
+            const rows = vehicleTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                if (filter === 'all' || row.getAttribute('data-status') === filter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update active filter button
+            filterButtons.forEach(btn => {
+                if (btn.getAttribute('data-filter') === filter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        // Filter by search term
+        function applySearch(term) {
+            const rows = vehicleTable.querySelectorAll('tbody tr');
+            const lowercaseTerm = term.toLowerCase();
+            
+            rows.forEach(row => {
+                const vehicleName = row.querySelector('td:first-child strong').textContent.toLowerCase();
+                const registration = row.querySelector('td:first-child div.small').textContent.toLowerCase();
+                
+                if (vehicleName.includes(lowercaseTerm) || registration.includes(lowercaseTerm)) {
+                    if (activeFilter === 'all' || row.getAttribute('data-status') === activeFilter) {
+                        row.style.display = '';
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Manual refresh 
+        refreshBtn.addEventListener('click', async function() {
+            try {
+                const response = await fetch('/Monitoring/GetVehicleStatuses');
+                if (response.ok) {
+                    const vehicleStatuses = await response.json();
+                    vehicleStatuses.forEach(status => updateVehicleRow(status));
+                }
+            } catch (err) {
+                console.error("Error refreshing vehicle statuses: ", err);
+            }
+        });
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            applySearch(this.value);
+        });
+        
+        // Filter buttons
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filter = this.getAttribute('data-filter');
+                applyFilter(filter);
+            });
+        });
+        
+        // Start the connection when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startConnection();
+        });
+    </script>
+} 

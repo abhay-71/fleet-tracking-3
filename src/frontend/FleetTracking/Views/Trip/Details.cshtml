@@ -1,0 +1,138 @@
+@model FleetTracking.Models.Trip
+
+@{
+    ViewData["Title"] = "Trip Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Trip Details</h1>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a asp-action="AddWaypoint" asp-route-id="@Model.Id" class="btn btn-success">
+            <i class="fas fa-map-marker-alt"></i> Add Waypoint
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Trip Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Vehicle)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.Vehicle.DisplayName)</dd>
+
+                    <dt class="col-sm-4">Driver</dt>
+                    <dd class="col-sm-8">@Model.Driver.User.FirstName @Model.Driver.User.LastName</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.StartLocation)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.StartLocation)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.EndLocation)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.EndLocation)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.StartTime)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.StartTime)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.EndTime)</dt>
+                    <dd class="col-sm-8">@(Model.EndTime.HasValue ? Html.DisplayFor(model => model.EndTime) : "Not completed")</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Status)</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-@(Model.Status == "in_progress" ? "primary" : Model.Status == "completed" ? "success" : Model.Status == "cancelled" ? "danger" : "warning")">
+                            @Model.StatusDisplay
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Distance)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.Distance) km</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.FuelUsed)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.FuelUsed) L</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.AverageSpeed)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.AverageSpeed) km/h</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Duration)</dt>
+                    <dd class="col-sm-8">@(Model.Duration.HasValue ? $"{Model.Duration.Value.Hours}h {Model.Duration.Value.Minutes}m" : "In progress")</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.FuelEfficiency)</dt>
+                    <dd class="col-sm-8">@(Model.FuelEfficiency.HasValue ? $"{Model.FuelEfficiency.Value} km/L" : "N/A")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Trip Waypoints</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Waypoints != null && Model.Waypoints.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Location</th>
+                                    <th>Arrival</th>
+                                    <th>Departure</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var waypoint in Model.Waypoints.OrderBy(w => w.SequenceNumber))
+                                {
+                                    <tr>
+                                        <td>@waypoint.SequenceNumber</td>
+                                        <td>@waypoint.Location</td>
+                                        <td>@(waypoint.ArrivalTime.HasValue ? waypoint.ArrivalTime.Value.ToString("g") : "-")</td>
+                                        <td>@(waypoint.DepartureTime.HasValue ? waypoint.DepartureTime.Value.ToString("g") : "-")</td>
+                                        <td>
+                                            <span class="badge bg-@(waypoint.Status == "completed" ? "success" : waypoint.Status == "active" ? "primary" : "secondary")">
+                                                @waypoint.Status
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        No waypoints have been added to this trip.
+                    </div>
+                }
+            </div>
+            <div class="card-footer text-end">
+                <a asp-action="AddWaypoint" asp-route-id="@Model.Id" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus"></i> Add Waypoint
+                </a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Notes))
+        {
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p>@Model.Notes</p>
+                </div>
+            </div>
+        }
+    </div>
+</div> 

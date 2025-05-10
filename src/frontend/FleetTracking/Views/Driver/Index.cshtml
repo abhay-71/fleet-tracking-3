@@ -1,0 +1,69 @@
+@model IEnumerable<FleetTracking.Models.Driver>
+
+@{
+    ViewData["Title"] = "Drivers";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Driver
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>@Html.DisplayNameFor(model => model.LicenseNumber)</th>
+                        <th>@Html.DisplayNameFor(model => model.LicenseClass)</th>
+                        <th>@Html.DisplayNameFor(model => model.LicenseExpiryDate)</th>
+                        <th>@Html.DisplayNameFor(model => model.LicenseStatus)</th>
+                        <th>@Html.DisplayNameFor(model => model.Status)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model) {
+                    <tr>
+                        <td>@item.User.FirstName @item.User.LastName</td>
+                        <td>@Html.DisplayFor(modelItem => item.Company.Name)</td>
+                        <td>@Html.DisplayFor(modelItem => item.LicenseNumber)</td>
+                        <td>@Html.DisplayFor(modelItem => item.LicenseClass)</td>
+                        <td>@Html.DisplayFor(modelItem => item.LicenseExpiryDate)</td>
+                        <td>
+                            <span class="badge bg-@(item.LicenseStatus == "Valid" ? "success" : "danger")">
+                                @item.LicenseStatus
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-@(item.Status == "active" ? "success" : item.Status == "training" ? "info" : "secondary")">
+                                @item.Status
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-info-circle"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div> 

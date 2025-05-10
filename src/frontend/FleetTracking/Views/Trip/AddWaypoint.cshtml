@@ -1,0 +1,114 @@
+@model FleetTracking.Models.Waypoint
+
+@{
+    ViewData["Title"] = "Add Waypoint";
+    var trip = ViewData["Trip"] as FleetTracking.Models.Trip;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Trip
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Trip Information</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Vehicle:</dt>
+            <dd class="col-sm-9">@trip.Vehicle.DisplayName</dd>
+            
+            <dt class="col-sm-3">Driver:</dt>
+            <dd class="col-sm-9">@trip.Driver.User.FirstName @trip.Driver.User.LastName</dd>
+            
+            <dt class="col-sm-3">Route:</dt>
+            <dd class="col-sm-9">@trip.StartLocation → @trip.EndLocation</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0">Waypoint Details</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="AddWaypoint">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input type="hidden" asp-for="TripId" />
+            <input type="hidden" asp-for="SequenceNumber" />
+            
+            <div class="mb-3">
+                <label asp-for="Location" class="form-label"></label>
+                <input asp-for="Location" class="form-control" />
+                <span asp-validation-for="Location" class="text-danger"></span>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="Latitude" class="form-label"></label>
+                        <input asp-for="Latitude" class="form-control" />
+                        <span asp-validation-for="Latitude" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="Longitude" class="form-label"></label>
+                        <input asp-for="Longitude" class="form-control" />
+                        <span asp-validation-for="Longitude" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="ArrivalTime" class="form-label"></label>
+                        <input asp-for="ArrivalTime" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="ArrivalTime" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="DepartureTime" class="form-label"></label>
+                        <input asp-for="DepartureTime" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="DepartureTime" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="pending">Pending</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="skipped">Skipped</option>
+                </select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Add Waypoint
+                </button>
+                <a asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

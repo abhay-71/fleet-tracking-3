@@ -1,0 +1,412 @@
+@{
+    ViewData["Title"] = "Alerts & Notifications";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@ViewData["Title"]</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <button id="refreshBtn" class="btn btn-primary">
+            <i class="fas fa-sync"></i> Refresh
+        </button>
+        <button id="clearAllBtn" class="btn btn-outline-danger">
+            <i class="fas fa-trash"></i> Clear All
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="text" id="alertSearch" class="form-control" placeholder="Search alerts...">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-8 d-flex justify-content-end">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                            <button type="button" class="btn btn-outline-danger" data-filter="critical">Critical</button>
+                            <button type="button" class="btn btn-outline-warning" data-filter="warning">Warning</button>
+                            <button type="button" class="btn btn-outline-info" data-filter="info">Info</button>
+                            <button type="button" class="btn btn-outline-success" data-filter="success">Success</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert-container" id="alertContainer">
+            <!-- Critical Alerts -->
+            <div class="alert alert-danger alert-item" data-alert-type="critical">
+                <div class="alert-header d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> Vehicle Maintenance Required</h5>
+                    <div class="alert-meta">
+                        <span class="badge bg-danger me-2">Critical</span>
+                        <small class="text-muted">2023-05-10 14:35</small>
+                    </div>
+                </div>
+                <p class="mb-2">Vehicle: Truck #123 (ABC-123) requires immediate maintenance. Engine temperature exceeds safe levels.</p>
+                <div class="alert-actions d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/Monitoring/VehicleDetails/123" class="btn btn-sm btn-outline-primary">View Vehicle</a>
+                        <button class="btn btn-sm btn-outline-secondary">Assign Maintenance</button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger dismiss-btn" data-alert-id="1">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Warning Alerts -->
+            <div class="alert alert-warning alert-item" data-alert-type="warning">
+                <div class="alert-header d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Idle Time Exceeded</h5>
+                    <div class="alert-meta">
+                        <span class="badge bg-warning text-dark me-2">Warning</span>
+                        <small class="text-muted">2023-05-10 14:22</small>
+                    </div>
+                </div>
+                <p class="mb-2">Vehicle: Van #456 (DEF-456) has been idle for over 30 minutes at Main Street & 5th Avenue.</p>
+                <div class="alert-actions d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/Monitoring/VehicleDetails/456" class="btn btn-sm btn-outline-primary">View Vehicle</a>
+                        <button class="btn btn-sm btn-outline-secondary">Contact Driver</button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger dismiss-btn" data-alert-id="2">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Info Alerts -->
+            <div class="alert alert-info alert-item" data-alert-type="info">
+                <div class="alert-header d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Scheduled Maintenance Reminder</h5>
+                    <div class="alert-meta">
+                        <span class="badge bg-info me-2">Info</span>
+                        <small class="text-muted">2023-05-10 13:45</small>
+                    </div>
+                </div>
+                <p class="mb-2">Vehicle: SUV #789 (GHI-789) is due for scheduled maintenance in 3 days.</p>
+                <div class="alert-actions d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/Monitoring/VehicleDetails/789" class="btn btn-sm btn-outline-primary">View Vehicle</a>
+                        <button class="btn btn-sm btn-outline-secondary">Schedule Maintenance</button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger dismiss-btn" data-alert-id="3">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Success Alerts -->
+            <div class="alert alert-success alert-item" data-alert-type="success">
+                <div class="alert-header d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0"><i class="fas fa-check-circle"></i> Trip Completed Successfully</h5>
+                    <div class="alert-meta">
+                        <span class="badge bg-success me-2">Success</span>
+                        <small class="text-muted">2023-05-10 13:30</small>
+                    </div>
+                </div>
+                <p class="mb-2">Trip #1234 has been completed successfully by Truck #234 (JKL-234). All waypoints reached on time.</p>
+                <div class="alert-actions d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/Trip/Details/1234" class="btn btn-sm btn-outline-primary">View Trip</a>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger dismiss-btn" data-alert-id="4">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Geo-fence Alert -->
+            <div class="alert alert-warning alert-item" data-alert-type="warning">
+                <div class="alert-header d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Geo-fence Exit Alert</h5>
+                    <div class="alert-meta">
+                        <span class="badge bg-warning text-dark me-2">Warning</span>
+                        <small class="text-muted">2023-05-10 13:15</small>
+                    </div>
+                </div>
+                <p class="mb-2">Vehicle: Van #456 (DEF-456) has exited the assigned delivery zone at North End Industrial Park.</p>
+                <div class="alert-actions d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/Monitoring/VehicleDetails/456" class="btn btn-sm btn-outline-primary">View Vehicle</a>
+                        <a href="/Monitoring/Map" class="btn btn-sm btn-outline-secondary">View on Map</a>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger dismiss-btn" data-alert-id="5">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Low Fuel Alert -->
+            <div class="alert alert-warning alert-item" data-alert-type="warning">
+                <div class="alert-header d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0"><i class="fas fa-gas-pump"></i> Low Fuel Warning</h5>
+                    <div class="alert-meta">
+                        <span class="badge bg-warning text-dark me-2">Warning</span>
+                        <small class="text-muted">2023-05-10 12:45</small>
+                    </div>
+                </div>
+                <p class="mb-2">Vehicle: SUV #789 (GHI-789) is running low on fuel (15% remaining). Nearest gas station is 5 miles away.</p>
+                <div class="alert-actions d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="/Monitoring/VehicleDetails/789" class="btn btn-sm btn-outline-primary">View Vehicle</a>
+                        <button class="btn btn-sm btn-outline-secondary">Show Gas Stations</button>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger dismiss-btn" data-alert-id="6">Dismiss</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .alert-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .alert-item {
+            margin-bottom: 0;
+            border-left-width: 5px;
+        }
+
+        .alert-actions {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .alert-header h5 {
+            font-size: 1.1rem;
+        }
+
+        .alert-meta {
+            white-space: nowrap;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        // Initialize SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/vehicleStatus")
+            .withAutomaticReconnect()
+            .build();
+        
+        // DOM Elements
+        const alertContainer = document.getElementById('alertContainer');
+        const alertSearch = document.getElementById('alertSearch');
+        const filterButtons = document.querySelectorAll('[data-filter]');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const dismissButtons = document.querySelectorAll('.dismiss-btn');
+        
+        // Current filter
+        let activeFilter = 'all';
+        
+        // Connect to SignalR hub
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("SignalR connected");
+            } catch (err) {
+                console.error("SignalR connection error: ", err);
+                setTimeout(startConnection, 5000);
+            }
+        }
+        
+        // Handle new alerts
+        connection.on("ReceiveAlert", function(alertType, message, vehicleId, driverId, timestamp) {
+            addNewAlert(alertType, message, vehicleId, timestamp);
+        });
+        
+        // Add a new alert to the list
+        function addNewAlert(type, message, vehicleId, timestamp) {
+            // Create alert element
+            const alertElement = document.createElement('div');
+            alertElement.className = `alert alert-${getAlertClass(type)} alert-item`;
+            alertElement.setAttribute('data-alert-type', type);
+            
+            // Format timestamp
+            const formattedTime = new Date(timestamp).toLocaleString();
+            
+            // Generate unique ID for the alert
+            const alertId = Date.now();
+            
+            // Format the alert content
+            alertElement.innerHTML = `
+                <div class="alert-header d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0"><i class="fas ${getAlertIcon(type)}"></i> ${getAlertTitle(type)}</h5>
+                    <div class="alert-meta">
+                        <span class="badge bg-${getAlertClass(type)} ${type === 'warning' ? 'text-dark' : ''} me-2">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                        <small class="text-muted">${formattedTime}</small>
+                    </div>
+                </div>
+                <p class="mb-2">${message}</p>
+                <div class="alert-actions d-flex justify-content-between align-items-center">
+                    <div>
+                        ${vehicleId ? `<a href="/Monitoring/VehicleDetails/${vehicleId}" class="btn btn-sm btn-outline-primary">View Vehicle</a>` : ''}
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger dismiss-btn" data-alert-id="${alertId}">Dismiss</button>
+                </div>
+            `;
+            
+            // Add dismiss handler
+            const dismissBtn = alertElement.querySelector('.dismiss-btn');
+            dismissBtn.addEventListener('click', function() {
+                dismissAlert(alertElement);
+            });
+            
+            // Add to container at the top
+            alertContainer.insertBefore(alertElement, alertContainer.firstChild);
+            
+            // Apply current filter
+            if (activeFilter !== 'all' && type !== activeFilter) {
+                alertElement.style.display = 'none';
+            }
+        }
+        
+        // Get alert class based on type
+        function getAlertClass(type) {
+            switch (type) {
+                case 'critical': return 'danger';
+                case 'warning': return 'warning';
+                case 'info': return 'info';
+                case 'success': return 'success';
+                default: return 'secondary';
+            }
+        }
+        
+        // Get alert icon based on type
+        function getAlertIcon(type) {
+            switch (type) {
+                case 'critical': return 'fa-exclamation-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                case 'info': return 'fa-info-circle';
+                case 'success': return 'fa-check-circle';
+                default: return 'fa-bell';
+            }
+        }
+        
+        // Get alert title based on type
+        function getAlertTitle(type) {
+            switch (type) {
+                case 'critical': return 'Critical Alert';
+                case 'warning': return 'Warning';
+                case 'info': return 'Information';
+                case 'success': return 'Success';
+                default: return 'Notification';
+            }
+        }
+        
+        // Dismiss an alert
+        function dismissAlert(alertElement) {
+            // Animate and remove
+            alertElement.style.transition = 'opacity 0.3s, max-height 0.5s, margin-bottom 0.5s';
+            alertElement.style.opacity = '0';
+            alertElement.style.maxHeight = '0';
+            alertElement.style.marginBottom = '0';
+            alertElement.style.overflow = 'hidden';
+            
+            setTimeout(() => {
+                alertElement.remove();
+            }, 500);
+        }
+        
+        // Filter alerts by type
+        function applyFilter(filter) {
+            activeFilter = filter;
+            const alerts = alertContainer.querySelectorAll('.alert-item');
+            
+            alerts.forEach(alert => {
+                if (filter === 'all' || alert.getAttribute('data-alert-type') === filter) {
+                    alert.style.display = '';
+                } else {
+                    alert.style.display = 'none';
+                }
+            });
+            
+            // Update active filter button
+            filterButtons.forEach(btn => {
+                if (btn.getAttribute('data-filter') === filter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        // Search alerts by content
+        function searchAlerts(term) {
+            const alerts = alertContainer.querySelectorAll('.alert-item');
+            const lowercaseTerm = term.toLowerCase();
+            
+            alerts.forEach(alert => {
+                const content = alert.textContent.toLowerCase();
+                const type = alert.getAttribute('data-alert-type');
+                
+                if (content.includes(lowercaseTerm)) {
+                    if (activeFilter === 'all' || type === activeFilter) {
+                        alert.style.display = '';
+                    }
+                } else {
+                    alert.style.display = 'none';
+                }
+            });
+        }
+        
+        // Clear all alerts
+        function clearAllAlerts() {
+            if (confirm('Are you sure you want to clear all alerts?')) {
+                const alerts = Array.from(alertContainer.querySelectorAll('.alert-item'));
+                
+                // Animate and remove all alerts
+                alerts.forEach((alert, index) => {
+                    setTimeout(() => {
+                        dismissAlert(alert);
+                    }, index * 100); // Stagger the removal
+                });
+            }
+        }
+        
+        // Event listeners
+        alertSearch.addEventListener('input', function() {
+            searchAlerts(this.value);
+        });
+        
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filter = this.getAttribute('data-filter');
+                applyFilter(filter);
+            });
+        });
+        
+        refreshBtn.addEventListener('click', function() {
+            // This would typically fetch alerts from an API
+            console.log('Refreshing alerts...');
+        });
+        
+        clearAllBtn.addEventListener('click', clearAllAlerts);
+        
+        dismissButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const alertElement = this.closest('.alert-item');
+                dismissAlert(alertElement);
+            });
+        });
+        
+        // Start SignalR connection when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startConnection();
+        });
+    </script>
+} 
