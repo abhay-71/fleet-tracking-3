@@ -1,0 +1,179 @@
+@model IEnumerable<FleetTracking.Models.ScheduledReport>
+
+@{
+    ViewData["Title"] = "Report Scheduler";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Report Scheduler</h1>
+            <p class="text-muted">Manage and schedule automated report generation</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create New Schedule
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control border-0 bg-light" placeholder="Search schedules...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select id="statusFilter" class="form-select bg-light border-0">
+                        <option value="">All Statuses</option>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="scheduledReportsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Report Type</th>
+                            <th>Recurrence</th>
+                            <th>Format</th>
+                            <th>Next Run</th>
+                            <th>Last Run</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none text-reset fw-medium">
+                                        @item.Name
+                                    </a>
+                                </td>
+                                <td>
+                                    @{
+                                        var reportTypeDisplay = "";
+                                        switch (item.ReportType)
+                                        {
+                                            case "vehicle_status": reportTypeDisplay = "Vehicle Status"; break;
+                                            case "trip_summary": reportTypeDisplay = "Trip Summary"; break;
+                                            case "fuel_consumption": reportTypeDisplay = "Fuel Consumption"; break;
+                                            case "maintenance_cost": reportTypeDisplay = "Maintenance Cost"; break;
+                                            case "driver_performance": reportTypeDisplay = "Driver Performance"; break;
+                                            case "financial_summary": reportTypeDisplay = "Financial Summary"; break;
+                                            default: reportTypeDisplay = item.ReportType; break;
+                                        }
+                                    }
+                                    @reportTypeDisplay
+                                </td>
+                                <td>
+                                    @item.RecurrencePattern.ToUpper()[0]@item.RecurrencePattern.Substring(1)
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">@item.Format.ToUpper()</span>
+                                </td>
+                                <td>
+                                    <span class="@(item.NextRunDate <= DateTime.Now.AddDays(1) ? "text-danger" : "")">
+                                        @item.NextRunDate.ToString("MMM dd, yyyy HH:mm")
+                                    </span>
+                                </td>
+                                <td>
+                                    @(item.LastRunDate.HasValue ? item.LastRunDate.Value.ToString("MMM dd, yyyy HH:mm") : "-")
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="History" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-clock-history"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            var table = $('#scheduledReportsTable').DataTable({
+                ordering: true,
+                paging: true,
+                searching: true,
+                lengthChange: false,
+                pageLength: 10,
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search..."
+                },
+                dom: "<'row'<'col-sm-12'tr>>" +
+                     "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                order: [[4, 'asc']] // Sort by next run date
+            });
+            
+            // Custom search box
+            $('#searchInput').on('keyup', function() {
+                table.search(this.value).draw();
+            });
+            
+            // Status filter
+            $('#statusFilter').on('change', function() {
+                var searchTerm = $(this).val() === 'true' ? 'Active' : 
+                                ($(this).val() === 'false' ? 'Inactive' : '');
+                                
+                // Filter the 'Status' column (index 6)
+                table.column(6).search(searchTerm).draw();
+            });
+        });
+    </script>
+} 

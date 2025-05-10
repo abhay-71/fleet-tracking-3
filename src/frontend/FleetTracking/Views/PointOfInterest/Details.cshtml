@@ -1,0 +1,326 @@
+@model FleetTracking.Models.PointOfInterest
+
+@{
+    ViewData["Title"] = "POI Details";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Points of Interest</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Details</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">@Model.Name</h1>
+            <p class="text-muted">Point of Interest Details</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">POI Information</h5>
+                    <div>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-shrink-0 me-3">
+                                    @if (Model.Category == "fuel_station")
+                                    {
+                                        <i class="bi bi-fuel-pump text-danger display-5"></i>
+                                    }
+                                    else if (Model.Category == "restaurant")
+                                    {
+                                        <i class="bi bi-cup-hot text-success display-5"></i>
+                                    }
+                                    else if (Model.Category == "rest_area")
+                                    {
+                                        <i class="bi bi-p-square text-primary display-5"></i>
+                                    }
+                                    else if (Model.Category == "customer")
+                                    {
+                                        <i class="bi bi-building text-info display-5"></i>
+                                    }
+                                    else if (Model.Category == "warehouse")
+                                    {
+                                        <i class="bi bi-box-seam text-warning display-5"></i>
+                                    }
+                                    else if (Model.Category == "service_center")
+                                    {
+                                        <i class="bi bi-tools text-secondary display-5"></i>
+                                    }
+                                    else if (Model.Category == "parking")
+                                    {
+                                        <i class="bi bi-p-circle text-dark display-5"></i>
+                                    }
+                                    else if (Model.Category == "hotel")
+                                    {
+                                        <i class="bi bi-house text-info display-5"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-geo-alt text-primary display-5"></i>
+                                    }
+                                </div>
+                                <div>
+                                    <h4>@Model.Name</h4>
+                                    <span class="badge bg-info">@Model.CategoryDisplayName</span>
+                                    @if (Model.IsActive)
+                                    {
+                                        <span class="badge bg-success ms-2">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary ms-2">Inactive</span>
+                                    }
+                                    @if (Model.IsPublic)
+                                    {
+                                        <span class="badge bg-primary ms-2">Public</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary ms-2">Private</span>
+                                    }
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Description:</strong>
+                                <p>@(string.IsNullOrEmpty(Model.Description) ? "No description provided" : Model.Description)</p>
+                            </div>
+                            
+                            <hr />
+                            
+                            <dl class="row">
+                                <dt class="col-sm-4">Address</dt>
+                                <dd class="col-sm-8">
+                                    @if (string.IsNullOrEmpty(Model.Address))
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                    else
+                                    {
+                                        @Model.Address
+                                    }
+                                </dd>
+                                
+                                <dt class="col-sm-4">Coordinates</dt>
+                                <dd class="col-sm-8">
+                                    <span>@Model.Latitude.ToString("F6"), @Model.Longitude.ToString("F6")</span>
+                                    <a href="https://www.google.com/maps/search/?api=1&query=@Model.Latitude,@Model.Longitude" target="_blank" class="ms-2 text-decoration-none">
+                                        <i class="bi bi-box-arrow-up-right"></i> View in Google Maps
+                                    </a>
+                                </dd>
+                                
+                                <dt class="col-sm-4">Phone</dt>
+                                <dd class="col-sm-8">
+                                    @if (string.IsNullOrEmpty(Model.Phone))
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                    else
+                                    {
+                                        <a href="tel:@Model.Phone">@Model.Phone</a>
+                                    }
+                                </dd>
+                                
+                                <dt class="col-sm-4">Website</dt>
+                                <dd class="col-sm-8">
+                                    @if (string.IsNullOrEmpty(Model.Website))
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                    else
+                                    {
+                                        <a href="@Model.Website" target="_blank">@Model.Website</a>
+                                    }
+                                </dd>
+                                
+                                <dt class="col-sm-4">Operating Hours</dt>
+                                <dd class="col-sm-8">
+                                    @if (string.IsNullOrEmpty(Model.OperatingHours))
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                    else
+                                    {
+                                        @Model.OperatingHours
+                                    }
+                                </dd>
+                                
+                                <dt class="col-sm-4">Tags</dt>
+                                <dd class="col-sm-8">
+                                    @if (string.IsNullOrEmpty(Model.Tags))
+                                    {
+                                        <span class="text-muted">No tags</span>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var tag in Model.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                                        {
+                                            <span class="badge bg-secondary me-1">@tag.Trim()</span>
+                                        }
+                                    }
+                                </dd>
+                                
+                                <dt class="col-sm-4">Created At</dt>
+                                <dd class="col-sm-8">@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</dd>
+                                
+                                <dt class="col-sm-4">Last Updated</dt>
+                                <dd class="col-sm-8">@Model.UpdatedAt.ToString("MMM dd, yyyy HH:mm")</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                        <div>
+                            <a href="#" class="btn btn-outline-primary me-2" id="nearby-pois-btn">Nearby POIs</a>
+                            <a href="#" class="btn btn-outline-success" id="directions-btn">Get Directions</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Location</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 550px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Nearby POIs Container -->
+    <div class="row" id="nearby-pois-container" style="display: none;">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Nearby Points of Interest (<span id="nearby-count">0</span>)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="nearby-pois-list">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize map
+            var map = L.map('map').setView([@Model.Latitude, @Model.Longitude], 15);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add marker for current POI
+            var marker = L.marker([@Model.Latitude, @Model.Longitude]).addTo(map);
+            marker.bindPopup("<b>@Model.Name</b><br>@Model.CategoryDisplayName<br>@(string.IsNullOrEmpty(Model.Address) ? "" : Model.Address)").openPopup();
+            
+            // Handle nearby POIs button click
+            $('#nearby-pois-btn').click(function(e) {
+                e.preventDefault();
+                
+                $.ajax({
+                    url: '@Url.Action("Nearby")',
+                    type: 'GET',
+                    data: { 
+                        lat: @Model.Latitude, 
+                        lng: @Model.Longitude,
+                        radius: 5.0 
+                    },
+                    success: function(response) {
+                        // Show the container
+                        $('#nearby-pois-container').show();
+                        
+                        // Update count
+                        $('#nearby-count').text(response.length);
+                        
+                        // Clear existing markers except for the main POI
+                        map.eachLayer(function(layer) {
+                            if (layer instanceof L.Marker && layer !== marker) {
+                                map.removeLayer(layer);
+                            }
+                        });
+                        
+                        // Clear the list
+                        $('#nearby-pois-list').empty();
+                        
+                        // Add new markers and list items
+                        response.forEach(function(poi) {
+                            // Skip the current POI
+                            if (poi.id === @Model.Id) {
+                                return;
+                            }
+                            
+                            var poiMarker = L.marker([poi.latitude, poi.longitude]).addTo(map);
+                            poiMarker.bindPopup("<b>" + poi.name + "</b><br>" + poi.categoryDisplayName + "<br>" + (poi.address || ""));
+                            
+                            // Add to list
+                            var html = `
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${poi.name}</h5>
+                                            <h6 class="card-subtitle mb-2 text-muted">${poi.categoryDisplayName}</h6>
+                                            <p class="card-text small">${poi.address || 'No address specified'}</p>
+                                        </div>
+                                        <div class="card-footer bg-white">
+                                            <a href="/PointOfInterest/Details/${poi.id}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            $('#nearby-pois-list').append(html);
+                        });
+                        
+                        // If no nearby POIs (except the current one)
+                        if (response.length <= 1) {
+                            $('#nearby-pois-list').html('<div class="col-12"><div class="alert alert-info">No nearby points of interest found within 5km.</div></div>');
+                        }
+                    },
+                    error: function(error) {
+                        console.log('Error:', error);
+                        $('#nearby-pois-container').show();
+                        $('#nearby-pois-list').html('<div class="col-12"><div class="alert alert-danger">Error loading nearby points of interest.</div></div>');
+                    }
+                });
+            });
+            
+            // Handle directions button click
+            $('#directions-btn').click(function(e) {
+                e.preventDefault();
+                
+                // Open Google Maps directions in a new tab
+                window.open('https://www.google.com/maps/dir/?api=1&destination=' + @Model.Latitude + ',' + @Model.Longitude, '_blank');
+            });
+        });
+    </script>
+} 

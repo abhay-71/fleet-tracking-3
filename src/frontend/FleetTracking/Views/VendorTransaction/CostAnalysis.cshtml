@@ -1,0 +1,448 @@
+@{
+    ViewData["Title"] = "Vendor Cost Analysis";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Vendor Cost Analysis</h1>
+            <p class="text-muted">Analyze vendor spending patterns and expenses</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-controller="Vendor" asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-list"></i> Vendor List
+                </a>
+                <a asp-controller="Vendor" asp-action="Analytics" class="btn btn-outline-primary">
+                    <i class="bi bi-bar-chart"></i> Performance Analytics
+                </a>
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-receipt"></i> Transactions
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Spending Overview -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Monthly Spending Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlySpendingChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Spending Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Total Transactions:</span>
+                        <span class="badge bg-primary rounded-pill">
+                            @ViewBag.SpendByType.Sum(s => s.Count)
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Total Spend:</span>
+                        <span class="fw-bold">
+                            @ViewBag.SpendByType.Sum(s => s.TotalAmount).ToString("C")
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Average Transaction:</span>
+                        <span>
+                            @{
+                                var count = ViewBag.SpendByType.Sum(s => s.Count);
+                                var total = ViewBag.SpendByType.Sum(s => s.TotalAmount);
+                                var average = count > 0 ? total / count : 0;
+                            }
+                            @average.ToString("C")
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Top Expense Type:</span>
+                        <span>
+                            @{
+                                var topType = ViewBag.SpendByType.OrderByDescending(s => s.TotalAmount).FirstOrDefault();
+                            }
+                            @(topType != null ? topType.TransactionTypeDisplayName : "N/A")
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Top Vendor:</span>
+                        <span>
+                            @{
+                                var topVendor = ViewBag.VendorAnalysis.OrderByDescending(v => v.TotalSpent).FirstOrDefault();
+                            }
+                            @(topVendor != null ? topVendor.VendorName : "N/A")
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Spending by Type -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Spending by Category</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="spendingByCategoryChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Vendors by Spend -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Top Vendors by Spend</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="topVendorsChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Vehicle Expenses -->
+        <div class="col-md-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Vehicle Maintenance and Service Costs</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="vehicleCostChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Vendor Costs Table -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Vendor Cost Analysis</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Vendor</th>
+                                    <th>Transactions</th>
+                                    <th>Total Spent</th>
+                                    <th>Average Transaction</th>
+                                    <th>Top Expense</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var vendor in ViewBag.VendorAnalysis)
+                                {
+                                    <tr>
+                                        <td>@vendor.VendorName</td>
+                                        <td>@vendor.TotalTransactions</td>
+                                        <td>@vendor.TotalSpent.ToString("C")</td>
+                                        <td>@vendor.AverageAmount.ToString("C")</td>
+                                        <td>
+                                            @{
+                                                var topExpense = vendor.TransactionsByType
+                                                    .OrderByDescending(t => t.TotalAmount)
+                                                    .FirstOrDefault();
+                                            }
+                                            @(topExpense != null ? $"{topExpense.TransactionTypeDisplayName} ({topExpense.TotalAmount:C})" : "N/A")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expense Distribution -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Expense Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Expense Type</th>
+                                <th>Count</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var expense in ViewBag.SpendByType)
+                            {
+                                <tr>
+                                    <td>@expense.TransactionTypeDisplayName</td>
+                                    <td>@expense.Count</td>
+                                    <td class="text-end">@expense.TotalAmount.ToString("C")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr class="fw-bold">
+                                <td>Total</td>
+                                <td>@ViewBag.SpendByType.Sum(s => s.Count)</td>
+                                <td class="text-end">@ViewBag.SpendByType.Sum(s => s.TotalAmount).ToString("C")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Prepare data for Monthly Spending Chart
+            var months = [@Html.Raw(string.Join(",", ViewBag.MonthlySpend.Select(m => $"'{m.MonthYear}'").ToArray()))];
+            var monthlyAmounts = [@Html.Raw(string.Join(",", ViewBag.MonthlySpend.Select(m => m.TotalAmount).ToArray()))];
+            
+            // Monthly Spending Chart
+            var monthlyCtx = document.getElementById('monthlySpendingChart').getContext('2d');
+            var monthlyChart = new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Monthly Spend',
+                        data: monthlyAmounts,
+                        fill: true,
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Prepare data for Spending by Category Chart
+            var categories = [@Html.Raw(string.Join(",", ViewBag.SpendByType.Select(s => $"'{s.TransactionTypeDisplayName}'").ToArray()))];
+            var categoryAmounts = [@Html.Raw(string.Join(",", ViewBag.SpendByType.Select(s => s.TotalAmount).ToArray()))];
+            var backgroundColors = [
+                'rgba(13, 110, 253, 0.7)',
+                'rgba(25, 135, 84, 0.7)',
+                'rgba(220, 53, 69, 0.7)',
+                'rgba(255, 193, 7, 0.7)',
+                'rgba(13, 202, 240, 0.7)',
+                'rgba(111, 66, 193, 0.7)',
+                'rgba(102, 16, 242, 0.7)'
+            ];
+            
+            // Spending by Category Chart
+            var categoryCtx = document.getElementById('spendingByCategoryChart').getContext('2d');
+            var categoryChart = new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: categoryAmounts,
+                        backgroundColor: backgroundColors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.label || '';
+                                    var value = context.parsed || 0;
+                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    var percentage = Math.round((value / total) * 100);
+                                    return label + ': $' + value.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Prepare data for Top Vendors Chart
+            var vendors = [@Html.Raw(string.Join(",", ViewBag.VendorAnalysis.OrderByDescending(v => v.TotalSpent).Take(5).Select(v => $"'{v.VendorName}'").ToArray()))];
+            var vendorAmounts = [@Html.Raw(string.Join(",", ViewBag.VendorAnalysis.OrderByDescending(v => v.TotalSpent).Take(5).Select(v => v.TotalSpent).ToArray()))];
+            
+            // Top Vendors Chart
+            var vendorCtx = document.getElementById('topVendorsChart').getContext('2d');
+            var vendorChart = new Chart(vendorCtx, {
+                type: 'bar',
+                data: {
+                    labels: vendors,
+                    datasets: [{
+                        label: 'Total Spend',
+                        data: vendorAmounts,
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.x.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Prepare data for Vehicle Costs Chart
+            var vehicles = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => $"'{v.VehicleName}'").ToArray()))];
+            var maintenanceAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
+                var maintenance = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "maintenance");
+                return maintenance != null ? maintenance.TotalAmount : 0;
+            }).ToArray()))];
+            var repairAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
+                var repair = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "repair");
+                return repair != null ? repair.TotalAmount : 0;
+            }).ToArray()))];
+            var partAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
+                var parts = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "parts");
+                return parts != null ? parts.TotalAmount : 0;
+            }).ToArray()))];
+            var fuelAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
+                var fuel = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "fuel");
+                return fuel != null ? fuel.TotalAmount : 0;
+            }).ToArray()))];
+            
+            // Vehicle Costs Chart
+            var vehicleCtx = document.getElementById('vehicleCostChart').getContext('2d');
+            var vehicleChart = new Chart(vehicleCtx, {
+                type: 'bar',
+                data: {
+                    labels: vehicles,
+                    datasets: [
+                        {
+                            label: 'Maintenance',
+                            data: maintenanceAmounts,
+                            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                            stack: 'Stack 0'
+                        },
+                        {
+                            label: 'Repairs',
+                            data: repairAmounts,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            stack: 'Stack 0'
+                        },
+                        {
+                            label: 'Parts',
+                            data: partAmounts,
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            stack: 'Stack 0'
+                        },
+                        {
+                            label: 'Fuel',
+                            data: fuelAmounts,
+                            backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                            stack: 'Stack 0'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+} 

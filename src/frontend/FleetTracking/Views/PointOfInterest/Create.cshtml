@@ -1,0 +1,210 @@
+@model FleetTracking.Models.PointOfInterest
+
+@{
+    ViewData["Title"] = "Create Point of Interest";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Points of Interest</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Create</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Create Point of Interest</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">POI Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Name</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Category" class="form-label">Category</label>
+                            <select asp-for="Category" asp-items="ViewBag.Categories" class="form-select"></select>
+                            <span asp-validation-for="Category" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Latitude" class="form-label">Latitude</label>
+                                <input asp-for="Latitude" class="form-control" id="latitude" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Longitude" class="form-label">Longitude</label>
+                                <input asp-for="Longitude" class="form-control" id="longitude" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">Address</label>
+                            <input asp-for="Address" class="form-control" />
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Phone" class="form-label">Phone</label>
+                                <input asp-for="Phone" class="form-control" />
+                                <span asp-validation-for="Phone" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Website" class="form-label">Website</label>
+                                <input asp-for="Website" class="form-control" />
+                                <span asp-validation-for="Website" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="OperatingHours" class="form-label">Operating Hours</label>
+                            <input asp-for="OperatingHours" class="form-control" placeholder="e.g. Mon-Fri: 8am-6pm" />
+                            <span asp-validation-for="OperatingHours" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Tags" class="form-label">Tags <small class="text-muted">(comma separated)</small></label>
+                            <input asp-for="Tags" class="form-control" placeholder="e.g. truck stop, restaurant, wifi" />
+                            <span asp-validation-for="Tags" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-check-inline">
+                                <input asp-for="IsPublic" class="form-check-input" />
+                                <label asp-for="IsPublic" class="form-check-label">Public</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input asp-for="IsActive" class="form-check-input" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Create</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Location</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 500px;"></div>
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Click on the map to set the location or enter coordinates manually</small>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="centerMapBtn">
+                            <i class="bi bi-geo"></i> Use My Location
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize map
+            var map = L.map('map').setView([40.7128, -74.0060], 13);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            var marker;
+            
+            // Initialize marker if coordinates are provided
+            var lat = $('#latitude').val();
+            var lng = $('#longitude').val();
+            
+            if (lat && lng) {
+                marker = L.marker([lat, lng]).addTo(map);
+                map.setView([lat, lng], 15);
+            }
+            
+            // Add marker on map click
+            map.on('click', function(e) {
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                
+                marker = L.marker(e.latlng).addTo(map);
+                
+                // Update form fields
+                $('#latitude').val(e.latlng.lat.toFixed(6));
+                $('#longitude').val(e.latlng.lng.toFixed(6));
+            });
+            
+            // Update marker when coordinates change
+            $('#latitude, #longitude').change(function() {
+                var lat = parseFloat($('#latitude').val());
+                var lng = parseFloat($('#longitude').val());
+                
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    if (marker) {
+                        map.removeLayer(marker);
+                    }
+                    
+                    marker = L.marker([lat, lng]).addTo(map);
+                    map.setView([lat, lng], 15);
+                }
+            });
+            
+            // Use current location
+            $('#centerMapBtn').click(function() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+                        
+                        if (marker) {
+                            map.removeLayer(marker);
+                        }
+                        
+                        marker = L.marker([lat, lng]).addTo(map);
+                        map.setView([lat, lng], 15);
+                        
+                        // Update form fields
+                        $('#latitude').val(lat.toFixed(6));
+                        $('#longitude').val(lng.toFixed(6));
+                    });
+                }
+            });
+        });
+    </script>
+} 

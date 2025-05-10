@@ -1,0 +1,233 @@
+@model IEnumerable<FleetTracking.Models.PointOfInterest>
+
+@{
+    ViewData["Title"] = "Points of Interest";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Points of Interest</h1>
+            <p class="text-muted">Manage and track important locations for your fleet</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> New POI
+                </a>
+                <a asp-action="Map" class="btn btn-outline-primary">
+                    <i class="bi bi-map"></i> View on Map
+                </a>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-gear"></i> Options
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" asp-action="Import"><i class="bi bi-upload me-2"></i>Import POIs</a></li>
+                        <li><a class="dropdown-item" asp-action="Export"><i class="bi bi-download me-2"></i>Export POIs</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0">All Points of Interest</h5>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search POIs...">
+                        <select class="form-select" id="categoryFilter" style="max-width: 200px;">
+                            <option value="">All Categories</option>
+                            <option value="fuel_station">Fuel Station</option>
+                            <option value="restaurant">Restaurant</option>
+                            <option value="rest_area">Rest Area</option>
+                            <option value="customer">Customer Location</option>
+                            <option value="warehouse">Warehouse</option>
+                            <option value="service_center">Service Center</option>
+                            <option value="parking">Parking</option>
+                            <option value="hotel">Hotel</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0" id="poiTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Address</th>
+                            <th>Coordinates</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="poiTableBody">
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0">
+                                            @if (item.Category == "fuel_station")
+                                            {
+                                                <i class="bi bi-fuel-pump text-danger"></i>
+                                            }
+                                            else if (item.Category == "restaurant")
+                                            {
+                                                <i class="bi bi-cup-hot text-success"></i>
+                                            }
+                                            else if (item.Category == "rest_area")
+                                            {
+                                                <i class="bi bi-p-square text-primary"></i>
+                                            }
+                                            else if (item.Category == "customer")
+                                            {
+                                                <i class="bi bi-building text-info"></i>
+                                            }
+                                            else if (item.Category == "warehouse")
+                                            {
+                                                <i class="bi bi-box-seam text-warning"></i>
+                                            }
+                                            else if (item.Category == "service_center")
+                                            {
+                                                <i class="bi bi-tools text-secondary"></i>
+                                            }
+                                            else if (item.Category == "parking")
+                                            {
+                                                <i class="bi bi-p-circle text-dark"></i>
+                                            }
+                                            else if (item.Category == "hotel")
+                                            {
+                                                <i class="bi bi-house text-info"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-geo-alt text-primary"></i>
+                                            }
+                                        </div>
+                                        <div class="ms-3">
+                                            <a asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none">@item.Name</a>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@item.CategoryDisplayName</td>
+                                <td>@(string.IsNullOrEmpty(item.Address) ? "-" : item.Address)</td>
+                                <td>
+                                    <span class="text-muted">@item.Latitude.ToString("F6"), @item.Longitude.ToString("F6")</span>
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            var table = $('#poiTable').DataTable({
+                "order": [[0, "asc"]],
+                "pageLength": 25,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "language": {
+                    "search": "",
+                    "searchPlaceholder": "Search POIs...",
+                    "lengthMenu": "Show _MENU_ entries"
+                },
+                "dom": '<"top"fl<"clear">>rt<"bottom"ip<"clear">>'
+            });
+            
+            // Search and filter functionality
+            $('#searchInput, #categoryFilter').on('keyup change', function() {
+                var searchTerm = $('#searchInput').val();
+                var category = $('#categoryFilter').val();
+                
+                // Use custom filtering for combined search
+                $.fn.dataTable.ext.search.push(
+                    function(settings, data, dataIndex) {
+                        var nameMatch = data[0].toLowerCase().includes(searchTerm.toLowerCase());
+                        var categoryMatch = category === '' || data[1].toLowerCase().includes(category.toLowerCase());
+                        return nameMatch && categoryMatch;
+                    }
+                );
+                
+                // Apply the filter
+                table.draw();
+                
+                // Remove the custom filtering function
+                $.fn.dataTable.ext.search.pop();
+            });
+            
+            // Search button click handler
+            $('#searchButton').click(function() {
+                var searchTerm = $('#searchInput').val();
+                var category = $('#categoryFilter').val();
+                
+                $.ajax({
+                    url: '@Url.Action("Search")',
+                    type: 'GET',
+                    data: { query: searchTerm, category: category },
+                    success: function(result) {
+                        $('#poiTableBody').html(result);
+                    },
+                    error: function(error) {
+                        console.log('Error:', error);
+                    }
+                });
+            });
+        });
+    </script>
+} 

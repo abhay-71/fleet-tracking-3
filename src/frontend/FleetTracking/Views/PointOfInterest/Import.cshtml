@@ -1,0 +1,215 @@
+@{
+    ViewData["Title"] = "Import Points of Interest";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Points of Interest</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Import</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Import Points of Interest</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Import from JSON</h5>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>Instructions</h6>
+                        <p class="mb-0">
+                            Import multiple Points of Interest by providing a JSON array. Each POI object should have the required
+                            properties (name, latitude, longitude, category).
+                        </p>
+                    </div>
+                    
+                    <form asp-action="Import" method="post">
+                        <div class="mb-3">
+                            <label for="jsonData" class="form-label">JSON Data</label>
+                            <textarea name="jsonData" id="jsonData" class="form-control" rows="15" placeholder='[
+  {
+    "name": "Gas Station Example",
+    "description": "24 hour fuel station",
+    "latitude": 40.7128,
+    "longitude": -74.0060,
+    "category": "fuel_station",
+    "address": "123 Main St, New York, NY",
+    "phone": "555-123-4567",
+    "tags": "fuel,diesel,open24"
+  }
+]'></textarea>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="validateOnly" name="validateOnly" value="true">
+                            <label class="form-check-label" for="validateOnly">
+                                Validate Only (check JSON without importing)
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary me-2" id="formatJsonBtn">Format JSON</button>
+                                <button type="button" class="btn btn-outline-secondary me-2" id="validateJsonBtn">Validate JSON</button>
+                                <button type="submit" class="btn btn-primary">Import</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Import from File</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <p class="mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            The import from file feature will be available in a future update.
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="fileInput" class="form-label">Select JSON File</label>
+                        <input type="file" class="form-control" id="fileInput" disabled>
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-primary" disabled>Upload &amp; Import</button>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">JSON Format Reference</h5>
+                </div>
+                <div class="card-body">
+                    <p>Your JSON should contain an array of POI objects with the following structure:</p>
+                    
+<pre class="bg-light p-3"><code>[
+  {
+    "name": "Gas Station Example", // Required
+    "description": "24 hour fuel station", // Optional
+    "latitude": 40.7128, // Required
+    "longitude": -74.0060, // Required
+    "category": "fuel_station", // Required: fuel_station, restaurant, rest_area, customer, warehouse, service_center, parking, hotel, custom
+    "address": "123 Main St, New York, NY", // Optional
+    "phone": "555-123-4567", // Optional
+    "website": "http://example.com", // Optional
+    "operatingHours": "24/7", // Optional
+    "tags": "fuel,diesel,open24", // Optional: comma-separated
+    "isPublic": true, // Optional: default=false
+    "isActive": true // Optional: default=true
+  },
+  {
+    // Additional POI objects...
+  }
+]</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Format JSON button click
+            $('#formatJsonBtn').click(function() {
+                try {
+                    const jsonText = $('#jsonData').val();
+                    if (!jsonText) {
+                        alert('Please enter JSON data to format.');
+                        return;
+                    }
+                    
+                    const parsedJson = JSON.parse(jsonText);
+                    const formattedJson = JSON.stringify(parsedJson, null, 2);
+                    $('#jsonData').val(formattedJson);
+                } catch (error) {
+                    alert('Invalid JSON: ' + error.message);
+                }
+            });
+            
+            // Validate JSON button click
+            $('#validateJsonBtn').click(function() {
+                try {
+                    const jsonText = $('#jsonData').val();
+                    if (!jsonText) {
+                        alert('Please enter JSON data to validate.');
+                        return;
+                    }
+                    
+                    const parsedJson = JSON.parse(jsonText);
+                    
+                    // Check if it's an array
+                    if (!Array.isArray(parsedJson)) {
+                        alert('JSON must be an array of POI objects.');
+                        return;
+                    }
+                    
+                    // Validate each POI
+                    const errors = [];
+                    parsedJson.forEach((poi, index) => {
+                        // Required fields
+                        if (!poi.name) {
+                            errors.push(`POI #${index + 1}: Missing required field 'name'.`);
+                        }
+                        
+                        if (poi.latitude === undefined || poi.latitude === null) {
+                            errors.push(`POI #${index + 1}: Missing required field 'latitude'.`);
+                        } else if (isNaN(poi.latitude) || poi.latitude < -90 || poi.latitude > 90) {
+                            errors.push(`POI #${index + 1}: Invalid latitude value (must be between -90 and 90).`);
+                        }
+                        
+                        if (poi.longitude === undefined || poi.longitude === null) {
+                            errors.push(`POI #${index + 1}: Missing required field 'longitude'.`);
+                        } else if (isNaN(poi.longitude) || poi.longitude < -180 || poi.longitude > 180) {
+                            errors.push(`POI #${index + 1}: Invalid longitude value (must be between -180 and 180).`);
+                        }
+                        
+                        if (!poi.category) {
+                            errors.push(`POI #${index + 1}: Missing required field 'category'.`);
+                        } else {
+                            const validCategories = ['fuel_station', 'restaurant', 'rest_area', 'customer', 'warehouse', 'service_center', 'parking', 'hotel', 'custom'];
+                            if (!validCategories.includes(poi.category)) {
+                                errors.push(`POI #${index + 1}: Invalid category value.`);
+                            }
+                        }
+                    });
+                    
+                    if (errors.length > 0) {
+                        alert('Validation Errors:\n' + errors.join('\n'));
+                    } else {
+                        alert(`JSON is valid! Found ${parsedJson.length} POI(s) ready to import.`);
+                    }
+                } catch (error) {
+                    alert('Invalid JSON: ' + error.message);
+                }
+            });
+            
+            // File input change
+            $('#fileInput').change(function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#jsonData').val(e.target.result);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        });
+    </script>
+} 

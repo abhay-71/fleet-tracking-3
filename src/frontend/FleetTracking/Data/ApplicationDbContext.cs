@@ -19,6 +19,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Waypoint> Waypoints { get; set; }
     public DbSet<Company> Companies { get; set; }
     public DbSet<VehicleType> VehicleTypes { get; set; }
+    public DbSet<PointOfInterest> PointsOfInterest { get; set; }
+    public DbSet<Vendor> Vendors { get; set; }
+    public DbSet<VendorTransaction> VendorTransactions { get; set; }
+    public DbSet<ScheduledReport> ScheduledReports { get; set; }
+    public DbSet<ScheduledReportRecipient> ScheduledReportRecipients { get; set; }
+    public DbSet<ScheduledReportVersion> ScheduledReportVersions { get; set; }
+    
+    // Inventory Management
+    public DbSet<InventoryCategory> InventoryCategories { get; set; }
+    public DbSet<InventoryItem> InventoryItems { get; set; }
+    public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+    
+    // Purchase Management
+    public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
+    public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -67,6 +82,128 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             .HasForeignKey(w => w.TripId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // POI Configurations
+        builder.Entity<PointOfInterest>()
+            .HasIndex(p => new { p.Latitude, p.Longitude });
+            
+        // Vendor Configurations
+        builder.Entity<Vendor>()
+            .HasOne(v => v.Company)
+            .WithMany()
+            .HasForeignKey(v => v.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<VendorTransaction>()
+            .HasOne(vt => vt.Vendor)
+            .WithMany()
+            .HasForeignKey(vt => vt.VendorId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<VendorTransaction>()
+            .HasOne(vt => vt.Vehicle)
+            .WithMany()
+            .HasForeignKey(vt => vt.VehicleId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<VendorTransaction>()
+            .HasOne(vt => vt.MaintenanceRecord)
+            .WithMany()
+            .HasForeignKey(vt => vt.MaintenanceRecordId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<VendorTransaction>()
+            .HasOne(vt => vt.Company)
+            .WithMany()
+            .HasForeignKey(vt => vt.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        // Scheduled Report Configurations
+        builder.Entity<ScheduledReport>()
+            .HasOne(sr => sr.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(sr => sr.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<ScheduledReportRecipient>()
+            .HasOne(srr => srr.ScheduledReport)
+            .WithMany(sr => sr.ScheduledReportRecipients)
+            .HasForeignKey(srr => srr.ScheduledReportId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+        builder.Entity<ScheduledReportVersion>()
+            .HasOne(srv => srv.ScheduledReport)
+            .WithMany(sr => sr.ScheduledReportVersions)
+            .HasForeignKey(srv => srv.ScheduledReportId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+        // Inventory Configurations
+        builder.Entity<InventoryCategory>()
+            .HasOne(ic => ic.ParentCategory)
+            .WithMany(ic => ic.ChildCategories)
+            .HasForeignKey(ic => ic.ParentCategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<InventoryItem>()
+            .HasOne(ii => ii.Category)
+            .WithMany(ic => ic.Items)
+            .HasForeignKey(ii => ii.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<InventoryTransaction>()
+            .HasOne(it => it.Item)
+            .WithMany()
+            .HasForeignKey(it => it.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<InventoryTransaction>()
+            .HasOne(it => it.Vehicle)
+            .WithMany()
+            .HasForeignKey(it => it.VehicleId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<InventoryTransaction>()
+            .HasOne(it => it.MaintenanceRecord)
+            .WithMany()
+            .HasForeignKey(it => it.MaintenanceRecordId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<InventoryTransaction>()
+            .HasOne(it => it.PerformedBy)
+            .WithMany()
+            .HasForeignKey(it => it.PerformedById)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        // Purchase Order Configurations
+        builder.Entity<PurchaseOrder>()
+            .HasOne(po => po.Vendor)
+            .WithMany()
+            .HasForeignKey(po => po.VendorId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<PurchaseOrder>()
+            .HasOne(po => po.CreatedBy)
+            .WithMany()
+            .HasForeignKey(po => po.CreatedById)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<PurchaseOrder>()
+            .HasOne(po => po.ApprovedBy)
+            .WithMany()
+            .HasForeignKey(po => po.ApprovedById)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        builder.Entity<PurchaseOrderItem>()
+            .HasOne(poi => poi.PurchaseOrder)
+            .WithMany(po => po.Items)
+            .HasForeignKey(poi => poi.PurchaseOrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+        builder.Entity<PurchaseOrderItem>()
+            .HasOne(poi => poi.InventoryItem)
+            .WithMany()
+            .HasForeignKey(poi => poi.InventoryItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
         // Customize the ASP.NET Identity model and override the defaults
         builder.Entity<ApplicationUser>()
             .HasMany(e => e.Claims)

@@ -50,6 +50,31 @@
                                     <i class="fas fa-wrench"></i> Maintenance
                                 </a>
                             </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-boxes"></i> Inventory
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
+                                    <li><a class="dropdown-item" asp-controller="InventoryCategory" asp-action="Index">Categories</a></li>
+                                    <li><a class="dropdown-item" asp-controller="InventoryItem" asp-action="Index">Items</a></li>
+                                    <li><a class="dropdown-item" asp-controller="InventoryItem" asp-action="LowStock">Low Stock</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="InventoryTransaction" asp-action="Index">Transactions</a></li>
+                                    <li><a class="dropdown-item" asp-controller="InventoryTransaction" asp-action="Usage">Usage Reports</a></li>
+                                    <li><a class="dropdown-item" asp-controller="InventoryTransaction" asp-action="ValuationReport">Valuation Report</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="purchasingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-shopping-cart"></i> Purchasing
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="purchasingDropdown">
+                                    <li><a class="dropdown-item" asp-controller="PurchaseOrder" asp-action="Index">Purchase Orders</a></li>
+                                    <li><a class="dropdown-item" asp-controller="PurchaseOrder" asp-action="Create">New Order</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="PurchaseOrder" asp-action="Summary">Purchasing Summary</a></li>
+                                </ul>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link text-light" asp-area="" asp-controller="Trip" asp-action="Index">Trips</a>
                             </li>

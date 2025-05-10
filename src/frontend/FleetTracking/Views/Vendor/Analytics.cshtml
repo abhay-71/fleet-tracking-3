@@ -1,0 +1,394 @@
+@model IEnumerable<FleetTracking.Controllers.VendorMetrics>
+
+@{
+    ViewData["Title"] = "Vendor Performance Analytics";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Vendor Performance Analytics</h1>
+            <p class="text-muted">Analyze and compare vendor performance metrics</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-list"></i> Vendor List
+                </a>
+                <a asp-action="ComparisonReport" class="btn btn-outline-primary">
+                    <i class="bi bi-clipboard-data"></i> Compare Vendors
+                </a>
+                <a asp-controller="VendorTransaction" asp-action="CostAnalysis" class="btn btn-outline-primary">
+                    <i class="bi bi-cash-coin"></i> Cost Analysis
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Performance Rankings</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @foreach (var vendor in Model.OrderBy(v => v.OverallRank))
+                        {
+                            <a href="#vendor-@vendor.Vendor.Id" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-primary rounded-pill me-2">@vendor.OverallRank</span>
+                                    @vendor.Vendor.Name
+                                </div>
+                                <div>
+                                    @{
+                                        var ratingClass = vendor.OverallAverageRating >= 4.5 ? "text-success" :
+                                                         vendor.OverallAverageRating >= 3.5 ? "text-primary" :
+                                                         vendor.OverallAverageRating >= 2.5 ? "text-warning" : "text-danger";
+                                    }
+                                    <span class="@ratingClass">@vendor.OverallAverageRating.ToString("F1")</span>
+                                    <i class="bi bi-star-fill @ratingClass small"></i>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Key Performance Indicators</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Total Vendors:</span>
+                        <span class="badge bg-primary rounded-pill">@Model.Count()</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Top Rated Vendor:</span>
+                        <span class="fw-bold">@Model.OrderByDescending(v => v.OverallAverageRating).FirstOrDefault()?.Vendor.Name</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Average Rating:</span>
+                        <span>@Model.Average(v => v.OverallAverageRating).ToString("F1")</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Total Transactions:</span>
+                        <span>@Model.Sum(v => v.TotalTransactions)</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Total Spent:</span>
+                        <span>@Model.Sum(v => v.TotalSpent).ToString("C")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Vendor Performance Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="vendorRatingsChart" height="100"></canvas>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Performance Metrics by Vendor</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="vendorComplianceChart" height="80"></canvas>
+                </div>
+            </div>
+
+            @foreach (var vendor in Model.OrderBy(v => v.OverallRank))
+            {
+                <div class="card shadow-sm mb-4" id="vendor-@vendor.Vendor.Id">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <span class="badge bg-primary rounded-pill me-2">@vendor.OverallRank</span>
+                                @vendor.Vendor.Name
+                            </h5>
+                            <div>
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= Math.Round(vendor.OverallAverageRating))
+                                    {
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-star text-muted"></i>
+                                    }
+                                }
+                                <span class="ms-2">(@vendor.OverallAverageRating.ToString("F1"))</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Performance Ratings</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Quality Rating</span>
+                                        <span>@vendor.AverageQualityRating.ToString("F1")</span>
+                                    </label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: @(vendor.AverageQualityRating * 20)%" aria-valuenow="@vendor.AverageQualityRating" aria-valuemin="0" aria-valuemax="5"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Service Rating</span>
+                                        <span>@vendor.AverageServiceRating.ToString("F1")</span>
+                                    </label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: @(vendor.AverageServiceRating * 20)%" aria-valuenow="@vendor.AverageServiceRating" aria-valuemin="0" aria-valuemax="5"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Timeliness Rating</span>
+                                        <span>@vendor.AverageTimelinessRating.ToString("F1")</span>
+                                    </label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: @(vendor.AverageTimelinessRating * 20)%" aria-valuenow="@vendor.AverageTimelinessRating" aria-valuemin="0" aria-valuemax="5"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Price Rating</span>
+                                        <span>@vendor.AveragePriceRating.ToString("F1")</span>
+                                    </label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: @(vendor.AveragePriceRating * 20)%" aria-valuenow="@vendor.AveragePriceRating" aria-valuemin="0" aria-valuemax="5"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6>Compliance Metrics</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>On-Time Delivery</span>
+                                        <span>@vendor.OnTimeDeliveryRate.ToString("F1")%</span>
+                                    </label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: @vendor.OnTimeDeliveryRate%" aria-valuenow="@vendor.OnTimeDeliveryRate" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Within Budget</span>
+                                        <span>@vendor.WithinBudgetRate.ToString("F1")%</span>
+                                    </label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: @vendor.WithinBudgetRate%" aria-valuenow="@vendor.WithinBudgetRate" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label d-flex justify-content-between">
+                                        <span>Compliance Rate</span>
+                                        <span>@vendor.ComplianceRate.ToString("F1")%</span>
+                                    </label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: @vendor.ComplianceRate%" aria-valuenow="@vendor.ComplianceRate" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-light mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Total Transactions:</span>
+                                        <span class="badge bg-secondary">@vendor.TotalTransactions</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Total Spent:</span>
+                                        <span class="fw-bold">@vendor.TotalSpent.ToString("C")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end mt-3">
+                            <a asp-action="Details" asp-route-id="@vendor.Vendor.Id" class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-info-circle"></i> View Details
+                            </a>
+                            <a asp-action="ComparisonReport" asp-route-vendor1Id="@vendor.Vendor.Id" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-bar-chart"></i> Compare
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Prepare data for charts
+            var vendorNames = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => "'" + v.Vendor.Name + "'")))];
+            var qualityRatings = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => v.AverageQualityRating)))];
+            var serviceRatings = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => v.AverageServiceRating)))];
+            var timelinessRatings = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => v.AverageTimelinessRating)))];
+            var priceRatings = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => v.AveragePriceRating)))];
+            
+            var onTimeRates = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => v.OnTimeDeliveryRate)))];
+            var budgetRates = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => v.WithinBudgetRate)))];
+            var complianceRates = [@Html.Raw(string.Join(",", Model.OrderBy(v => v.OverallRank).Select(v => v.ComplianceRate)))];
+            
+            // Vendor Ratings Chart
+            var ratingsCtx = document.getElementById('vendorRatingsChart').getContext('2d');
+            var ratingsChart = new Chart(ratingsCtx, {
+                type: 'bar',
+                data: {
+                    labels: vendorNames,
+                    datasets: [
+                        {
+                            label: 'Quality',
+                            data: qualityRatings,
+                            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                            borderColor: 'rgba(13, 110, 253, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Service',
+                            data: serviceRatings,
+                            backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Timeliness',
+                            data: timelinessRatings,
+                            backgroundColor: 'rgba(13, 202, 240, 0.7)',
+                            borderColor: 'rgba(13, 202, 240, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Price',
+                            data: priceRatings,
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5,
+                            title: {
+                                display: true,
+                                text: 'Rating (1-5)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Vendor'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Performance Ratings Comparison'
+                        },
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            
+            // Vendor Compliance Chart
+            var complianceCtx = document.getElementById('vendorComplianceChart').getContext('2d');
+            var complianceChart = new Chart(complianceCtx, {
+                type: 'radar',
+                data: {
+                    labels: vendorNames,
+                    datasets: [
+                        {
+                            label: 'On-Time Delivery (%)',
+                            data: onTimeRates,
+                            backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                            borderColor: 'rgba(13, 110, 253, 1)',
+                            borderWidth: 1,
+                            pointBackgroundColor: 'rgba(13, 110, 253, 1)'
+                        },
+                        {
+                            label: 'Within Budget (%)',
+                            data: budgetRates,
+                            backgroundColor: 'rgba(25, 135, 84, 0.2)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 1,
+                            pointBackgroundColor: 'rgba(25, 135, 84, 1)'
+                        },
+                        {
+                            label: 'Compliance (%)',
+                            data: complianceRates,
+                            backgroundColor: 'rgba(13, 202, 240, 0.2)',
+                            borderColor: 'rgba(13, 202, 240, 1)',
+                            borderWidth: 1,
+                            pointBackgroundColor: 'rgba(13, 202, 240, 1)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Compliance & Performance Metrics (%)'
+                        },
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+} 

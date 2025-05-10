@@ -1,0 +1,80 @@
+@model IEnumerable<FleetTracking.Models.PointOfInterest>
+
+@foreach (var item in Model)
+{
+    <tr>
+        <td>
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0">
+                    @if (item.Category == "fuel_station")
+                    {
+                        <i class="bi bi-fuel-pump text-danger"></i>
+                    }
+                    else if (item.Category == "restaurant")
+                    {
+                        <i class="bi bi-cup-hot text-success"></i>
+                    }
+                    else if (item.Category == "rest_area")
+                    {
+                        <i class="bi bi-p-square text-primary"></i>
+                    }
+                    else if (item.Category == "customer")
+                    {
+                        <i class="bi bi-building text-info"></i>
+                    }
+                    else if (item.Category == "warehouse")
+                    {
+                        <i class="bi bi-box-seam text-warning"></i>
+                    }
+                    else if (item.Category == "service_center")
+                    {
+                        <i class="bi bi-tools text-secondary"></i>
+                    }
+                    else if (item.Category == "parking")
+                    {
+                        <i class="bi bi-p-circle text-dark"></i>
+                    }
+                    else if (item.Category == "hotel")
+                    {
+                        <i class="bi bi-house text-info"></i>
+                    }
+                    else
+                    {
+                        <i class="bi bi-geo-alt text-primary"></i>
+                    }
+                </div>
+                <div class="ms-3">
+                    <a asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none">@item.Name</a>
+                </div>
+            </div>
+        </td>
+        <td>@item.CategoryDisplayName</td>
+        <td>@(string.IsNullOrEmpty(item.Address) ? "-" : item.Address)</td>
+        <td>
+            <span class="text-muted">@item.Latitude.ToString("F6"), @item.Longitude.ToString("F6")</span>
+        </td>
+        <td>
+            @if (item.IsActive)
+            {
+                <span class="badge bg-success">Active</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary">Inactive</span>
+            }
+        </td>
+        <td>
+            <div class="btn-group" role="group">
+                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-eye"></i>
+                </a>
+                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                </a>
+            </div>
+        </td>
+    </tr>
+} 

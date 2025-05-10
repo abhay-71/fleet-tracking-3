@@ -1,0 +1,358 @@
+@model IEnumerable<FleetTracking.Models.PointOfInterest>
+
+@{
+    ViewData["Title"] = "POI Map";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Points of Interest Map</h1>
+            <p class="text-muted">View and interact with all your points of interest</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="bi bi-list"></i> List View
+                </a>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> New POI
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-9">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">Map View</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-end">
+                                <div class="btn-group btn-group-sm me-2" role="group" aria-label="Map Type">
+                                    <button type="button" class="btn btn-outline-secondary active" id="mapTypeRoad">Road</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="mapTypeSatellite">Satellite</button>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="centerMapBtn">
+                                    <i class="bi bi-geo"></i> Center Map
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 700px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Filter POIs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="categoryFilter" class="form-label">Category</label>
+                        <select class="form-select" id="categoryFilter">
+                            <option value="all">All Categories</option>
+                            <option value="fuel_station">Fuel Stations</option>
+                            <option value="restaurant">Restaurants</option>
+                            <option value="rest_area">Rest Areas</option>
+                            <option value="customer">Customer Locations</option>
+                            <option value="warehouse">Warehouses</option>
+                            <option value="service_center">Service Centers</option>
+                            <option value="parking">Parking</option>
+                            <option value="hotel">Hotels</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="searchInput" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search by name or tag...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="showActiveOnly" checked>
+                            <label class="form-check-label" for="showActiveOnly">
+                                Show Active Only
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-primary" id="applyFiltersBtn">
+                            <i class="bi bi-filter"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">POI Details</h5>
+                </div>
+                <div class="card-body">
+                    <div id="poiDetails">
+                        <div class="text-center py-4">
+                            <i class="bi bi-geo-alt display-4 text-muted"></i>
+                            <p class="mt-2">Select a POI on the map to view details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize map
+            var map = L.map('map').setView([40, -98], 4); // Center on US by default
+            
+            // Add tile layers
+            var roadLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            });
+            
+            // Switch between map types
+            $('#mapTypeRoad').click(function() {
+                $(this).addClass('active');
+                $('#mapTypeSatellite').removeClass('active');
+                map.removeLayer(satelliteLayer);
+                map.addLayer(roadLayer);
+            });
+            
+            $('#mapTypeSatellite').click(function() {
+                $(this).addClass('active');
+                $('#mapTypeRoad').removeClass('active');
+                map.removeLayer(roadLayer);
+                map.addLayer(satelliteLayer);
+            });
+            
+            // POI data from model
+            var pois = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model));
+            
+            // Layer groups for categories
+            var poiLayers = {
+                all: L.layerGroup().addTo(map),
+                fuel_station: L.layerGroup().addTo(map),
+                restaurant: L.layerGroup().addTo(map),
+                rest_area: L.layerGroup().addTo(map),
+                customer: L.layerGroup().addTo(map),
+                warehouse: L.layerGroup().addTo(map),
+                service_center: L.layerGroup().addTo(map),
+                parking: L.layerGroup().addTo(map),
+                hotel: L.layerGroup().addTo(map),
+                custom: L.layerGroup().addTo(map)
+            };
+            
+            // Helper function to get icon for category
+            function getCategoryIcon(category) {
+                var iconUrl = '/images/markers/default.png'; // Default
+                
+                switch(category) {
+                    case 'fuel_station':
+                        return L.divIcon({
+                            html: '<i class="bi bi-fuel-pump" style="font-size: 24px; color: #dc3545;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    case 'restaurant':
+                        return L.divIcon({
+                            html: '<i class="bi bi-cup-hot" style="font-size: 24px; color: #198754;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    case 'rest_area':
+                        return L.divIcon({
+                            html: '<i class="bi bi-p-square" style="font-size: 24px; color: #0d6efd;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    case 'customer':
+                        return L.divIcon({
+                            html: '<i class="bi bi-building" style="font-size: 24px; color: #0dcaf0;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    case 'warehouse':
+                        return L.divIcon({
+                            html: '<i class="bi bi-box-seam" style="font-size: 24px; color: #ffc107;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    case 'service_center':
+                        return L.divIcon({
+                            html: '<i class="bi bi-tools" style="font-size: 24px; color: #6c757d;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    case 'parking':
+                        return L.divIcon({
+                            html: '<i class="bi bi-p-circle" style="font-size: 24px; color: #212529;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    case 'hotel':
+                        return L.divIcon({
+                            html: '<i class="bi bi-house" style="font-size: 24px; color: #0dcaf0;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    default:
+                        return L.divIcon({
+                            html: '<i class="bi bi-geo-alt" style="font-size: 24px; color: #0d6efd;"></i>',
+                            className: 'map-marker-icon',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                }
+            }
+            
+            // Add markers for POIs
+            var allMarkers = [];
+            var bounds = L.latLngBounds();
+            
+            pois.forEach(function(poi) {
+                if (poi.latitude && poi.longitude) {
+                    var marker = L.marker([poi.latitude, poi.longitude], {
+                        icon: getCategoryIcon(poi.category),
+                        poiId: poi.id,
+                        poiCategory: poi.category,
+                        poiName: poi.name,
+                        poiActive: poi.isActive
+                    }).addTo(poiLayers.all).addTo(poiLayers[poi.category]);
+                    
+                    marker.bindPopup(`
+                        <div class="text-center mb-2">
+                            <strong>${poi.name}</strong>
+                            <br>
+                            <small class="text-muted">${poi.categoryDisplayName}</small>
+                        </div>
+                        <a href="/PointOfInterest/Details/${poi.id}" class="btn btn-sm btn-outline-primary btn-block">View Details</a>
+                    `);
+                    
+                    marker.on('click', function() {
+                        showPoiDetails(poi);
+                    });
+                    
+                    allMarkers.push(marker);
+                    bounds.extend([poi.latitude, poi.longitude]);
+                }
+            });
+            
+            // Fit map to bounds if we have POIs
+            if (allMarkers.length > 0) {
+                map.fitBounds(bounds);
+            }
+            
+            // Filter POIs
+            $('#applyFiltersBtn').click(function() {
+                var category = $('#categoryFilter').val();
+                var search = $('#searchInput').val().toLowerCase();
+                var showActiveOnly = $('#showActiveOnly').is(':checked');
+                
+                // Clear all layers
+                Object.values(poiLayers).forEach(function(layer) {
+                    layer.clearLayers();
+                });
+                
+                // Filter markers
+                allMarkers.forEach(function(marker) {
+                    var categoryMatch = category === 'all' || marker.options.poiCategory === category;
+                    var searchMatch = search === '' || marker.options.poiName.toLowerCase().includes(search);
+                    var activeMatch = !showActiveOnly || marker.options.poiActive;
+                    
+                    if (categoryMatch && searchMatch && activeMatch) {
+                        marker.addTo(poiLayers.all);
+                        marker.addTo(poiLayers[marker.options.poiCategory]);
+                    }
+                });
+            });
+            
+            // Use current location
+            $('#centerMapBtn').click(function() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+                        map.setView([lat, lng], 12);
+                    });
+                }
+            });
+            
+            // Show POI details in sidebar
+            function showPoiDetails(poi) {
+                var createdDate = new Date(poi.createdAt).toLocaleDateString();
+                var updatedDate = new Date(poi.updatedAt).toLocaleDateString();
+                
+                var html = `
+                    <div class="text-center mb-3">
+                        <h5>${poi.name}</h5>
+                        <span class="badge bg-info">${poi.categoryDisplayName}</span>
+                        ${poi.isActive ? '<span class="badge bg-success ms-2">Active</span>' : '<span class="badge bg-secondary ms-2">Inactive</span>'}
+                    </div>
+                    
+                    <dl class="row small mb-0">
+                        <dt class="col-5">Description:</dt>
+                        <dd class="col-7">${poi.description || '<span class="text-muted">None</span>'}</dd>
+                        
+                        <dt class="col-5">Address:</dt>
+                        <dd class="col-7">${poi.address || '<span class="text-muted">Not specified</span>'}</dd>
+                        
+                        <dt class="col-5">Phone:</dt>
+                        <dd class="col-7">${poi.phone ? '<a href="tel:' + poi.phone + '">' + poi.phone + '</a>' : '<span class="text-muted">None</span>'}</dd>
+                        
+                        <dt class="col-5">Created:</dt>
+                        <dd class="col-7">${createdDate}</dd>
+                    </dl>
+                    
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="/PointOfInterest/Details/${poi.id}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        <a href="/PointOfInterest/Edit/${poi.id}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </div>
+                `;
+                
+                $('#poiDetails').html(html);
+            }
+            
+            // Add custom styling for map markers
+            $('<style>')
+                .prop('type', 'text/css')
+                .html(`
+                    .map-marker-icon {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        background-color: rgba(255, 255, 255, 0.8);
+                        border-radius: 50%;
+                        width: 40px !important;
+                        height: 40px !important;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+                    }
+                `)
+                .appendTo('head');
+        });
+    </script>
+} 

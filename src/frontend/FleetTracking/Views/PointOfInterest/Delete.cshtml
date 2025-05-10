@@ -1,0 +1,140 @@
+@model FleetTracking.Models.PointOfInterest
+
+@{
+    ViewData["Title"] = "Delete Point of Interest";
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Points of Interest</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Delete</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Delete Point of Interest</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Deletion
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <p>Are you sure you want to delete this point of interest? This action cannot be undone.</p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-shrink-0 me-3">
+                                    @if (Model.Category == "fuel_station")
+                                    {
+                                        <i class="bi bi-fuel-pump text-danger display-5"></i>
+                                    }
+                                    else if (Model.Category == "restaurant")
+                                    {
+                                        <i class="bi bi-cup-hot text-success display-5"></i>
+                                    }
+                                    else if (Model.Category == "rest_area")
+                                    {
+                                        <i class="bi bi-p-square text-primary display-5"></i>
+                                    }
+                                    else if (Model.Category == "customer")
+                                    {
+                                        <i class="bi bi-building text-info display-5"></i>
+                                    }
+                                    else if (Model.Category == "warehouse")
+                                    {
+                                        <i class="bi bi-box-seam text-warning display-5"></i>
+                                    }
+                                    else if (Model.Category == "service_center")
+                                    {
+                                        <i class="bi bi-tools text-secondary display-5"></i>
+                                    }
+                                    else if (Model.Category == "parking")
+                                    {
+                                        <i class="bi bi-p-circle text-dark display-5"></i>
+                                    }
+                                    else if (Model.Category == "hotel")
+                                    {
+                                        <i class="bi bi-house text-info display-5"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-geo-alt text-primary display-5"></i>
+                                    }
+                                </div>
+                                <div>
+                                    <h4>@Model.Name</h4>
+                                    <span class="badge bg-info">@Model.CategoryDisplayName</span>
+                                    @if (Model.IsActive)
+                                    {
+                                        <span class="badge bg-success ms-2">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary ms-2">Inactive</span>
+                                    }
+                                </div>
+                            </div>
+                            
+                            <dl class="row">
+                                <dt class="col-sm-3">Description</dt>
+                                <dd class="col-sm-9">
+                                    @if (string.IsNullOrEmpty(Model.Description))
+                                    {
+                                        <span class="text-muted">No description</span>
+                                    }
+                                    else
+                                    {
+                                        @Model.Description
+                                    }
+                                </dd>
+                                
+                                <dt class="col-sm-3">Address</dt>
+                                <dd class="col-sm-9">
+                                    @if (string.IsNullOrEmpty(Model.Address))
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                    else
+                                    {
+                                        @Model.Address
+                                    }
+                                </dd>
+                                
+                                <dt class="col-sm-3">Coordinates</dt>
+                                <dd class="col-sm-9">
+                                    @Model.Latitude.ToString("F6"), @Model.Longitude.ToString("F6")
+                                </dd>
+                                
+                                <dt class="col-sm-3">Created</dt>
+                                <dd class="col-sm-9">
+                                    @Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    <form asp-action="Delete" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-2"></i>Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

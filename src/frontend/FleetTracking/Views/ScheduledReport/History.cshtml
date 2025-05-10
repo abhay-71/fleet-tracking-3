@@ -1,0 +1,197 @@
+@model IEnumerable<FleetTracking.Models.ScheduledReportVersion>
+
+@{
+    ViewData["Title"] = "Report History";
+    var report = ViewBag.Report as FleetTracking.Models.ScheduledReport;
+}
+
+<div class="container-fluid px-4 py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h3 mb-0">Report Version History</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Report Scheduler</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Report History</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Details" asp-route-id="@report.Id" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Details
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">@report.Name - Version History</h5>
+            <p class="text-muted small mb-0">
+                @{
+                    var reportTypeDisplay = "";
+                    switch (report.ReportType)
+                    {
+                        case "vehicle_status": reportTypeDisplay = "Vehicle Status"; break;
+                        case "trip_summary": reportTypeDisplay = "Trip Summary"; break;
+                        case "fuel_consumption": reportTypeDisplay = "Fuel Consumption"; break;
+                        case "maintenance_cost": reportTypeDisplay = "Maintenance Cost"; break;
+                        case "driver_performance": reportTypeDisplay = "Driver Performance"; break;
+                        case "financial_summary": reportTypeDisplay = "Financial Summary"; break;
+                        default: reportTypeDisplay = report.ReportType; break;
+                    }
+                }
+                @reportTypeDisplay Report | @report.RecurrencePattern.ToUpper()[0]@report.RecurrencePattern.Substring(1) Schedule
+            </p>
+        </div>
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <div class="p-4 text-center">
+                    <div class="text-muted">
+                        <i class="bi bi-archive fs-3"></i>
+                        <h5 class="mt-2">No Reports Generated Yet</h5>
+                        <p>Reports will appear here after the schedule runs for the first time.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Generated Date</th>
+                                <th>Format</th>
+                                <th>File Name</th>
+                                <th>Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var version in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm bg-light rounded-circle me-2">
+                                                <span class="avatar-text rounded-circle">
+                                                    @if (version.Format.ToLower() == "pdf")
+                                                    {
+                                                        <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                                                    }
+                                                    else if (version.Format.ToLower() == "excel")
+                                                    {
+                                                        <i class="bi bi-file-earmark-excel-fill text-success"></i>
+                                                    }
+                                                    else if (version.Format.ToLower() == "csv")
+                                                    {
+                                                        <i class="bi bi-file-earmark-text-fill text-primary"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-file-earmark-fill text-secondary"></i>
+                                                    }
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <strong>@version.GeneratedDate.ToString("MMM dd, yyyy")</strong>
+                                                <div class="small text-muted">
+                                                    @version.GeneratedDate.ToString("HH:mm:ss") UTC
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@version.Format.ToUpper()</span>
+                                    </td>
+                                    <td>
+                                        @version.FileName
+                                    </td>
+                                    <td>
+                                        @(version.FileSizeKb < 1024 ? $"{version.FileSizeKb} KB" : $"{(version.FileSizeKb / 1024.0):F2} MB")
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="@version.FilePath" class="btn btn-sm btn-outline-primary" download>
+                                                <i class="bi bi-download"></i> Download
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                                    data-bs-toggle="modal" data-bs-target="#infoModal"
+                                                    data-version-id="@version.Id"
+                                                    data-generated-date="@version.GeneratedDate.ToString("MMM dd, yyyy HH:mm:ss")"
+                                                    data-parameters='@version.ParametersUsed'
+                                                    data-notes="@version.VersionNotes">
+                                                <i class="bi bi-info-circle"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Version Info Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="infoModalLabel">Report Version Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Generated:</dt>
+                    <dd class="col-sm-8" id="modalGeneratedDate"></dd>
+                    
+                    <dt class="col-sm-4">Parameters:</dt>
+                    <dd class="col-sm-8">
+                        <pre class="bg-light p-2 rounded" id="modalParameters" style="max-height: 150px; overflow-y: auto;"></pre>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Notes:</dt>
+                    <dd class="col-sm-8" id="modalNotes"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Handle modal data
+            $('#infoModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var generatedDate = button.data('generated-date');
+                var parameters = button.data('parameters');
+                var notes = button.data('notes');
+                
+                var modal = $(this);
+                modal.find('#modalGeneratedDate').text(generatedDate);
+                
+                // Format JSON if needed
+                if (parameters) {
+                    try {
+                        var jsonObj = JSON.parse(parameters);
+                        modal.find('#modalParameters').text(JSON.stringify(jsonObj, null, 2));
+                    } catch (e) {
+                        modal.find('#modalParameters').text(parameters);
+                    }
+                } else {
+                    modal.find('#modalParameters').text('No parameters available');
+                }
+                
+                modal.find('#modalNotes').text(notes || 'No notes available');
+            });
+        });
+    </script>
+} 
