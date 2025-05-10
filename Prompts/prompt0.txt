@@ -1,0 +1,11 @@
+We are going to builf a fleet tracking application which will track the fleet of vehicles for a specific company whih includes dashboards, fleet monitoring in Tabulator grid  view, trip monitoring for running trips and historical trips, analytics for vehicle performance, driver preformance, vendor performance, MIS reports for vehicle travel path, distance travel by each vehicle and  view for all vehicles, running time, idle time by each vehicle and view for all vehicles, inventory mangement to manage transportation business, payemnt interface for material purchace and bill payments, map view in leaflet.js with option to select  Google maps or osm maps with option to select road view and sattelite view. 
+
+Generate the project outline in a separate markdown file inside of docs folder. First think what you are going to do and split the complete development into multiple tasks and document those in a saperate markdown file which devides development into frontend, backend and API's. 
+
+I want this to be the Tech Stack
+- Frontend in ASP.net MVC
+- Backend in PostgresSQL
+- API in GoLang
+
+DO NOT DEVELOP ANYTHING UNTIL I TELL YOU TO DEVELOP. JUST GIVE ME PROJECT DOCUMENTATION AND YOUR PLANNING OF HOW TO TACKLE THE IMPLEMENTATION. 
+AND ALSO IF YOU HAVE ANY QUESTIONS ABOUT THE IMPLEMENTATION MAKE SURE TO ASK IT BEFORE YOU START THE IMPLEMENTATION

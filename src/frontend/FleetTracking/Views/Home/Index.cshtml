@@ -1,0 +1,55 @@
+@{
+    ViewData["Title"] = "Welcome";
+}
+
+<div class="text-center hero-section">
+    <h1 class="display-4">Welcome to Fleet Tracking</h1>
+    <p class="lead">Comprehensive vehicle and fleet management solution for your business</p>
+    
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-truck-moving fa-4x mb-3 text-primary"></i>
+                    <h3>Vehicle Management</h3>
+                    <p>Track and manage your entire fleet of vehicles from a single dashboard.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-route fa-4x mb-3 text-success"></i>
+                    <h3>Trip Planning</h3>
+                    <p>Plan and optimize routes for better efficiency and reduced fuel costs.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-4x mb-3 text-info"></i>
+                    <h3>Analytics & Reporting</h3>
+                    <p>Get detailed insights into fleet performance, costs, and driver behavior.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg mx-2">Sign Up Now</a>
+        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-lg mx-2">Login</a>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .hero-section {
+            padding: 4rem 0;
+        }
+        
+        .fas {
+            color: #337ab7;
+        }
+    </style>
+} 

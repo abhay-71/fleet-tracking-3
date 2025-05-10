@@ -42,10 +42,15 @@ func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 	})
 
 	// Trip endpoints
-	mux.HandleFunc("GET "+apiV1+"/trips", func(w http.ResponseWriter, r *http.Request) {
-		handleTrips(w, r, db)
-	})
-	mux.HandleFunc("GET "+apiV1+"/trips/{id}", func(w http.ResponseWriter, r *http.Request) {
-		handleTripByID(w, r, db)
-	})
+	tripHandler := NewTripHandler(db)
+
+	mux.HandleFunc("GET "+apiV1+"/trips", tripHandler.ListTrips)
+	mux.HandleFunc("POST "+apiV1+"/trips", tripHandler.CreateTrip)
+	mux.HandleFunc("GET "+apiV1+"/trips/{id}", tripHandler.GetTrip)
+	mux.HandleFunc("PUT "+apiV1+"/trips/{id}", tripHandler.UpdateTrip)
+	mux.HandleFunc("DELETE "+apiV1+"/trips/{id}", tripHandler.DeleteTrip)
+	mux.HandleFunc("POST "+apiV1+"/trips/{id}/start", tripHandler.StartTrip)
+	mux.HandleFunc("POST "+apiV1+"/trips/{id}/end", tripHandler.EndTrip)
+	mux.HandleFunc("GET "+apiV1+"/trips/{id}/waypoints", tripHandler.GetWaypoints)
+	mux.HandleFunc("POST "+apiV1+"/trips/{id}/waypoints", tripHandler.AddWaypoint)
 }
