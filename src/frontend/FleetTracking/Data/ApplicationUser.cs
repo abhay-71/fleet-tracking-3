@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using System.Collections.Generic;
+using System;
 
 namespace FleetTracking.Data;
 
@@ -7,10 +8,13 @@ public class ApplicationUser : IdentityUser
 {
     public string FirstName { get; set; }
     public string LastName { get; set; }
+    public string JobTitle { get; set; }
+    public string Department { get; set; }
+    public DateTime LastLoginDate { get; set; }
+    public bool IsActive { get; set; } = true;
     public string ProfilePictureUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? LastLoginAt { get; set; }
-    public bool IsActive { get; set; } = true;
+    public DateTime? UpdatedAt { get; set; }
     
     // Navigation properties
     public virtual ICollection<IdentityUserClaim<string>> Claims { get; set; }

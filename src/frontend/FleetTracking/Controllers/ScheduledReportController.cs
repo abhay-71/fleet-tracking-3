@@ -96,10 +96,10 @@ namespace FleetTracking.Controllers
             {
                 // Set created by user ID and dates
                 scheduledReport.CreatedByUserId = User.Identity.Name;
-                scheduledReport.CreatedDate = DateTime.UtcNow;
+                scheduledReport.CreatedAt = DateTime.UtcNow;
                 
                 // Calculate next run date based on recurrence pattern
-                scheduledReport.NextRunDate = CalculateNextRunDate(scheduledReport.RecurrencePattern, scheduledReport.StartDate);
+                scheduledReport.NextRunDate = CalculateNextRunDate(scheduledReport.Frequency, scheduledReport.StartDate);
                 
                 // Add report to database
                 _context.Add(scheduledReport);
@@ -115,7 +115,7 @@ namespace FleetTracking.Controllers
                             var recipient = new ScheduledReportRecipient
                             {
                                 ScheduledReportId = scheduledReport.Id,
-                                RecipientEmail = email.Trim()
+                                Email = email.Trim()
                             };
                             _context.ScheduledReportRecipients.Add(recipient);
                         }
@@ -203,7 +203,11 @@ namespace FleetTracking.Controllers
             ViewBag.Users = new SelectList(_context.Users, "Id", "Email");
             
             // Get recipient emails
-            ViewBag.RecipientEmails = string.Join(",", scheduledReport.ScheduledReportRecipients.Select(r => r.RecipientEmail));
+            var existingRecipientEmails = scheduledReport.ScheduledReportRecipients
+                .Select(r => r.Email)
+                .ToList();
+            
+            ViewBag.RecipientEmails = string.Join(",", existingRecipientEmails);
             
             return View(scheduledReport);
         }
@@ -234,10 +238,10 @@ namespace FleetTracking.Controllers
                     
                     // Keep original values for these fields
                     scheduledReport.CreatedByUserId = originalReport.CreatedByUserId;
-                    scheduledReport.CreatedDate = originalReport.CreatedDate;
+                    scheduledReport.CreatedAt = originalReport.CreatedAt;
                     
                     // Recalculate next run date based on potentially changed recurrence pattern
-                    scheduledReport.NextRunDate = CalculateNextRunDate(scheduledReport.RecurrencePattern, scheduledReport.StartDate);
+                    scheduledReport.NextRunDate = CalculateNextRunDate(scheduledReport.Frequency, scheduledReport.StartDate);
                     
                     // Update the report
                     _context.Update(scheduledReport);
@@ -259,7 +263,7 @@ namespace FleetTracking.Controllers
                                 var recipient = new ScheduledReportRecipient
                                 {
                                     ScheduledReportId = scheduledReport.Id,
-                                    RecipientEmail = email.Trim()
+                                    Email = email.Trim()
                                 };
                                 _context.ScheduledReportRecipients.Add(recipient);
                             }

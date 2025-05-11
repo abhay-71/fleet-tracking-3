@@ -1,80 +1,60 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FleetTracking.Models
 {
     public class InventoryItem
     {
+        [Key]
         public int Id { get; set; }
         
         [Required]
-        [Display(Name = "Item Name")]
-        [StringLength(100)]
-        public string Name { get; set; }
-        
-        [Display(Name = "Description")]
-        [StringLength(500)]
-        public string Description { get; set; }
-        
-        [Display(Name = "Category")]
-        public int? CategoryId { get; set; }
+        public int CategoryId { get; set; }
         
         [Required]
-        [Display(Name = "SKU")]
+        public string ItemCode { get; set; } = string.Empty;
+        
         [StringLength(50)]
-        public string SKU { get; set; }
-        
-        [Display(Name = "Barcode")]
-        [StringLength(50)]
-        public string Barcode { get; set; }
+        public string SKU { get; set; } = string.Empty;
         
         [Required]
-        [Display(Name = "Unit of Measure")]
-        [StringLength(20)]
-        public string UnitOfMeasure { get; set; } = "each";
+        public string Name { get; set; } = string.Empty;
+        
+        public string Description { get; set; } = string.Empty;
         
         [Required]
-        [Display(Name = "Current Quantity")]
-        [Range(0, 99999)]
-        public decimal CurrentQuantity { get; set; } = 0;
+        public string UnitOfMeasure { get; set; } = string.Empty;
         
-        [Display(Name = "Minimum Quantity")]
-        [Range(0, 99999)]
-        public decimal MinimumQuantity { get; set; } = 0;
+        public decimal CurrentQuantity { get; set; }
         
-        [Display(Name = "Reorder Quantity")]
-        [Range(0, 99999)]
-        public decimal ReorderQuantity { get; set; } = 0;
+        public decimal UnitPrice { get; set; }
         
-        [Display(Name = "Unit Cost")]
-        [DataType(DataType.Currency)]
-        public decimal? UnitCost { get; set; }
+        [NotMapped]
+        public decimal UnitCost => UnitPrice; // Alias for backward compatibility
         
-        [Display(Name = "Unit Price")]
-        [DataType(DataType.Currency)]
-        public decimal? UnitPrice { get; set; }
+        public decimal ReorderPoint { get; set; }
         
-        [Display(Name = "Storage Location")]
-        [StringLength(50)]
-        public string Location { get; set; }
+        [NotMapped]
+        public decimal MinimumQuantity => ReorderPoint; // Alias for backward compatibility
         
-        [Required]
-        [Display(Name = "Is Active")]
+        public decimal ReorderQuantity { get; set; }
+        
+        [NotMapped]
+        public decimal TotalValue => CurrentQuantity * UnitCost;
+        
+        public string Location { get; set; } = string.Empty;
+        
+        public string Barcode { get; set; } = string.Empty;
+        
         public bool IsActive { get; set; } = true;
         
-        [Display(Name = "Created At")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
-        [Display(Name = "Updated At")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
-        // Computed properties
-        public decimal TotalValue => CurrentQuantity * (UnitCost ?? 0);
-        
-        [Display(Name = "Needs Reorder")]
-        public bool NeedsReorder => CurrentQuantity <= MinimumQuantity && MinimumQuantity > 0;
-        
         // Navigation properties
+        [ForeignKey("CategoryId")]
         public InventoryCategory Category { get; set; }
     }
 } 

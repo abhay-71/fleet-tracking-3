@@ -38,10 +38,15 @@
                         <dd class="col-sm-7">@trip.StartDate.ToString("MMM dd, yyyy HH:mm")</dd>
 
                         <dt class="col-sm-5">End Date/Time</dt>
-                        <dd class="col-sm-7">@trip.EndDate.ToString("MMM dd, yyyy HH:mm")</dd>
+                        <dd class="col-sm-7">@(trip.EndDate?.ToString("MMM dd, yyyy HH:mm") ?? "N/A")</dd>
 
                         <dt class="col-sm-5">Duration</dt>
-                        <dd class="col-sm-7">@((trip.EndDate - trip.StartDate).ToString(@"hh\:mm\:ss"))</dd>
+                        <dd class="col-sm-7">
+                            @{
+                                var duration = trip.EndDate.HasValue ? trip.EndDate.Value - trip.StartDate : TimeSpan.Zero;
+                                @duration.ToString("hh\\:mm\\:ss")
+                            }
+                        </dd>
 
                         <dt class="col-sm-5">Start Location</dt>
                         <dd class="col-sm-7">@trip.StartLocation</dd>
@@ -103,7 +108,18 @@
                             <div class="card bg-light">
                                 <div class="card-body text-center py-3">
                                     <h6 class="text-muted mb-2">Idle Time</h6>
-                                    <h3 class="mb-0">@trip.IdleTime.ToString(@"hh\:mm")</h3>
+                                    <h3 class="mb-0">
+                                        @{
+                                            if (trip.IdleTime.TotalHours >= 1)
+                                            {
+                                                @trip.IdleTime.ToString(@"hh\:mm")
+                                            }
+                                            else
+                                            {
+                                                @trip.IdleTime.ToString(@"mm\:ss")
+                                            }
+                                        }
+                                    </h3>
                                 </div>
                             </div>
                         </div>
@@ -121,7 +137,12 @@
                             <div class="card bg-light">
                                 <div class="card-body text-center py-3">
                                     <h6 class="text-muted mb-2">Fuel Economy</h6>
-                                    <h3 class="mb-0">@((trip.Distance / trip.FuelConsumed).ToString("F1")) km/L</h3>
+                                    <h3 class="mb-0">
+                                        @{
+                                            var fuelEconomy = trip.FuelConsumed > 0 ? (trip.Distance / Convert.ToDecimal(trip.FuelConsumed)) : 0;
+                                            @fuelEconomy.ToString("F1") <text>km/L</text>
+                                        }
+                                    </h3>
                                 </div>
                             </div>
                         </div>

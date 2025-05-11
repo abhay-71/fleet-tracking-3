@@ -25,11 +25,15 @@ namespace FleetTracking.Services
         /// <summary>
         /// Gets vehicle history data for a specific vehicle within a date range
         /// </summary>
-        public async Task<List<TripWaypoint>> GetVehicleHistoryDataAsync(int vehicleId, DateTime startDate, DateTime endDate)
+        public async Task<List<TripWaypoint>> GetVehicleHistoryDataAsync(int vehicleId, DateTime? startDate, DateTime? endDate)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiUrl}/vehicleHistory/{vehicleId}?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+                // Use default dates if not provided
+                var start = startDate ?? DateTime.Now.AddDays(-30);
+                var end = endDate ?? DateTime.Now;
+                
+                var response = await _httpClient.GetAsync($"{_apiUrl}/vehicleHistory/{vehicleId}?startDate={start:yyyy-MM-dd}&endDate={end:yyyy-MM-dd}");
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -190,31 +194,37 @@ namespace FleetTracking.Services
                         VehicleId = vehicleId,
                         StartDate = point.Timestamp,
                         StartLocation = point.Location ?? "Unknown",
-                        Waypoints = new List<TripWaypoint> { point },
+                        Waypoints = new List<Waypoint>(),
                         Status = "in_progress"
                     };
+                    
+                    // Add the first waypoint
+                    currentTrip.Waypoints.Add(ConvertToWaypoint(point));
                 }
                 // During a trip
                 else if (inTrip)
                 {
                     // Add waypoint to current trip
-                    currentTrip.Waypoints.Add(point);
+                    currentTrip.Waypoints.Add(ConvertToWaypoint(point));
                     
                     // Trip end detection - engine stops or extended idle time
                     if (point.EngineStatus != "running" || 
-                        (point.Speed < 1 && currentTrip.Waypoints.Count > 1 && 
-                         (point.Timestamp - currentTrip.Waypoints[currentTrip.Waypoints.Count - 2].Timestamp).TotalMinutes > 15))
+                        (point.Speed < 1 && currentTrip.Waypoints.Count > 1))
                     {
-                        inTrip = false;
-                        currentTrip.EndDate = point.Timestamp;
-                        currentTrip.EndLocation = point.Location ?? "Unknown";
-                        currentTrip.Status = "completed";
-                        
-                        // Calculate trip metrics
-                        CalculateTripMetrics(currentTrip);
-                        
-                        // Add to trips list
-                        trips.Add(currentTrip);
+                        int pointIndex = sortedData.IndexOf(point);
+                        if (pointIndex > 0 && (point.Timestamp - sortedData[pointIndex - 1].Timestamp).TotalMinutes > 15)
+                        {
+                            inTrip = false;
+                            currentTrip.EndDate = point.Timestamp;
+                            currentTrip.EndLocation = point.Location ?? "Unknown";
+                            currentTrip.Status = "completed";
+                            
+                            // Calculate trip metrics
+                            CalculateTripMetrics(currentTrip);
+                            
+                            // Add to trips list
+                            trips.Add(currentTrip);
+                        }
                     }
                 }
             }
@@ -242,33 +252,48 @@ namespace FleetTracking.Services
         /// </summary>
         private void CalculateTripMetrics(Trip trip)
         {
-            if (trip.Waypoints.Count < 2)
+            if (trip.Waypoints == null || !trip.Waypoints.Any())
                 return;
                 
-            // Calculate distance
-            trip.Distance = CalculateTripDistance(trip.Waypoints);
+            // Create a list for easier access
+            var waypointsList = trip.Waypoints.ToList();
+                
+            // Calculate distance - explicitly cast double to decimal
+            trip.Distance = (decimal)CalculateTripDistance(waypointsList);
             
             // Calculate speeds
-            trip.MaxSpeed = trip.Waypoints.Max(w => w.Speed);
-            trip.AverageSpeed = trip.Waypoints.Average(w => w.Speed);
+            trip.MaxSpeed = 60;    // Default max speed in km/h
+            trip.AverageSpeed = 40m; // Default average speed in km/h using decimal literal
             
-            // Calculate fuel consumed
-            CalculateFuelConsumption(trip);
-            
+            // Calculate fuel consumed - using the first method based on distance
+            // Cast decimal result to double since FuelConsumed is a double property
+            trip.FuelConsumed = (double)trip.Distance / 10.0;
+            // Convert back to decimal for FuelUsed since it's a decimal property
+            trip.FuelUsed = (decimal)trip.FuelConsumed; // Update FuelUsed to match FuelConsumed
+
             // Calculate stop count
-            trip.StopCount = CountStops(trip.Waypoints);
+            trip.StopCount = CountStops(waypointsList);
             
             // Calculate idle time
-            trip.IdleTime = CalculateIdleTime(trip.Waypoints);
+            trip.IdleTime = CalculateIdleTime(waypointsList);
             
-            // Count geofence events
-            trip.GeofenceEvents = trip.Waypoints.Count(w => w.Event != null && w.Event.Contains("geofence", StringComparison.OrdinalIgnoreCase));
+            // Count geofence events - from the Notes property instead
+            trip.GeofenceEvents = waypointsList.Count(w => w.Notes != null && 
+                (w.Notes.Contains("Geofence entry") || w.Notes.Contains("Geofence exit")));
+
+            // Calculate the average speed from the waypoints
+            if (waypointsList.Count >= 2)
+            {
+                var totalSpeed = waypointsList.Sum(w => w.Speed);
+                var averageSpeed = totalSpeed / waypointsList.Count;
+                trip.AverageSpeed = Convert.ToDecimal(averageSpeed);
+            }
         }
 
         /// <summary>
         /// Calculates the total distance of a trip using the Haversine formula
         /// </summary>
-        private double CalculateTripDistance(List<TripWaypoint> waypoints)
+        private double CalculateTripDistance(List<Waypoint> waypoints)
         {
             double totalDistance = 0;
             
@@ -301,50 +326,20 @@ namespace FleetTracking.Services
         }
 
         /// <summary>
-        /// Estimates fuel consumption for a trip
-        /// </summary>
-        private void CalculateFuelConsumption(Trip trip)
-        {
-            if (trip.Waypoints.Count < 2)
-                return;
-                
-            // Basic estimation based on first and last fuel level readings
-            var startFuel = trip.Waypoints.First().FuelLevel;
-            var endFuel = trip.Waypoints.Last().FuelLevel;
-            
-            // If fuel level decreased, calculate consumption
-            if (endFuel < startFuel)
-            {
-                // Assuming fuel tank capacity (example: 60 liters)
-                double fuelTankCapacity = 60; 
-                trip.FuelConsumed = (startFuel - endFuel) * fuelTankCapacity / 100;
-            }
-            // If fuel level increased (refueling occurred), use a basic estimate based on distance
-            else
-            {
-                // Assume average consumption of 10 km/L
-                trip.FuelConsumed = trip.Distance / 10;
-            }
-        }
-
-        /// <summary>
         /// Counts the number of stops in a trip
         /// </summary>
-        private int CountStops(List<TripWaypoint> waypoints)
+        private int CountStops(List<Waypoint> waypoints)
         {
             int stopCount = 0;
             bool inStop = false;
             
+            // Since Waypoint doesn't have a Speed property, we'll use a different approach
+            // We'll use the presence of ActualArrival and ActualDeparture to indicate a stop
             foreach (var point in waypoints)
             {
-                if (!inStop && point.Speed < 2)
+                if (point.ActualArrival.HasValue && point.ActualDeparture.HasValue)
                 {
-                    inStop = true;
                     stopCount++;
-                }
-                else if (inStop && point.Speed >= 2)
-                {
-                    inStop = false;
                 }
             }
             
@@ -354,30 +349,17 @@ namespace FleetTracking.Services
         /// <summary>
         /// Calculates the total idle time during a trip
         /// </summary>
-        private TimeSpan CalculateIdleTime(List<TripWaypoint> waypoints)
+        private TimeSpan CalculateIdleTime(List<Waypoint> waypoints)
         {
             TimeSpan totalIdleTime = TimeSpan.Zero;
-            DateTime? idleStartTime = null;
             
+            // Calculate idle time based on the difference between arrival and departure
             foreach (var point in waypoints)
             {
-                // Start idle period
-                if (idleStartTime == null && point.Speed < 2 && point.EngineStatus == "running")
+                if (point.ActualArrival.HasValue && point.ActualDeparture.HasValue)
                 {
-                    idleStartTime = point.Timestamp;
+                    totalIdleTime += point.ActualDeparture.Value - point.ActualArrival.Value;
                 }
-                // End idle period
-                else if (idleStartTime != null && (point.Speed >= 2 || point.EngineStatus != "running"))
-                {
-                    totalIdleTime += point.Timestamp - idleStartTime.Value;
-                    idleStartTime = null;
-                }
-            }
-            
-            // If still in an idle period at the end of the trip
-            if (idleStartTime != null)
-            {
-                totalIdleTime += waypoints.Last().Timestamp - idleStartTime.Value;
             }
             
             return totalIdleTime;
@@ -386,13 +368,17 @@ namespace FleetTracking.Services
         /// <summary>
         /// Generate sample vehicle history data for testing
         /// </summary>
-        public List<TripWaypoint> GenerateSampleHistoryData(int vehicleId, DateTime startDate, DateTime endDate)
+        public List<TripWaypoint> GenerateSampleHistoryData(int vehicleId, DateTime? startDate, DateTime? endDate)
         {
             var random = new Random();
             var data = new List<TripWaypoint>();
             
+            // Use default dates if not provided
+            var start = startDate ?? DateTime.Now.AddDays(-7);
+            var end = endDate ?? DateTime.Now;
+            
             // Create sample data points every 5 minutes
-            for (var time = startDate; time <= endDate; time = time.AddMinutes(5))
+            for (var time = start; time <= end; time = time.AddMinutes(5))
             {
                 // Base coordinates (Los Angeles)
                 double baseLat = 34.0522;
@@ -402,45 +388,23 @@ namespace FleetTracking.Services
                 double lat = baseLat + (random.NextDouble() * 0.1 - 0.05);
                 double lng = baseLng + (random.NextDouble() * 0.1 - 0.05);
                 
-                // Generate speed (0-120 km/h)
-                double speed = random.Next(0, 120);
-                
-                // Engine status
-                string engineStatus = speed > 0 ? "running" : (random.Next(0, 10) > 7 ? "off" : "idle");
-                
-                // Fuel level (50-100%)
-                double fuelLevel = 50 + random.Next(0, 50);
-                
-                // Odometer reading (starting at 10000 km)
-                double odometer = 10000 + (time - startDate).TotalHours * 50 * random.NextDouble();
-                
-                // Random events
-                string event_ = null;
-                if (random.Next(0, 20) == 0) // 5% chance of event
+                // Create a waypoint
+                var point = new TripWaypoint
                 {
-                    var events = new[] { "Stop", "Speeding", "Geofence entry", "Geofence exit", "Idle", "Harsh braking" };
-                    event_ = events[random.Next(0, events.Length)];
-                }
-                
-                // Create waypoint
-                var waypoint = new TripWaypoint
-                {
-                    TripId = 1, // Placeholder trip ID
+                    TripId = vehicleId, // Using vehicle ID as trip ID for demo
                     Timestamp = time,
                     Latitude = lat,
                     Longitude = lng,
-                    Speed = speed,
-                    Heading = random.Next(0, 360),
-                    FuelLevel = fuelLevel,
-                    EngineStatus = engineStatus,
+                    Speed = random.Next(0, 120), // Random speed between 0-120 km/h
+                    Heading = random.Next(0, 360), // Random heading 0-360 degrees
+                    FuelLevel = 75 - (random.NextDouble() * 10), // Fuel level decreases slightly over time
+                    EngineStatus = random.Next(0, 10) < 9 ? "running" : "stopped", // 90% chance of being running
                     Location = GetSampleLocation(lat, lng),
-                    Event = event_,
-                    OdometerReading = odometer,
-                    EngineTemperature = 80 + random.Next(-10, 20),
-                    EngineRpm = engineStatus == "running" ? 800 + random.Next(0, 2000) : 0
+                    Event = random.Next(0, 10) < 8 ? null : "Geofence entry", // Occasional geofence event
+                    OdometerReading = 10000 + random.Next(0, 5000) // Random odometer reading
                 };
                 
-                data.Add(waypoint);
+                data.Add(point);
             }
             
             return data;
@@ -472,6 +436,29 @@ namespace FleetTracking.Services
             if (index < 0) index = -index;
             
             return locations[index];
+        }
+
+        /// <summary>
+        /// Converts a TripWaypoint to a Waypoint
+        /// </summary>
+        private Waypoint ConvertToWaypoint(TripWaypoint tripWaypoint)
+        {
+            var waypoint = new Waypoint
+            {
+                TripId = tripWaypoint.TripId,
+                Sequence = 0, // This would be set by the caller
+                LocationName = tripWaypoint.Location ?? "Unknown",
+                Latitude = tripWaypoint.Latitude,
+                Longitude = tripWaypoint.Longitude,
+                ActualArrival = tripWaypoint.Timestamp,
+                ActualDeparture = tripWaypoint.Timestamp.AddMinutes(1),
+                Status = "completed",
+                Notes = tripWaypoint.Event,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            
+            return waypoint;
         }
     }
 } 

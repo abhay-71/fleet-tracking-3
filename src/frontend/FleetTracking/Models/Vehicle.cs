@@ -7,6 +7,20 @@ namespace FleetTracking.Models
 {
     public class Vehicle
     {
+        // Default constructor to initialize required properties
+        public Vehicle()
+        {
+            RegistrationNumber = string.Empty;
+            Make = string.Empty;
+            Model = string.Empty;
+            FuelType = string.Empty;
+            Status = "inactive";
+            CurrentLocation = string.Empty;
+            Trips = new List<Trip>();
+            Company = new Company();
+            VehicleType = new VehicleType();
+        }
+
         [Key]
         public int Id { get; set; }
 
@@ -36,15 +50,15 @@ namespace FleetTracking.Models
         public int Year { get; set; }
 
         [StringLength(30)]
-        public string Color { get; set; }
+        public string? Color { get; set; }
 
         [StringLength(50)]
         [Display(Name = "VIN")]
-        public string VIN { get; set; }
+        public string? VIN { get; set; }
 
         [StringLength(20)]
         [Display(Name = "License Plate")]
-        public string LicensePlate { get; set; }
+        public string? LicensePlate { get; set; }
 
         [StringLength(20)]
         [Display(Name = "Fuel Type")]
@@ -64,7 +78,7 @@ namespace FleetTracking.Models
 
         [Required]
         [StringLength(20)]
-        public string Status { get; set; } = "inactive";
+        public string Status { get; set; }
 
         [Display(Name = "Last Service Date")]
         [DataType(DataType.Date)]
@@ -80,6 +94,29 @@ namespace FleetTracking.Models
         [Display(Name = "Last Updated")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        [Range(0, 10000000)]
+        [Display(Name = "Odometer Reading (km)")]
+        public decimal Odometer { get; set; }
+
+        [Range(0, 10000000)]
+        [Display(Name = "Current Latitude")]
+        public double? CurrentLatitude { get; set; }
+
+        [Range(0, 10000000)]
+        [Display(Name = "Current Longitude")]
+        public double? CurrentLongitude { get; set; }
+
+        [Range(0, 10000000)]
+        [Display(Name = "Driver ID")]
+        public int? DriverId { get; set; }
+
+        [Display(Name = "Last Activity Date")]
+        public DateTime? LastActivityDate { get; set; }
+
+        [StringLength(255)]
+        [Display(Name = "Current Location")]
+        public string CurrentLocation { get; set; }
+
         // Navigation properties
         [ForeignKey("CompanyId")]
         public Company Company { get; set; }
@@ -87,7 +124,7 @@ namespace FleetTracking.Models
         [ForeignKey("VehicleTypeId")]
         public VehicleType VehicleType { get; set; }
 
-        public ICollection<Trip> Trips { get; set; } = new List<Trip>();
+        public ICollection<Trip> Trips { get; set; }
 
         // Helper properties
         [NotMapped]

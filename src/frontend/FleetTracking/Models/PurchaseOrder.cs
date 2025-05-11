@@ -1,74 +1,79 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using FleetTracking.Data;
 
 namespace FleetTracking.Models
 {
     public class PurchaseOrder
     {
+        [Key]
         public int Id { get; set; }
         
         [Required]
-        [Display(Name = "Vendor")]
+        public string PurchaseOrderNumber { get; set; }
+        
+        [NotMapped]
+        public string PONumber => PurchaseOrderNumber; // Alias for backward compatibility
+        
+        [Required]
         public int VendorId { get; set; }
         
         [Required]
-        [Display(Name = "PO Number")]
-        [StringLength(50)]
-        public string PONumber { get; set; }
+        public DateTime OrderDate { get; set; }
         
-        [Required]
-        [Display(Name = "Order Date")]
-        [DataType(DataType.Date)]
-        public DateTime OrderDate { get; set; } = DateTime.Today;
-        
-        [Display(Name = "Expected Delivery")]
-        [DataType(DataType.Date)]
         public DateTime? ExpectedDeliveryDate { get; set; }
         
-        [Display(Name = "Notes")]
-        [StringLength(500)]
-        public string Notes { get; set; }
+        public DateTime? ActualDeliveryDate { get; set; }
         
         [Required]
-        [Display(Name = "Status")]
-        [StringLength(20)]
-        public string Status { get; set; } = "draft"; // draft, submitted, approved, received, cancelled
+        public string Status { get; set; } // draft, pending, approved, received, cancelled, etc.
         
-        [Display(Name = "Subtotal")]
-        [DataType(DataType.Currency)]
-        public decimal Subtotal { get; set; }
+        public decimal TotalAmount { get; set; }
         
-        [Display(Name = "Tax Amount")]
-        [DataType(DataType.Currency)]
-        public decimal TaxAmount { get; set; }
+        public string Notes { get; set; }
         
-        [Display(Name = "Total")]
-        [DataType(DataType.Currency)]
-        public decimal Total => Subtotal + TaxAmount;
+        public string ShippingAddress { get; set; }
         
-        [Display(Name = "Created By")]
-        [StringLength(100)]
+        public string BillingAddress { get; set; }
+        
+        public string PaymentTerms { get; set; }
+        
         public string CreatedById { get; set; }
         
-        [Display(Name = "Approved By")]
-        [StringLength(100)]
         public string ApprovedById { get; set; }
         
-        [Display(Name = "Approval Date")]
-        [DataType(DataType.DateTime)]
-        public DateTime? ApprovalDate { get; set; }
+        public DateTime? ApprovedDate { get; set; }
         
-        [Display(Name = "Created At")]
+        [NotMapped]
+        public DateTime? ApprovalDate => ApprovedDate; // Alias for backward compatibility
+        
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
-        [Display(Name = "Updated At")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
         // Navigation properties
+        [ForeignKey("VendorId")]
         public Vendor Vendor { get; set; }
+        
+        [ForeignKey("CreatedById")]
         public ApplicationUser CreatedBy { get; set; }
+        
+        [ForeignKey("ApprovedById")]
         public ApplicationUser ApprovedBy { get; set; }
-        public ICollection<PurchaseOrderItem> Items { get; set; }
+        
+        public ICollection<PurchaseOrderItem> Items { get; set; } = new List<PurchaseOrderItem>();
+        
+        // Computed properties
+        [NotMapped]
+        public decimal Subtotal => Items?.Sum(i => i.ExtendedPrice) ?? 0m;
+        
+        [NotMapped]
+        public decimal TaxAmount => Items?.Sum(i => i.TaxAmount) ?? 0m;
+        
+        [NotMapped]
+        public decimal Total => Items?.Sum(i => i.TotalPrice) ?? TotalAmount;
     }
 } 

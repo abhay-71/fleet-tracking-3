@@ -6,6 +6,20 @@ namespace FleetTracking.Models
 {
     public class VehicleStatus
     {
+        // Constructor to initialize non-nullable properties
+        public VehicleStatus()
+        {
+            // Initialize non-nullable string properties
+            VehicleRegistration = string.Empty;
+            VehicleName = string.Empty;
+            DriverName = string.Empty;
+            Status = "offline";
+            CurrentLocation = string.Empty;
+            NextWaypoint = string.Empty;
+            ActiveAlerts = new List<string>();
+            CurrentGeofenceIds = new List<int>();
+        }
+        
         // Basic identification
         public int VehicleId { get; set; }
         public string VehicleRegistration { get; set; }
@@ -43,12 +57,12 @@ namespace FleetTracking.Models
         public DateTime? EstimatedArrival { get; set; }
         
         // Alerts and warnings
-        public List<string> ActiveAlerts { get; set; } = new List<string>();
+        public List<string> ActiveAlerts { get; set; }
         public bool HasCriticalAlert { get; set; }
         public bool MaintenanceDue { get; set; }
         
         // Geofencing
-        public List<int> CurrentGeofenceIds { get; set; } = new List<int>();
+        public List<int> CurrentGeofenceIds { get; set; }
         public bool IsInAuthorizedZone { get; set; } = true;
         
         // Calculated and helper properties

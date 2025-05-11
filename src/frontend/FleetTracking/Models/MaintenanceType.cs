@@ -37,10 +37,10 @@ namespace FleetTracking.Models
         public string Category { get; set; } // routine, repair, inspection, etc.
         
         [Display(Name = "Created At")]
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
         [Display(Name = "Updated At")]
-        public DateTime? UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
         
         // Computed properties
         [Display(Name = "Interval Display")]

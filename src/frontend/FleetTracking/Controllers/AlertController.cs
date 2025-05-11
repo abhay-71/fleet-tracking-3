@@ -84,7 +84,7 @@ namespace FleetTracking.Controllers
                     alert.NotificationChannels = string.Join(",", selectedChannels ?? new List<string>());
                     alert.Recipients = string.Join(",", selectedRecipients ?? new List<string>());
 
-                    var response = await _apiService.PostAsync<Alert, Alert>("alerts", alert);
+                    var response = await _apiService.PostAsync<Alert>("alerts", alert);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -140,7 +140,7 @@ namespace FleetTracking.Controllers
                     alert.NotificationChannels = string.Join(",", selectedChannels ?? new List<string>());
                     alert.Recipients = string.Join(",", selectedRecipients ?? new List<string>());
 
-                    await _apiService.PutAsync<Alert, object>($"alerts/{id}", alert);
+                    await _apiService.PutAsync<Alert>($"alerts/{id}", alert);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -237,7 +237,7 @@ namespace FleetTracking.Controllers
                     AcknowledgedBy = 1 // Replace with actual user ID
                 };
 
-                await _apiService.PutAsync<object, object>($"alerts/logs/{id}/acknowledge", data);
+                await _apiService.PutAsync<object>($"alerts/logs/{id}/acknowledge", data);
                 return RedirectToAction(nameof(History));
             }
             catch (Exception ex)
@@ -335,7 +335,7 @@ namespace FleetTracking.Controllers
                 var drivers = await _apiService.GetAsync<List<Driver>>("drivers");
 
                 ViewBag.Geofences = geofences?.Select(g => new SelectListItem { Value = g.Id.ToString(), Text = g.Name }) ?? new List<SelectListItem>();
-                ViewBag.Vehicles = vehicles?.Select(v => new SelectListItem { Value = v.Id.ToString(), Text = v.Name }) ?? new List<SelectListItem>();
+                ViewBag.Vehicles = vehicles?.Select(v => new SelectListItem { Value = v.Id.ToString(), Text = $"{v.Make} {v.Model} ({v.RegistrationNumber})" }) ?? new List<SelectListItem>();
                 ViewBag.Drivers = drivers?.Select(d => new SelectListItem { Value = d.Id.ToString(), Text = $"{d.FirstName} {d.LastName}" }) ?? new List<SelectListItem>();
 
                 // Users for recipients (simplified for demo)

@@ -120,7 +120,7 @@ namespace FleetTracking.Controllers
                     vendor.CreatedAt = DateTime.UtcNow;
                     vendor.UpdatedAt = DateTime.UtcNow;
 
-                    var response = await _apiService.PostAsync<Vendor, Vendor>("vendors", vendor);
+                    var response = await _apiService.PostAsync<Vendor>("vendors", vendor);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -223,7 +223,7 @@ namespace FleetTracking.Controllers
                 {
                     vendor.UpdatedAt = DateTime.UtcNow;
 
-                    await _apiService.PutAsync<Vendor, object>($"vendors/{id}", vendor);
+                    await _apiService.PutAsync<Vendor>($"vendors/{id}", vendor);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)

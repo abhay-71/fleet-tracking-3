@@ -113,11 +113,11 @@
                 
                 // This would normally fetch the maintenance type details from the API
                 // but for now we'll use a simple approach with sample data
-                var maintenanceTypes = @Json.Serialize(maintenanceTypes.Items.Select(i => new { 
+                var maintenanceTypes = @Json.Serialize(maintenanceTypes != null ? maintenanceTypes.Select(i => new { 
                     Id = int.Parse(i.Value), 
                     Name = i.Text, 
                     EstimatedCost = 0.0
-                }));
+                }).ToList() : new List<object>());
                 
                 var selectedType = maintenanceTypes.find(t => t.Id == selectedTypeId);
                 if (selectedType && selectedType.EstimatedCost > 0) {

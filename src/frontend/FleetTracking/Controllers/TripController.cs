@@ -60,14 +60,28 @@ namespace FleetTracking.Controllers
         public IActionResult Create()
         {
             ViewData["VehicleId"] = new SelectList(_context.Vehicles.Where(v => v.Status == "active"), "Id", "DisplayName");
+            
+            // Modify the driver query to avoid null-propagating operator in LINQ expression
+            var driversWithUsers = _context.Drivers
+                .Include(d => d.User)
+                .Where(d => d.Status == "active")
+                .ToList();
+                
+            var driverSelectList = driversWithUsers
+                .Select(d => new 
+                {
+                    d.Id,
+                    DriverName = GetDriverName(d.User)
+                });
+                
             ViewData["DriverId"] = new SelectList(
                 _context.Drivers
                     .Include(d => d.User)
                     .Where(d => d.Status == "active")
                     .Select(d => new { 
                         d.Id, 
-                        DriverName = $"{d.User.FirstName} {d.User.LastName}" 
-                    }), 
+                        DriverName = d.User != null ? GetDriverFullName(d.User) : "Unknown Driver"
+                    }),
                 "Id", 
                 "DriverName");
                 
@@ -100,13 +114,13 @@ namespace FleetTracking.Controllers
                         var startWaypoint = new Waypoint
                         {
                             TripId = trip.Id,
-                            Location = trip.StartLocation,
+                            LocationName = trip.StartLocation,
                             Latitude = StartLatitude,
                             Longitude = StartLongitude,
-                            SequenceNumber = 0, // Start is always 0
+                            Sequence = 0, // Start is always 0
                             Status = "start",
-                            ArrivalTime = trip.StartTime,
-                            DepartureTime = trip.StartTime.AddMinutes(5) // Assuming 5 minutes at start
+                            ActualArrival = trip.StartTime,
+                            ActualDeparture = trip.StartTime.AddMinutes(5) // Assuming 5 minutes at start
                         };
                         _context.Waypoints.Add(startWaypoint);
                         
@@ -116,14 +130,14 @@ namespace FleetTracking.Controllers
                             var waypoint = new Waypoint
                             {
                                 TripId = trip.Id,
-                                Location = $"Waypoint {wpDto.SequenceNumber}",
+                                LocationName = $"Waypoint {wpDto.SequenceNumber}",
                                 Latitude = wpDto.Latitude,
                                 Longitude = wpDto.Longitude,
-                                SequenceNumber = wpDto.SequenceNumber,
+                                Sequence = wpDto.SequenceNumber,
                                 Status = "scheduled",
                                 // Estimate arrival time based on sequence
-                                ArrivalTime = trip.StartTime.AddMinutes(30 * wpDto.SequenceNumber),
-                                DepartureTime = trip.StartTime.AddMinutes((30 * wpDto.SequenceNumber) + 15)
+                                ActualArrival = trip.StartTime.AddMinutes(30 * wpDto.SequenceNumber),
+                                ActualDeparture = trip.StartTime.AddMinutes((30 * wpDto.SequenceNumber) + 15)
                             };
                             _context.Waypoints.Add(waypoint);
                         }
@@ -132,13 +146,13 @@ namespace FleetTracking.Controllers
                         var endWaypoint = new Waypoint
                         {
                             TripId = trip.Id,
-                            Location = trip.EndLocation,
+                            LocationName = trip.EndLocation,
                             Latitude = EndLatitude,
                             Longitude = EndLongitude,
-                            SequenceNumber = waypointList.Count + 1, // End is after all waypoints
+                            Sequence = waypointList.Count + 1, // End is after all waypoints
                             Status = "end",
-                            ArrivalTime = trip.EndTime ?? trip.StartTime.AddHours(2), // Default to 2 hours later if no end time
-                            DepartureTime = null // No departure from end
+                            ActualArrival = trip.EndTime ?? trip.StartTime.AddHours(2), // Default to 2 hours later if no end time
+                            ActualDeparture = null // No departure from end
                         };
                         _context.Waypoints.Add(endWaypoint);
                         
@@ -155,17 +169,19 @@ namespace FleetTracking.Controllers
             }
             
             ViewData["VehicleId"] = new SelectList(_context.Vehicles, "Id", "DisplayName", trip.VehicleId);
+            
+            // Fix the same issue in the POST method
             ViewData["DriverId"] = new SelectList(
                 _context.Drivers
                     .Include(d => d.User)
+                    .Where(d => d.Status == "active")
                     .Select(d => new { 
                         d.Id, 
-                        DriverName = $"{d.User.FirstName} {d.User.LastName}" 
-                    }), 
+                        DriverName = d.User != null ? GetDriverFullName(d.User) : "Unknown Driver"
+                    }),
                 "Id", 
-                "DriverName", 
-                trip.DriverId);
-                
+                "DriverName");
+            
             return View(trip);
         }
 
@@ -187,13 +203,15 @@ namespace FleetTracking.Controllers
             }
             
             ViewData["VehicleId"] = new SelectList(_context.Vehicles, "Id", "DisplayName", trip.VehicleId);
+            
+            // Fix the same issue here
             ViewData["DriverId"] = new SelectList(
                 _context.Drivers
                     .Include(d => d.User)
                     .Select(d => new { 
                         d.Id, 
-                        DriverName = $"{d.User.FirstName} {d.User.LastName}" 
-                    }), 
+                        DriverName = d.User != null ? GetDriverFullName(d.User) : "Unknown Driver"
+                    }),
                 "Id", 
                 "DriverName", 
                 trip.DriverId);
@@ -244,13 +262,13 @@ namespace FleetTracking.Controllers
                         var startWaypoint = new Waypoint
                         {
                             TripId = trip.Id,
-                            Location = trip.StartLocation,
+                            LocationName = trip.StartLocation,
                             Latitude = StartLatitude,
                             Longitude = StartLongitude,
-                            SequenceNumber = 0, // Start is always 0
+                            Sequence = 0, // Start is always 0
                             Status = "start",
-                            ArrivalTime = trip.StartTime,
-                            DepartureTime = trip.StartTime.AddMinutes(5) // Assuming 5 minutes at start
+                            ActualArrival = trip.StartTime,
+                            ActualDeparture = trip.StartTime.AddMinutes(5) // Assuming 5 minutes at start
                         };
                         _context.Waypoints.Add(startWaypoint);
                         
@@ -260,14 +278,14 @@ namespace FleetTracking.Controllers
                             var waypoint = new Waypoint
                             {
                                 TripId = trip.Id,
-                                Location = $"Waypoint {wpDto.SequenceNumber}",
+                                LocationName = $"Waypoint {wpDto.SequenceNumber}",
                                 Latitude = wpDto.Latitude,
                                 Longitude = wpDto.Longitude,
-                                SequenceNumber = wpDto.SequenceNumber,
+                                Sequence = wpDto.SequenceNumber,
                                 Status = "scheduled",
                                 // Estimate arrival time based on sequence
-                                ArrivalTime = trip.StartTime.AddMinutes(30 * wpDto.SequenceNumber),
-                                DepartureTime = trip.StartTime.AddMinutes((30 * wpDto.SequenceNumber) + 15)
+                                ActualArrival = trip.StartTime.AddMinutes(30 * wpDto.SequenceNumber),
+                                ActualDeparture = trip.StartTime.AddMinutes((30 * wpDto.SequenceNumber) + 15)
                             };
                             _context.Waypoints.Add(waypoint);
                         }
@@ -276,13 +294,13 @@ namespace FleetTracking.Controllers
                         var endWaypoint = new Waypoint
                         {
                             TripId = trip.Id,
-                            Location = trip.EndLocation,
+                            LocationName = trip.EndLocation,
                             Latitude = EndLatitude,
                             Longitude = EndLongitude,
-                            SequenceNumber = waypointList.Count + 1, // End is after all waypoints
+                            Sequence = waypointList.Count + 1, // End is after all waypoints
                             Status = "end",
-                            ArrivalTime = trip.EndTime ?? trip.StartTime.AddHours(2), // Default to 2 hours later if no end time
-                            DepartureTime = null // No departure from end
+                            ActualArrival = trip.EndTime ?? trip.StartTime.AddHours(2), // Default to 2 hours later if no end time
+                            ActualDeparture = null // No departure from end
                         };
                         _context.Waypoints.Add(endWaypoint);
                     }
@@ -308,8 +326,8 @@ namespace FleetTracking.Controllers
                     .Include(d => d.User)
                     .Select(d => new { 
                         d.Id, 
-                        DriverName = $"{d.User.FirstName} {d.User.LastName}" 
-                    }), 
+                        DriverName = d.User != null ? GetDriverFullName(d.User) : "Unknown Driver"
+                    }),
                 "Id", 
                 "DriverName", 
                 trip.DriverId);
@@ -380,7 +398,7 @@ namespace FleetTracking.Controllers
             var waypoint = new Waypoint
             {
                 TripId = trip.Id,
-                SequenceNumber = await _context.Waypoints.Where(w => w.TripId == trip.Id).CountAsync() + 1
+                Sequence = await _context.Waypoints.Where(w => w.TripId == trip.Id).CountAsync() + 1
             };
             
             ViewData["Trip"] = trip;
@@ -391,23 +409,18 @@ namespace FleetTracking.Controllers
         // POST: Trip/AddWaypoint
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddWaypoint([Bind("Id,TripId,Location,Latitude,Longitude,SequenceNumber,ArrivalTime,DepartureTime,Status,Notes")] Waypoint waypoint)
+        public async Task<IActionResult> AddWaypoint([Bind("Id,TripId,LocationName,Latitude,Longitude,Sequence,ActualArrival,ActualDeparture,Status,Notes")] Waypoint waypoint)
         {
             if (ModelState.IsValid)
             {
+                waypoint.CreatedAt = DateTime.UtcNow;
+                waypoint.UpdatedAt = DateTime.UtcNow;
                 _context.Add(waypoint);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Details), new { id = waypoint.TripId });
+                return RedirectToAction(nameof(Edit), new { id = waypoint.TripId });
             }
             
-            var trip = await _context.Trips.FindAsync(waypoint.TripId);
-            if (trip == null)
-            {
-                return NotFound();
-            }
-            
-            ViewData["Trip"] = trip;
-            
+            ViewData["TripId"] = new SelectList(_context.Trips, "Id", "Id", waypoint.TripId);
             return View(waypoint);
         }
         
@@ -448,7 +461,7 @@ namespace FleetTracking.Controllers
                 .GroupBy(t => t.DriverId)
                 .Select(g => new {
                     DriverId = g.Key,
-                    DriverName = g.FirstOrDefault()?.Driver?.User?.FirstName + " " + g.FirstOrDefault()?.Driver?.User?.LastName,
+                    DriverName = g.FirstOrDefault() != null ? GetDriverNameFromTrip(g.FirstOrDefault()) : "Unknown",
                     TripCount = g.Count(),
                     TotalDistance = g.Sum(t => t.Distance),
                     AverageSpeed = g.Average(t => t.AverageSpeed)
@@ -463,7 +476,7 @@ namespace FleetTracking.Controllers
                 .GroupBy(t => t.VehicleId)
                 .Select(g => new {
                     VehicleId = g.Key,
-                    VehicleName = g.FirstOrDefault()?.Vehicle?.DisplayName,
+                    VehicleName = g.FirstOrDefault() != null ? GetVehicleName(g.FirstOrDefault()) : "Unknown",
                     TripCount = g.Count(),
                     TotalDistance = g.Sum(t => t.Distance),
                     FuelEfficiency = g.Any(t => t.FuelUsed > 0) ? 
@@ -503,6 +516,44 @@ namespace FleetTracking.Controllers
         private bool TripExists(int id)
         {
             return _context.Trips.Any(e => e.Id == id);
+        }
+        
+        // Helper method to safely get driver name from user
+        private string GetDriverName(ApplicationUser user)
+        {
+            if (user == null) return "Unknown";
+            return $"{user.FirstName} {user.LastName}";
+        }
+        
+        private string GetDriverFullName(ApplicationUser user)
+        {
+            if (user == null) return string.Empty;
+            
+            string firstName = user.FirstName;
+            if (firstName == null) firstName = string.Empty;
+            
+            string lastName = user.LastName;
+            if (lastName == null) lastName = string.Empty;
+            
+            return $"{firstName} {lastName}";
+        }
+        
+        // Helper method to safely get vehicle name
+        private string GetVehicleName(Trip trip)
+        {
+            if (trip == null || trip.Vehicle == null)
+                return "Unknown";
+                
+            return trip.Vehicle.DisplayName ?? "Unknown";
+        }
+
+        // Helper method to get driver name from trip
+        private string GetDriverNameFromTrip(Trip trip)
+        {
+            if (trip == null || trip.Driver == null || trip.Driver.User == null)
+                return "Unknown";
+                
+            return GetDriverFullName(trip.Driver.User);
         }
     }
     

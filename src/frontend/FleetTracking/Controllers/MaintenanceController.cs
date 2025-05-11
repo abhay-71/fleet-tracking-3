@@ -52,7 +52,7 @@ namespace FleetTracking.Controllers
         {
             try
             {
-                var vehicle = await _vehicleService.GetVehicleAsync(id);
+                var vehicle = await _vehicleService.GetVehicleByIdAsync(id);
                 
                 if (vehicle == null)
                 {
@@ -82,7 +82,7 @@ namespace FleetTracking.Controllers
             try
             {
                 ViewData["Vehicles"] = new SelectList(
-                    await _vehicleService.GetVehiclesAsync(), 
+                    await _vehicleService.GetAllVehiclesAsync(), 
                     "Id", 
                     "DisplayName",
                     vehicleId);
@@ -130,7 +130,7 @@ namespace FleetTracking.Controllers
                 }
                 
                 ViewData["Vehicles"] = new SelectList(
-                    await _vehicleService.GetVehiclesAsync(), 
+                    await _vehicleService.GetAllVehiclesAsync(), 
                     "Id", 
                     "DisplayName",
                     record.VehicleId);
@@ -149,7 +149,7 @@ namespace FleetTracking.Controllers
                 ModelState.AddModelError("", "An error occurred while creating the maintenance record.");
                 
                 ViewData["Vehicles"] = new SelectList(
-                    await _vehicleService.GetVehiclesAsync(), 
+                    await _vehicleService.GetAllVehiclesAsync(), 
                     "Id", 
                     "DisplayName",
                     record.VehicleId);
@@ -180,7 +180,7 @@ namespace FleetTracking.Controllers
                 }
                 
                 ViewData["Vehicles"] = new SelectList(
-                    await _vehicleService.GetVehiclesAsync(), 
+                    await _vehicleService.GetAllVehiclesAsync(), 
                     "Id", 
                     "DisplayName",
                     record.VehicleId);
@@ -225,7 +225,7 @@ namespace FleetTracking.Controllers
                 }
                 
                 ViewData["Vehicles"] = new SelectList(
-                    await _vehicleService.GetVehiclesAsync(), 
+                    await _vehicleService.GetAllVehiclesAsync(), 
                     "Id", 
                     "DisplayName",
                     record.VehicleId);
@@ -244,7 +244,7 @@ namespace FleetTracking.Controllers
                 ModelState.AddModelError("", "An error occurred while updating the maintenance record.");
                 
                 ViewData["Vehicles"] = new SelectList(
-                    await _vehicleService.GetVehiclesAsync(), 
+                    await _vehicleService.GetAllVehiclesAsync(), 
                     "Id", 
                     "DisplayName",
                     record.VehicleId);

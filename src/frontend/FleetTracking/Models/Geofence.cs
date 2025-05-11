@@ -15,38 +15,38 @@ namespace FleetTracking.Models
 
         [Required]
         [StringLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [StringLength(500)]
         public string Description { get; set; }
 
         [Required]
         [Display(Name = "Type")]
-        public string Type { get; set; }
+        public string Type { get; set; } = "polygon";
 
         [Required]
         [Display(Name = "Category")]
-        public string Category { get; set; }
+        public string Category { get; set; } = "custom";
 
         [StringLength(20)]
         [Display(Name = "Color")]
-        public string Color { get; set; }
+        public string Color { get; set; } = "#3388ff";
 
         [Required]
         [Display(Name = "Coordinates")]
-        public string Coordinates { get; set; }
+        public string Coordinates { get; set; } = "[]";
 
         [Display(Name = "Radius (km)")]
         public double? Radius { get; set; }
 
         [Display(Name = "Active")]
-        public bool Active { get; set; }
+        public bool Active { get; set; } = true;
 
         [Display(Name = "Created At")]
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [Display(Name = "Updated At")]
-        public DateTime UpdatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [Display(Name = "Created By")]
         public int CreatedBy { get; set; }
@@ -110,6 +110,8 @@ namespace FleetTracking.Models
         }
 
         public string StatusDisplayName => Active ? "Active" : "Inactive";
+
+        public List<int> AssignedVehicleIds { get; set; } = new List<int>();
     }
 
     public class Vertex

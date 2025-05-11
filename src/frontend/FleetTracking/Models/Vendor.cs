@@ -1,56 +1,49 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FleetTracking.Models
 {
     public class Vendor
     {
+        [Key]
         public int Id { get; set; }
         
         [Required]
-        [Display(Name = "Name")]
-        [StringLength(100)]
-        public string Name { get; set; }
-        
-        [Display(Name = "Contact Person")]
-        [StringLength(100)]
-        public string ContactPerson { get; set; }
-        
-        [Display(Name = "Phone")]
-        [StringLength(20)]
-        public string Phone { get; set; }
-        
-        [Display(Name = "Email")]
-        [StringLength(100)]
-        [EmailAddress]
-        public string Email { get; set; }
-        
-        [Display(Name = "Address")]
-        [StringLength(255)]
-        public string Address { get; set; }
-        
-        [Display(Name = "Payment Terms")]
-        [StringLength(50)]
-        public string PaymentTerms { get; set; }
-        
-        [Display(Name = "Vendor Type")]
-        [StringLength(50)]
-        public string VendorType { get; set; }  // maintenance, fuel, parts, etc.
+        public int CompanyId { get; set; }
         
         [Required]
-        [Display(Name = "Company ID")]
-        public int CompanyId { get; set; } = 1; // Default to 1 for demo
+        public string Name { get; set; } = string.Empty;
         
-        [Display(Name = "Is Active")]
+        public string ContactName { get; set; } = string.Empty;
+        
+        [NotMapped]
+        public string ContactPerson => ContactName; // Alias for backward compatibility
+        
+        public string Phone { get; set; } = string.Empty;
+        
+        public string Email { get; set; } = string.Empty;
+        
+        public string Address { get; set; } = string.Empty;
+        
+        public string City { get; set; } = string.Empty;
+        
+        public string State { get; set; } = string.Empty;
+        
+        public string ZipCode { get; set; } = string.Empty;
+        
+        public string Country { get; set; } = string.Empty;
+        
+        public string VendorType { get; set; } = "other";
+        
         public bool IsActive { get; set; } = true;
         
-        [Display(Name = "Created At")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         
-        [Display(Name = "Updated At")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
         // Navigation properties
+        [ForeignKey("CompanyId")]
         public Company Company { get; set; }
         
         // Computed properties

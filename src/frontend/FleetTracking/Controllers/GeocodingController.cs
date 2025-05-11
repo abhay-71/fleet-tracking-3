@@ -76,7 +76,7 @@ namespace FleetTracking.Controllers
                     Type = type
                 };
 
-                var results = await _apiService.PostAsync<object, List<GeocodingResult>>("geocoding/batch", request);
+                var results = await _apiService.PostAsync<List<GeocodingResult>>("geocoding/batch", request);
                 return View("BatchResults", results);
             }
             catch (Exception ex)
@@ -143,7 +143,7 @@ namespace FleetTracking.Controllers
                     location.UpdatedAt = DateTime.UtcNow;
                     location.CreatedBy = 1; // Replace with actual user ID
 
-                    await _apiService.PostAsync<SavedLocation, SavedLocation>("locations/saved", location);
+                    await _apiService.PostAsync<SavedLocation>("locations/saved", location);
                     return RedirectToAction(nameof(SavedLocations));
                 }
                 catch (Exception ex)
@@ -190,7 +190,7 @@ namespace FleetTracking.Controllers
                 try
                 {
                     location.UpdatedAt = DateTime.UtcNow;
-                    await _apiService.PutAsync<SavedLocation, object>($"locations/saved/{id}", location);
+                    await _apiService.PutAsync<SavedLocation>($"locations/saved/{id}", location);
                     return RedirectToAction(nameof(SavedLocations));
                 }
                 catch (Exception ex)

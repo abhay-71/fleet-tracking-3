@@ -106,7 +106,7 @@ namespace FleetTracking.Controllers
             string poNumber = GeneratePoNumber();
             
             return View(new PurchaseOrder { 
-                PONumber = poNumber,
+                PurchaseOrderNumber = poNumber,
                 OrderDate = DateTime.Now,
                 Status = "draft",
                 Items = new List<PurchaseOrderItem>()
@@ -116,20 +116,30 @@ namespace FleetTracking.Controllers
         // POST: PurchaseOrder/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("VendorId,PONumber,OrderDate,ExpectedDeliveryDate,Notes")] PurchaseOrder purchaseOrder)
+        public async Task<IActionResult> Create([Bind("VendorId,PurchaseOrderNumber,OrderDate,ExpectedDeliveryDate,Notes")] PurchaseOrder purchaseOrder)
         {
             if (ModelState.IsValid)
             {
-                // Set initial values
-                purchaseOrder.Status = "draft";
-                purchaseOrder.CreatedById = User.Identity.Name;
-                purchaseOrder.CreatedAt = DateTime.UtcNow;
-                purchaseOrder.UpdatedAt = DateTime.UtcNow;
+                // Generate a new PO number
+                var poNumber = GeneratePoNumber();
+                // Create a new PurchaseOrder with the generated number
+                purchaseOrder = new PurchaseOrder
+                {
+                    VendorId = purchaseOrder.VendorId,
+                    PurchaseOrderNumber = poNumber, // Use PurchaseOrderNumber 
+                    OrderDate = purchaseOrder.OrderDate,
+                    ExpectedDeliveryDate = purchaseOrder.ExpectedDeliveryDate,
+                    Notes = purchaseOrder.Notes,
+                    Status = "draft",
+                    CreatedById = User.Identity?.Name ?? "system",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
                 
                 _context.Add(purchaseOrder);
                 await _context.SaveChangesAsync();
                 
-                TempData["SuccessMessage"] = "Purchase order created successfully! You can now add items to it.";
+                TempData["SuccessMessage"] = "Purchase order created successfully! Add items to your order.";
                 return RedirectToAction(nameof(Edit), new { id = purchaseOrder.Id });
             }
             
@@ -146,34 +156,46 @@ namespace FleetTracking.Controllers
             {
                 return NotFound();
             }
-
-            var purchaseOrder = await _context.PurchaseOrders
-                .Include(p => p.Items)
-                    .ThenInclude(i => i.InventoryItem)
-                .FirstOrDefaultAsync(p => p.Id == id);
-                
+            
+            var purchaseOrder = await _context.PurchaseOrders.FirstOrDefaultAsync(m => m.Id == id);
             if (purchaseOrder == null)
             {
                 return NotFound();
             }
             
-            // Only allow editing of draft or pending orders
-            if (purchaseOrder.Status != "draft" && purchaseOrder.Status != "pending")
-            {
-                TempData["ErrorMessage"] = "Only draft or pending purchase orders can be edited.";
-                return RedirectToAction(nameof(Details), new { id = purchaseOrder.Id });
-            }
+            // Get vendors for dropdown
+            var vendorList = await _context.Vendors
+                .Where(v => v.IsActive)
+                .OrderBy(v => v.Name)
+                .ToListAsync();
+                
+            ViewBag.Vendors = new SelectList(vendorList, "Id", "Name", purchaseOrder.VendorId);
             
-            var vendors = await _context.Vendors.OrderBy(v => v.Name).ToListAsync();
-            ViewBag.Vendors = new SelectList(vendors, "Id", "Name", purchaseOrder.VendorId);
+            // Get items categories for add item dropdown
+            var categories = await _context.InventoryCategories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+                
+            ViewBag.Categories = categories;
             
-            // Get inventory items for dropdown
-            var items = await _context.InventoryItems
+            // Get all active inventory items for dropdown
+            var allItems = await _context.InventoryItems
+                .Include(i => i.Category)
                 .Where(i => i.IsActive)
                 .OrderBy(i => i.Name)
                 .ToListAsync();
                 
-            ViewBag.InventoryItems = new SelectList(items, "Id", "Name");
+            ViewBag.AllItems = allItems;
+            
+            // Load related items if they exist
+            var purchaseOrderWithItems = await _context.PurchaseOrders
+                .Include(p => p.Vendor)
+                .Include(p => p.Items)
+                    .ThenInclude(i => i.InventoryItem)
+                .FirstOrDefaultAsync(p => p.Id == id);
+                
+            purchaseOrder.Items = purchaseOrderWithItems.Items;
             
             return View(purchaseOrder);
         }
@@ -181,7 +203,7 @@ namespace FleetTracking.Controllers
         // POST: PurchaseOrder/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,VendorId,PONumber,OrderDate,ExpectedDeliveryDate,Notes,Status")] PurchaseOrder purchaseOrder)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,VendorId,PurchaseOrderNumber,OrderDate,ExpectedDeliveryDate,Notes,Status")] PurchaseOrder purchaseOrder)
         {
             if (id != purchaseOrder.Id)
             {
@@ -213,7 +235,8 @@ namespace FleetTracking.Controllers
                     purchaseOrder.CreatedById = existingPO.CreatedById;
                     purchaseOrder.CreatedAt = existingPO.CreatedAt;
                     purchaseOrder.ApprovedById = existingPO.ApprovedById;
-                    purchaseOrder.ApprovalDate = existingPO.ApprovalDate;
+                    purchaseOrder.ApprovedDate = existingPO.ApprovedDate;
+                    purchaseOrder.PurchaseOrderNumber = existingPO.PurchaseOrderNumber; // Use PurchaseOrderNumber 
                     
                     // Update the timestamp
                     purchaseOrder.UpdatedAt = DateTime.UtcNow;
@@ -226,8 +249,13 @@ namespace FleetTracking.Controllers
                         {
                             ModelState.AddModelError("", "Cannot submit for approval: This purchase order has no items.");
                             
-                            var vendors = await _context.Vendors.OrderBy(v => v.Name).ToListAsync();
-                            ViewBag.Vendors = new SelectList(vendors, "Id", "Name", purchaseOrder.VendorId);
+                            // Reuse the already fetched active vendors
+                            var availableVendors = await _context.Vendors
+                                .Where(v => v.IsActive)
+                                .OrderBy(v => v.Name)
+                                .ToListAsync();
+                                
+                            ViewBag.Vendors = new SelectList(availableVendors, "Id", "Name", purchaseOrder.VendorId);
                             
                             var items = await _context.InventoryItems
                                 .Where(i => i.IsActive)
@@ -273,9 +301,14 @@ namespace FleetTracking.Controllers
                 }
                 return RedirectToAction(nameof(Details), new { id = purchaseOrder.Id });
             }
-            
-            var vendors = await _context.Vendors.OrderBy(v => v.Name).ToListAsync();
-            ViewBag.Vendors = new SelectList(vendors, "Id", "Name", purchaseOrder.VendorId);
+
+            // If we get this far, something failed, redisplay form
+            var vendorList = await _context.Vendors
+                .Where(v => v.IsActive)
+                .OrderBy(v => v.Name)
+                .ToListAsync();
+                
+            ViewBag.Vendors = new SelectList(vendorList, "Id", "Name", purchaseOrder.VendorId);
             
             // Get inventory items for dropdown
             var inventoryItems = await _context.InventoryItems
@@ -328,13 +361,11 @@ namespace FleetTracking.Controllers
                 Description = description ?? inventoryItem.Name,
                 Quantity = quantity,
                 UnitPrice = unitPrice,
-                TaxRate = taxRate ?? 0
+                TaxRate = taxRate ?? 0m  // Using 0m to ensure decimal type
             };
             
             // Calculate extended price
             poItem.ExtendedPrice = poItem.Quantity * poItem.UnitPrice;
-            poItem.TaxAmount = poItem.ExtendedPrice * poItem.TaxRate / 100;
-            poItem.TotalPrice = poItem.ExtendedPrice + poItem.TaxAmount;
             
             // Add the item
             _context.PurchaseOrderItems.Add(poItem);
@@ -400,8 +431,8 @@ namespace FleetTracking.Controllers
             
             // Set approved information
             purchaseOrder.Status = "approved";
-            purchaseOrder.ApprovedById = User.Identity.Name;
-            purchaseOrder.ApprovalDate = DateTime.UtcNow;
+            purchaseOrder.ApprovedById = User.Identity?.Name ?? "system";
+            purchaseOrder.ApprovedDate = DateTime.UtcNow; // Use ApprovedDate instead of ApprovalDate
             purchaseOrder.UpdatedAt = DateTime.UtcNow;
             
             _context.Update(purchaseOrder);
@@ -514,19 +545,19 @@ namespace FleetTracking.Controllers
             poItem.ReceivedQuantity += quantityReceived;
             _context.Update(poItem);
             
-            // Create an inventory transaction to record the receipt
+            // Create new inventory transaction
             var transaction = new InventoryTransaction
             {
                 ItemId = poItem.InventoryItemId,
-                TransactionType = "purchase",
                 Quantity = quantityReceived,
                 UnitCost = poItem.UnitPrice,
-                TotalCost = quantityReceived * poItem.UnitPrice,
-                ReferenceId = $"PO-{purchaseOrder.PONumber}",
-                Notes = $"Received from PO #{purchaseOrder.PONumber}" + (string.IsNullOrEmpty(notes) ? "" : $" - {notes}"),
+                TransactionType = "purchase",
+                ReferenceId = purchaseOrderId.ToString(),
                 TransactionDate = DateTime.UtcNow,
-                PerformedById = User.Identity.Name,
-                CreatedAt = DateTime.UtcNow
+                Note = notes,
+                PerformedById = User.Identity?.Name ?? "system",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             
             _context.InventoryTransactions.Add(transaction);
@@ -591,8 +622,8 @@ namespace FleetTracking.Controllers
                 PendingOrders = allOrders.Count(p => p.Status == "draft" || p.Status == "pending"),
                 ApprovedOrders = allOrders.Count(p => p.Status == "approved" || p.Status == "ordered"),
                 CompletedOrders = allOrders.Count(p => p.Status == "received"),
-                TotalAmount = allOrders.Sum(p => p.Total ?? 0),
-                PendingAmount = allOrders.Where(p => p.Status == "draft" || p.Status == "pending" || p.Status == "approved" || p.Status == "ordered").Sum(p => p.Total ?? 0)
+                TotalAmount = allOrders.Sum(p => p.Total),
+                PendingAmount = allOrders.Where(p => p.Status == "draft" || p.Status == "pending" || p.Status == "approved" || p.Status == "ordered").Sum(p => p.Total)
             };
             
             // Get low stock items
@@ -617,6 +648,73 @@ namespace FleetTracking.Controllers
             return View(summary);
         }
         
+        // GET: PurchaseOrder/ValuationReport
+        public async Task<IActionResult> ValuationReport(DateTime? startDate, DateTime? endDate, int? categoryId)
+        {
+            var query = _context.InventoryItems.AsQueryable();
+            
+            if (categoryId.HasValue)
+            {
+                query = query.Where(i => i.CategoryId == categoryId);
+            }
+            
+            // Get items with their average cost from transactions
+            var items = await query
+                .Include(i => i.Category)
+                .OrderBy(i => i.Category.Name)
+                .ThenBy(i => i.Name)
+                .Select(i => new
+                {
+                    Item = i,
+                    AvgCost = _context.InventoryTransactions
+                        .Where(t => t.ItemId == i.Id && 
+                                   (startDate == null || t.TransactionDate >= startDate) &&
+                                   (endDate == null || t.TransactionDate <= endDate) &&
+                                   t.TransactionType != "use" && 
+                                   t.TransactionType != "adjustment")
+                        .Average(t => (decimal?)t.UnitCost) ?? 0m
+                })
+                .ToListAsync();
+            
+            // Calculate total values and group by category
+            var valuationReport = items
+                .GroupBy(i => i.Item.Category?.Name ?? "Uncategorized")
+                .Select(g => new InventoryValuationViewModel
+                {
+                    CategoryName = g.Key,
+                    Items = g.Select(i => new InventoryItemValuationViewModel
+                    {
+                        Id = i.Item.Id,
+                        SKU = i.Item.SKU,
+                        Name = i.Item.Name,
+                        CurrentQuantity = i.Item.CurrentQuantity,
+                        UnitCost = i.AvgCost > 0m ? i.AvgCost : i.Item.UnitCost,
+                        TotalValue = i.Item.CurrentQuantity * (i.AvgCost > 0m ? i.AvgCost : i.Item.UnitCost),
+                        Status = i.Item.CurrentQuantity <= 0m ? "Out of Stock" :
+                               i.Item.CurrentQuantity <= i.Item.MinimumQuantity ? "Low Stock" : "In Stock"
+                    }).ToList()
+                })
+                .OrderBy(vr => vr.CategoryName)
+                .ToList();
+            
+            // Calculate summary totals
+            var totalItems = valuationReport.Sum(vr => vr.Items.Count);
+            var totalQuantity = valuationReport.Sum(vr => vr.Items.Sum(i => i.CurrentQuantity));
+            var totalValue = valuationReport.Sum(vr => vr.Items.Sum(i => i.TotalValue));
+            
+            // Pass the data to the view
+            ViewBag.TotalItems = totalItems;
+            ViewBag.TotalQuantity = totalQuantity;
+            ViewBag.TotalValue = totalValue;
+            ViewBag.ReportDate = DateTime.Now;
+            ViewBag.DateRange = $"{startDate?.ToShortDateString() ?? "All"} to {endDate?.ToShortDateString() ?? "Present"}";
+            
+            // Get categories for filter dropdown
+            ViewBag.Categories = new SelectList(await _context.InventoryCategories.OrderBy(c => c.Name).ToListAsync(), "Id", "Name", categoryId);
+            
+            return View(valuationReport);
+        }
+        
         // Helper methods
         private async Task UpdatePurchaseOrderTotals(int purchaseOrderId)
         {
@@ -630,9 +728,8 @@ namespace FleetTracking.Controllers
                 .Where(i => i.PurchaseOrderId == purchaseOrderId)
                 .ToListAsync();
                 
-            purchaseOrder.Subtotal = items.Sum(i => i.ExtendedPrice);
-            purchaseOrder.TaxAmount = items.Sum(i => i.TaxAmount);
-            purchaseOrder.Total = items.Sum(i => i.TotalPrice);
+            // Set TotalAmount only - Subtotal, TaxAmount, and Total are computed
+            purchaseOrder.TotalAmount = items.Sum(i => i.ExtendedPrice);
             purchaseOrder.UpdatedAt = DateTime.UtcNow;
             
             _context.Update(purchaseOrder);
@@ -684,15 +781,15 @@ namespace FleetTracking.Controllers
             
             // Get the highest sequential number used today
             var lastPo = _context.PurchaseOrders
-                .Where(p => p.PONumber.StartsWith($"PO-{dateComponent}"))
-                .OrderByDescending(p => p.PONumber)
+                .Where(p => p.PurchaseOrderNumber.StartsWith($"PO-{dateComponent}"))
+                .OrderByDescending(p => p.PurchaseOrderNumber)
                 .FirstOrDefault();
                 
             int sequence = 1;
             
-            if (lastPo != null && lastPo.PONumber.Length > 14) // PO-YYYYMMDD-####
+            if (lastPo != null && lastPo.PurchaseOrderNumber.Length > 14) // PO-YYYYMMDD-####
             {
-                string sequenceStr = lastPo.PONumber.Substring(12);
+                string sequenceStr = lastPo.PurchaseOrderNumber.Substring(12);
                 if (int.TryParse(sequenceStr, out int lastSequence))
                 {
                     sequence = lastSequence + 1;

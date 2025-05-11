@@ -32,7 +32,7 @@ namespace FleetTracking.Controllers
         public async Task<IActionResult> Index()
         {
             // Get all vehicles to display in the list
-            var vehicles = await _vehicleService.GetVehiclesAsync();
+            var vehicles = await _vehicleService.GetAllVehiclesAsync();
             
             ViewData["Vehicles"] = vehicles;
             return View();
@@ -46,7 +46,7 @@ namespace FleetTracking.Controllers
             try
             {
                 // Get vehicle details
-                var vehicle = await _vehicleService.GetVehicleAsync(id);
+                var vehicle = await _vehicleService.GetVehicleByIdAsync(id);
                 
                 if (vehicle == null)
                 {
@@ -81,7 +81,7 @@ namespace FleetTracking.Controllers
                 }
                 
                 // Get vehicle details
-                var vehicle = await _vehicleService.GetVehicleAsync(trip.VehicleId);
+                var vehicle = await _vehicleService.GetVehicleByIdAsync(trip.VehicleId.HasValue ? trip.VehicleId.Value : 0);
                 
                 if (vehicle == null)
                 {
@@ -113,7 +113,7 @@ namespace FleetTracking.Controllers
                 var end = endDate ?? DateTime.Now;
                 
                 // Get vehicle details for the filename
-                var vehicle = await _vehicleService.GetVehicleAsync(id);
+                var vehicle = await _vehicleService.GetVehicleByIdAsync(id);
                 
                 if (vehicle == null)
                 {
@@ -184,7 +184,9 @@ namespace FleetTracking.Controllers
                     var trip = await _historyService.GetTripByIdAsync(id);
                     if (trip != null)
                     {
-                        waypoints = _historyService.GenerateSampleHistoryData(trip.VehicleId, trip.StartDate, trip.EndDate);
+                        // Make sure to handle nullable VehicleId
+                        var vehicleId = trip.VehicleId.HasValue ? trip.VehicleId.Value : 0;
+                        waypoints = _historyService.GenerateSampleHistoryData(vehicleId, trip.StartDate, trip.EndDate);
                     }
                 }
                 

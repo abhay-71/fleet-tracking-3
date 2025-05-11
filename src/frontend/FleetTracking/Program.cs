@@ -18,6 +18,20 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
 
 builder.Services.AddControllersWithViews();
 
+// Add ApiService
+builder.Services.AddHttpClient();
+builder.Services.AddTransient<IApiService, ApiService>();
+
+// Add Email Sender service
+builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, FleetTracking.Services.EmailSender>();
+
+// Add Services from Startup.cs
+builder.Services.AddTransient<VehicleService>();
+builder.Services.AddTransient<DriverService>();
+builder.Services.AddTransient<MaintenanceService>();
+builder.Services.AddTransient<GeofenceService>();
+builder.Services.AddTransient<VehicleHistoryService>();
+
 // Add SignalR support
 builder.Services.AddSignalR(options =>
 {
@@ -63,7 +77,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 // Configure API client services
 builder.Services.AddHttpClient("FleetTrackingApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]);
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:8080");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
@@ -105,5 +119,6 @@ app.MapRazorPages();
 
 // Map SignalR hubs
 app.MapHub<VehicleStatusHub>("/hubs/vehicleStatus");
+app.MapHub<VehicleHub>("/vehicleHub");
 
 app.Run(); 

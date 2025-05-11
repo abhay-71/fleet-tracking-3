@@ -48,14 +48,19 @@
                 <div class="mb-3">
                     <div class="d-flex justify-content-between">
                         <strong>Hire Date:</strong>
-                        <span>@(Model.HireDate?.ToString("MM/dd/yyyy") ?? "Not Available")</span>
+                        <span>@Model.HireDate.ToString("MM/dd/yyyy")</span>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between">
                         <strong>Experience:</strong>
-                        <span>@(Model.HireDate.HasValue ? (DateTime.Now - Model.HireDate.Value).Days / 365 : 0) years</span>
+                        <span>
+                            @{
+                                var experience = (DateTime.Now - Model.HireDate).Days / 365;
+                            }
+                            @experience years
+                        </span>
                     </div>
                 </div>
                 
@@ -82,6 +87,24 @@
                             var random = new Random(Model.Id);
                             var completedTrips = random.Next(10, 100);
                             var progressPercent = Math.Min(completedTrips, 100);
+                            
+                            // Safety stats
+                            var safetyRating = 70 + random.Next(0, 30);
+                            var safetyClass = safetyRating >= 90 ? "bg-success" : 
+                                              safetyRating >= 70 ? "bg-info" : 
+                                              safetyRating >= 50 ? "bg-warning" : "bg-danger";
+                                              
+                            // Efficiency stats
+                            var efficiencyRating = 60 + random.Next(0, 40);
+                            var efficiencyClass = efficiencyRating >= 90 ? "bg-success" : 
+                                                 efficiencyRating >= 70 ? "bg-info" : 
+                                                 efficiencyRating >= 50 ? "bg-warning" : "bg-danger";
+                                                 
+                            // On-time stats
+                            var punctualityRating = 75 + random.Next(0, 25);
+                            var punctualityClass = punctualityRating >= 90 ? "bg-success" : 
+                                                  punctualityRating >= 70 ? "bg-info" : 
+                                                  punctualityRating >= 50 ? "bg-warning" : "bg-danger";
                         }
                         <div class="progress-bar bg-success" role="progressbar" style="width: @progressPercent%">
                             @completedTrips Trips
@@ -92,13 +115,9 @@
                 <div class="mb-3">
                     <label class="form-label">Safety Rating</label>
                     <div class="progress" style="height: 25px;">
-                        @{
-                            var safetyRating = 70 + random.Next(0, 30);
-                            var safetyClass = safetyRating >= 90 ? "bg-success" : 
-                                              safetyRating >= 70 ? "bg-info" : 
-                                              safetyRating >= 50 ? "bg-warning" : "bg-danger";
-                        }
-                        <div class="progress-bar @safetyClass" role="progressbar" style="width: @safetyRating%">
+                        <div class="progress-bar @safetyClass" role="progressbar" 
+                             style="width: @safetyRating%" aria-valuenow="@safetyRating" 
+                             aria-valuemin="0" aria-valuemax="100">
                             @safetyRating%
                         </div>
                     </div>
@@ -107,13 +126,9 @@
                 <div class="mb-3">
                     <label class="form-label">Fuel Efficiency</label>
                     <div class="progress" style="height: 25px;">
-                        @{
-                            var efficiencyRating = 60 + random.Next(0, 40);
-                            var efficiencyClass = efficiencyRating >= 90 ? "bg-success" : 
-                                                 efficiencyRating >= 70 ? "bg-info" : 
-                                                 efficiencyRating >= 50 ? "bg-warning" : "bg-danger";
-                        }
-                        <div class="progress-bar @efficiencyClass" role="progressbar" style="width: @efficiencyRating%">
+                        <div class="progress-bar @efficiencyClass" role="progressbar"
+                             style="width: @efficiencyRating%" aria-valuenow="@efficiencyRating"
+                             aria-valuemin="0" aria-valuemax="100">
                             @efficiencyRating%
                         </div>
                     </div>
@@ -122,13 +137,9 @@
                 <div class="mb-3">
                     <label class="form-label">On-Time Performance</label>
                     <div class="progress" style="height: 25px;">
-                        @{
-                            var punctualityRating = 75 + random.Next(0, 25);
-                            var punctualityClass = punctualityRating >= 90 ? "bg-success" : 
-                                                  punctualityRating >= 70 ? "bg-info" : 
-                                                  punctualityRating >= 50 ? "bg-warning" : "bg-danger";
-                        }
-                        <div class="progress-bar @punctualityClass" role="progressbar" style="width: @punctualityRating%">
+                        <div class="progress-bar @punctualityClass" role="progressbar"
+                             style="width: @punctualityRating%" aria-valuenow="@punctualityRating"
+                             aria-valuemin="0" aria-valuemax="100">
                             @punctualityRating%
                         </div>
                     </div>

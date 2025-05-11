@@ -9,10 +9,10 @@ namespace FleetTracking.Models
 
         [Required]
         [StringLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
-        public string Type { get; set; }
+        public string Type { get; set; } = "other";
 
         [Required]
         public double Latitude { get; set; }
@@ -21,16 +21,16 @@ namespace FleetTracking.Models
         public double Longitude { get; set; }
 
         [StringLength(250)]
-        public string Address { get; set; }
+        public string Address { get; set; } = string.Empty;
 
         [StringLength(500)]
-        public string Notes { get; set; }
+        public string Notes { get; set; } = string.Empty;
 
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime UpdatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public int CreatedBy { get; set; }
 
@@ -53,20 +53,20 @@ namespace FleetTracking.Models
     
     public class GeocodingResult
     {
-        public string OriginalQuery { get; set; }
-        public string FormattedAddress { get; set; }
+        public string OriginalQuery { get; set; } = string.Empty;
+        public string FormattedAddress { get; set; } = string.Empty;
         public double Latitude { get; set; }
         public double Longitude { get; set; }
-        public string Type { get; set; }
-        public string Status { get; set; }
-        public string PlaceId { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string PlaceId { get; set; } = string.Empty;
         
         // Additional properties
-        public string Country { get; set; }
-        public string CountryCode { get; set; }
-        public string City { get; set; }
-        public string State { get; set; }
-        public string PostalCode { get; set; }
+        public string Country { get; set; } = string.Empty;
+        public string CountryCode { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+        public string PostalCode { get; set; } = string.Empty;
         public double? Confidence { get; set; }
     }
 } 

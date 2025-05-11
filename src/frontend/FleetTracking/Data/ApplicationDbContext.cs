@@ -35,6 +35,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
     public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
 
+    public DbSet<Geofence> Geofences { get; set; }
+    public DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
+    public DbSet<Maintenance> Maintenances { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

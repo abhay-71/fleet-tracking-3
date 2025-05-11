@@ -185,7 +185,7 @@ namespace FleetTracking.Controllers
                     UnitOfMeasure = g.First().Item.UnitOfMeasure,
                     Category = g.First().Item.Category?.Name ?? "Uncategorized",
                     QuantityUsed = g.Sum(t => t.Quantity),
-                    TotalCost = g.Sum(t => t.TotalCost ?? 0),
+                    TotalCost = g.Sum(t => t.TotalCost),
                     UsageCount = g.Count()
                 })
                 .OrderByDescending(i => i.TotalCost)
@@ -195,7 +195,7 @@ namespace FleetTracking.Controllers
         }
         
         // GET: InventoryTransaction/ValuationReport
-        public async Task<IActionResult> ValuationReport()
+        public async Task<IActionResult> ValuationReport(DateTime? startDate, DateTime? endDate, int? categoryId)
         {
             // Get all active inventory items with their current quantities
             var inventoryItems = await _context.InventoryItems
@@ -214,18 +214,34 @@ namespace FleetTracking.Controllers
                     CategoryName = g.First().Category?.Name ?? "Uncategorized",
                     ItemCount = g.Count(),
                     Items = g.ToList(),
-                    TotalValue = g.Sum(i => i.TotalValue)
+                    TotalValue = g.Sum(i => i.CurrentQuantity * i.UnitPrice)
                 })
                 .OrderBy(c => c.CategoryName)
                 .ToList();
                 
             // Calculate overall totals
-            ViewBag.TotalItems = inventoryItems.Count;
+            ViewBag.TotalItems = inventoryItems.Count();
             ViewBag.TotalCategories = valuationReport.Count;
-            ViewBag.TotalValue = inventoryItems.Sum(i => i.TotalValue);
-            ViewBag.LowStockItems = inventoryItems.Count(i => i.NeedsReorder);
+            ViewBag.TotalValue = inventoryItems.Sum(i => i.CurrentQuantity * i.UnitPrice);
+            ViewBag.LowStockItems = inventoryItems.Count(i => i.CurrentQuantity <= i.ReorderPoint);
             
-            return View(valuationReport);
+            // Use 0m (decimal) for null-coalescing operator instead of int
+            var inventoryValuation = inventoryItems.Select(i => new InventoryValuationViewModel
+            {
+                ItemId = i.Id,
+                ItemCode = i.ItemCode,
+                ItemName = i.Name,
+                CategoryName = i.Category?.Name ?? "Uncategorized",
+                UnitOfMeasure = i.UnitOfMeasure,
+                CurrentQuantity = i.CurrentQuantity,
+                AverageCost = i.CurrentQuantity > 0 ? (i.TotalValue / i.CurrentQuantity) : 0m, // Use 0m instead of 0
+                TotalValue = i.TotalValue,
+                ReorderPoint = i.MinimumQuantity,
+                Status = i.CurrentQuantity <= 0 ? "Out of Stock" :
+                        i.CurrentQuantity <= i.MinimumQuantity ? "Low Stock" : "In Stock"
+            }).ToList();
+            
+            return View(inventoryValuation);
         }
         
         // GET: InventoryTransaction/Delete/5
@@ -295,10 +311,9 @@ namespace FleetTracking.Controllers
                 TransactionType = "adjustment",
                 Quantity = -transaction.Quantity, // Opposite of the deleted transaction
                 UnitCost = transaction.UnitCost,
-                TotalCost = -(transaction.TotalCost ?? 0), // Negative of the original total
-                Notes = $"Correction due to deletion of transaction {id}",
+                Note = $"Correction due to deletion of transaction {id}",
                 TransactionDate = DateTime.UtcNow,
-                PerformedById = User.Identity.Name,
+                PerformedById = User.Identity?.Name ?? "system",
                 CreatedAt = DateTime.UtcNow
             };
             

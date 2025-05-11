@@ -1,5 +1,21 @@
 @{
     ViewData["Title"] = "Vendor Cost Analysis";
+    
+    // Define callback functions at the top of the file to avoid lambda expression errors
+    var tickCallbackCode = "function(value) { return '$' + value.toLocaleString(); }";
+    var tooltipCallbackCode = "function(context) { return '$' + context.parsed.y.toLocaleString(); }";
+    var doughnutTooltipCallbackCode = "function(context) { " +
+        "var label = context.label || ''; " +
+        "var value = context.parsed || 0; " +
+        "var total = 0; " +
+        "for (var i = 0; i < context.dataset.data.length; i++) { " +
+        "   total += Number(context.dataset.data[i]); " +
+        "} " +
+        "var percentage = Math.round((value / total) * 100); " +
+        "return label + ': $' + value.toLocaleString() + ' (' + percentage + '%)'; " +
+        "}";
+    var barTooltipCallbackCode = "function(context) { return '$' + context.parsed.x.toLocaleString(); }";
+    var stackedBarTooltipCallbackCode = "function(context) { return context.dataset.label + ': $' + context.parsed.y.toLocaleString(); }";
 }
 
 <div class="container-fluid px-4 py-4">
@@ -62,21 +78,41 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span>Total Transactions:</span>
                         <span class="badge bg-primary rounded-pill">
-                            @ViewBag.SpendByType.Sum(s => s.Count)
+                            @{
+                                var totalTransactions = 0;
+                                if (ViewBag.SpendByType != null)
+                                {
+                                    foreach (var item in ViewBag.SpendByType)
+                                    {
+                                        totalTransactions += item.Count;
+                                    }
+                                }
+                            }
+                            @totalTransactions
                         </span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span>Total Spend:</span>
                         <span class="fw-bold">
-                            @ViewBag.SpendByType.Sum(s => s.TotalAmount).ToString("C")
+                            @{
+                                var totalSpend = 0m;
+                                if (ViewBag.SpendByType != null)
+                                {
+                                    foreach (var item in ViewBag.SpendByType)
+                                    {
+                                        totalSpend += item.TotalAmount;
+                                    }
+                                }
+                            }
+                            @totalSpend.ToString("C")
                         </span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span>Average Transaction:</span>
                         <span>
                             @{
-                                var count = ViewBag.SpendByType.Sum(s => s.Count);
-                                var total = ViewBag.SpendByType.Sum(s => s.TotalAmount);
+                                var count = totalTransactions;
+                                var total = totalSpend;
                                 var average = count > 0 ? total / count : 0;
                             }
                             @average.ToString("C")
@@ -86,7 +122,9 @@
                         <span>Top Expense Type:</span>
                         <span>
                             @{
-                                var topType = ViewBag.SpendByType.OrderByDescending(s => s.TotalAmount).FirstOrDefault();
+                                // Fix lambda expression by calculating in C# instead
+                                var topType = ViewBag.SpendByType != null ? 
+                                    GetTopExpenseType(ViewBag.SpendByType) : null;
                             }
                             @(topType != null ? topType.TransactionTypeDisplayName : "N/A")
                         </span>
@@ -95,7 +133,9 @@
                         <span>Top Vendor:</span>
                         <span>
                             @{
-                                var topVendor = ViewBag.VendorAnalysis.OrderByDescending(v => v.TotalSpent).FirstOrDefault();
+                                // Fix lambda expression by calculating in C# instead
+                                var topVendor = ViewBag.VendorAnalysis != null ?
+                                    GetTopVendor(ViewBag.VendorAnalysis) : null;
                             }
                             @(topVendor != null ? topVendor.VendorName : "N/A")
                         </span>
@@ -174,9 +214,8 @@
                                         <td>@vendor.AverageAmount.ToString("C")</td>
                                         <td>
                                             @{
-                                                var topExpense = vendor.TransactionsByType
-                                                    .OrderByDescending(t => t.TotalAmount)
-                                                    .FirstOrDefault();
+                                                // Fix lambda expression by calculating in C# instead
+                                                var topExpense = GetTopExpense(vendor.TransactionsByType);
                                             }
                                             @(topExpense != null ? $"{topExpense.TransactionTypeDisplayName} ({topExpense.TotalAmount:C})" : "N/A")
                                         </td>
@@ -217,8 +256,8 @@
                         <tfoot class="table-light">
                             <tr class="fw-bold">
                                 <td>Total</td>
-                                <td>@ViewBag.SpendByType.Sum(s => s.Count)</td>
-                                <td class="text-end">@ViewBag.SpendByType.Sum(s => s.TotalAmount).ToString("C")</td>
+                                <td>@totalTransactions</td>
+                                <td class="text-end">@totalSpend.ToString("C")</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -234,8 +273,124 @@
     <script>
         $(document).ready(function() {
             // Prepare data for Monthly Spending Chart
-            var months = [@Html.Raw(string.Join(",", ViewBag.MonthlySpend.Select(m => $"'{m.MonthYear}'").ToArray()))];
-            var monthlyAmounts = [@Html.Raw(string.Join(",", ViewBag.MonthlySpend.Select(m => m.TotalAmount).ToArray()))];
+            @{
+                var monthYears = "";
+                var monthlyTotals = "";
+                var categoryNames = "";
+                var categoryTotals = "";
+                var vendorNames = "";
+                var vendorTotals = "";
+                var vehicleNames = "";
+                var maintenanceTotals = "";
+                var repairTotals = "";
+                var partsTotals = "";
+                var fuelTotals = "";
+                
+                if (ViewBag.MonthlySpend != null)
+                {
+                    var monthsList = new List<string>();
+                    var totalsLists = new List<string>();
+                    
+                    foreach (var m in ViewBag.MonthlySpend)
+                    {
+                        monthsList.Add($"'{m.MonthYear}'");
+                        totalsLists.Add(m.TotalAmount.ToString());
+                    }
+                    
+                    monthYears = string.Join(",", monthsList);
+                    monthlyTotals = string.Join(",", totalsLists);
+                }
+                
+                if (ViewBag.SpendByType != null)
+                {
+                    var categoriesList = new List<string>();
+                    var totalsList = new List<string>();
+                    
+                    foreach (var s in ViewBag.SpendByType)
+                    {
+                        categoriesList.Add($"'{s.TransactionTypeDisplayName}'");
+                        totalsList.Add(s.TotalAmount.ToString());
+                    }
+                    
+                    categoryNames = string.Join(",", categoriesList);
+                    categoryTotals = string.Join(",", totalsList);
+                }
+                
+                if (ViewBag.VendorAnalysis != null)
+                {
+                    var vendorsList = new List<string>();
+                    var totalsList = new List<string>();
+                    
+                    // Get top 5 vendors by spend using C# variables instead of lambda in JavaScript
+                    var top5Vendors = new List<dynamic>();
+                    var vendorList = new List<dynamic>(ViewBag.VendorAnalysis);
+                    vendorList.Sort((a, b) => ((decimal)b.TotalSpent).CompareTo((decimal)a.TotalSpent));
+                    
+                    for (int i = 0; i < Math.Min(5, vendorList.Count); i++)
+                    {
+                        top5Vendors.Add(vendorList[i]);
+                    }
+                    
+                    foreach (var v in top5Vendors)
+                    {
+                        vendorsList.Add($"'{v.VendorName}'");
+                        totalsList.Add(v.TotalSpent.ToString());
+                    }
+                    
+                    vendorNames = string.Join(",", vendorsList);
+                    vendorTotals = string.Join(",", totalsList);
+                }
+                
+                if (ViewBag.VehicleAnalysis != null)
+                {
+                    var vehiclesList = new List<string>();
+                    var mTotalsList = new List<string>();
+                    var rTotalsList = new List<string>();
+                    var pTotalsList = new List<string>();
+                    var fTotalsList = new List<string>();
+                    
+                    // Get top 10 vehicles by spend using C# variables
+                    var vehicleData = new List<dynamic>();
+                    var vehicleList = new List<dynamic>(ViewBag.VehicleAnalysis);
+                    vehicleList.Sort((a, b) => ((decimal)b.TotalSpent).CompareTo((decimal)a.TotalSpent));
+                    
+                    for (int i = 0; i < Math.Min(10, vehicleList.Count); i++)
+                    {
+                        vehicleData.Add(vehicleList[i]);
+                    }
+                    
+                    foreach (var v in vehicleData)
+                    {
+                        vehiclesList.Add($"'{v.VehicleName}'");
+                        
+                        // Find transactions by type without using lambdas directly in JS
+                        var transactionList = new List<dynamic>(v.TransactionsByType);
+                        dynamic maintenance = null, repair = null, parts = null, fuel = null;
+                        
+                        foreach (var t in transactionList)
+                        {
+                            if (t.TransactionType == "maintenance") maintenance = t;
+                            if (t.TransactionType == "repair") repair = t;
+                            if (t.TransactionType == "parts") parts = t;
+                            if (t.TransactionType == "fuel") fuel = t;
+                        }
+                        
+                        mTotalsList.Add(maintenance != null ? maintenance.TotalAmount.ToString() : "0");
+                        rTotalsList.Add(repair != null ? repair.TotalAmount.ToString() : "0");
+                        pTotalsList.Add(parts != null ? parts.TotalAmount.ToString() : "0");
+                        fTotalsList.Add(fuel != null ? fuel.TotalAmount.ToString() : "0");
+                    }
+                    
+                    vehicleNames = string.Join(",", vehiclesList);
+                    maintenanceTotals = string.Join(",", mTotalsList);
+                    repairTotals = string.Join(",", rTotalsList);
+                    partsTotals = string.Join(",", pTotalsList);
+                    fuelTotals = string.Join(",", fTotalsList);
+                }
+            }
+            
+            var months = [@Html.Raw(monthYears)];
+            var monthlyAmounts = [@Html.Raw(monthlyTotals)];
             
             // Monthly Spending Chart
             var monthlyCtx = document.getElementById('monthlySpendingChart').getContext('2d');
@@ -258,18 +413,14 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
+                                callback: @Html.Raw(tickCallbackCode)
                             }
                         }
                     },
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return '$' + context.parsed.y.toLocaleString();
-                                }
+                                label: @Html.Raw(tooltipCallbackCode)
                             }
                         }
                     }
@@ -277,8 +428,8 @@
             });
             
             // Prepare data for Spending by Category Chart
-            var categories = [@Html.Raw(string.Join(",", ViewBag.SpendByType.Select(s => $"'{s.TransactionTypeDisplayName}'").ToArray()))];
-            var categoryAmounts = [@Html.Raw(string.Join(",", ViewBag.SpendByType.Select(s => s.TotalAmount).ToArray()))];
+            var categories = [@Html.Raw(categoryNames)];
+            var categoryAmounts = [@Html.Raw(categoryTotals)];
             var backgroundColors = [
                 'rgba(13, 110, 253, 0.7)',
                 'rgba(25, 135, 84, 0.7)',
@@ -309,13 +460,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    var label = context.label || '';
-                                    var value = context.parsed || 0;
-                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    var percentage = Math.round((value / total) * 100);
-                                    return label + ': $' + value.toLocaleString() + ' (' + percentage + '%)';
-                                }
+                                label: @Html.Raw(doughnutTooltipCallbackCode)
                             }
                         }
                     }
@@ -323,8 +468,8 @@
             });
             
             // Prepare data for Top Vendors Chart
-            var vendors = [@Html.Raw(string.Join(",", ViewBag.VendorAnalysis.OrderByDescending(v => v.TotalSpent).Take(5).Select(v => $"'{v.VendorName}'").ToArray()))];
-            var vendorAmounts = [@Html.Raw(string.Join(",", ViewBag.VendorAnalysis.OrderByDescending(v => v.TotalSpent).Take(5).Select(v => v.TotalSpent).ToArray()))];
+            var vendors = [@Html.Raw(vendorNames)];
+            var vendorAmounts = [@Html.Raw(vendorTotals)];
             
             // Top Vendors Chart
             var vendorCtx = document.getElementById('topVendorsChart').getContext('2d');
@@ -347,44 +492,28 @@
                         x: {
                             beginAtZero: true,
                             ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
+                                callback: @Html.Raw(tickCallbackCode)
                             }
                         }
                     },
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return '$' + context.parsed.x.toLocaleString();
-                                }
+                                label: @Html.Raw(barTooltipCallbackCode)
                             }
                         }
                     }
                 }
             });
             
-            // Prepare data for Vehicle Costs Chart
-            var vehicles = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => $"'{v.VehicleName}'").ToArray()))];
-            var maintenanceAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
-                var maintenance = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "maintenance");
-                return maintenance != null ? maintenance.TotalAmount : 0;
-            }).ToArray()))];
-            var repairAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
-                var repair = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "repair");
-                return repair != null ? repair.TotalAmount : 0;
-            }).ToArray()))];
-            var partAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
-                var parts = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "parts");
-                return parts != null ? parts.TotalAmount : 0;
-            }).ToArray()))];
-            var fuelAmounts = [@Html.Raw(string.Join(",", ViewBag.VehicleAnalysis.OrderByDescending(v => v.TotalSpent).Take(10).Select(v => {
-                var fuel = v.TransactionsByType.FirstOrDefault(t => t.TransactionType == "fuel");
-                return fuel != null ? fuel.TotalAmount : 0;
-            }).ToArray()))];
+            // Prepare data for Vehicle Cost Chart
+            var vehicles = [@Html.Raw(vehicleNames)];
+            var maintenanceAmounts = [@Html.Raw(maintenanceTotals)];
+            var repairAmounts = [@Html.Raw(repairTotals)];
+            var partsAmounts = [@Html.Raw(partsTotals)];
+            var fuelAmounts = [@Html.Raw(fuelTotals)];
             
-            // Vehicle Costs Chart
+            // Vehicle Cost Chart
             var vehicleCtx = document.getElementById('vehicleCostChart').getContext('2d');
             var vehicleChart = new Chart(vehicleCtx, {
                 type: 'bar',
@@ -394,26 +523,22 @@
                         {
                             label: 'Maintenance',
                             data: maintenanceAmounts,
-                            backgroundColor: 'rgba(13, 110, 253, 0.7)',
-                            stack: 'Stack 0'
+                            backgroundColor: 'rgba(13, 110, 253, 0.7)'
                         },
                         {
                             label: 'Repairs',
                             data: repairAmounts,
-                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
-                            stack: 'Stack 0'
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)'
                         },
                         {
                             label: 'Parts',
-                            data: partAmounts,
-                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
-                            stack: 'Stack 0'
+                            data: partsAmounts,
+                            backgroundColor: 'rgba(25, 135, 84, 0.7)'
                         },
                         {
                             label: 'Fuel',
                             data: fuelAmounts,
-                            backgroundColor: 'rgba(25, 135, 84, 0.7)',
-                            stack: 'Stack 0'
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)'
                         }
                     ]
                 },
@@ -426,18 +551,14 @@
                         y: {
                             stacked: true,
                             ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toLocaleString();
-                                }
+                                callback: @Html.Raw(tickCallbackCode)
                             }
                         }
                     },
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
-                                }
+                                label: @Html.Raw(stackedBarTooltipCallbackCode)
                             }
                         }
                     }
@@ -445,4 +566,57 @@
             });
         });
     </script>
+}
+
+@functions {
+    dynamic GetTopExpenseType(dynamic spendByType)
+    {
+        dynamic result = null;
+        decimal maxAmount = 0;
+        
+        foreach (var item in spendByType)
+        {
+            if (item.TotalAmount > maxAmount)
+            {
+                maxAmount = item.TotalAmount;
+                result = item;
+            }
+        }
+        
+        return result;
+    }
+    
+    dynamic GetTopVendor(dynamic vendorAnalysis)
+    {
+        dynamic result = null;
+        decimal maxAmount = 0;
+        
+        foreach (var item in vendorAnalysis)
+        {
+            if (item.TotalSpent > maxAmount)
+            {
+                maxAmount = item.TotalSpent;
+                result = item;
+            }
+        }
+        
+        return result;
+    }
+    
+    dynamic GetTopExpense(dynamic transactionsByType)
+    {
+        dynamic result = null;
+        decimal maxAmount = 0;
+        
+        foreach (var item in transactionsByType)
+        {
+            if (item.TotalAmount > maxAmount)
+            {
+                maxAmount = item.TotalAmount;
+                result = item;
+            }
+        }
+        
+        return result;
+    }
 } 

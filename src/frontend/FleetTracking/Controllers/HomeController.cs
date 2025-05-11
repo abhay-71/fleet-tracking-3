@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Authorization;
 using FleetTracking.Models;
 using FleetTracking.Services;
 using System.Threading.Tasks;
+using System;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace FleetTracking.Controllers;
 
@@ -43,18 +46,33 @@ public class HomeController : Controller
         try
         {
             // Fetch summary data for the dashboard
-            var vehicles = await _vehicleService.GetVehiclesAsync();
-            var activeVehicles = vehicles.Count(v => v.Status == "active");
-            var maintenanceVehicles = vehicles.Count(v => v.Status == "maintenance");
-            var inactiveVehicles = vehicles.Count - activeVehicles - maintenanceVehicles;
+            var vehicles = await _vehicleService.GetAllVehiclesAsync();
+            
+            int activeVehicles = 0;
+            int maintenanceVehicles = 0;
+            int inactiveVehicles = 0;
+            
+            if (vehicles != null)
+            {
+                activeVehicles = vehicles.Count(v => v.Status == "active");
+                maintenanceVehicles = vehicles.Count(v => v.Status == "maintenance");
+                inactiveVehicles = vehicles.Count - activeVehicles - maintenanceVehicles;
+            }
 
             var maintenanceRecords = await _maintenanceService.GetMaintenanceRecordsAsync();
-            var upcomingMaintenance = maintenanceRecords.Where(m => m.Status == "scheduled" && !m.IsOverdue).ToList();
-            var overdueMaintenance = maintenanceRecords.Where(m => m.Status == "scheduled" && m.IsOverdue).ToList();
-            var inProgressMaintenance = maintenanceRecords.Where(m => m.Status == "in_progress").ToList();
+            List<MaintenanceRecord> upcomingMaintenance = new List<MaintenanceRecord>();
+            List<MaintenanceRecord> overdueMaintenance = new List<MaintenanceRecord>();
+            List<MaintenanceRecord> inProgressMaintenance = new List<MaintenanceRecord>();
+            
+            if (maintenanceRecords != null)
+            {
+                upcomingMaintenance = maintenanceRecords.Where(m => m.Status == "scheduled" && !m.IsOverdue).ToList();
+                overdueMaintenance = maintenanceRecords.Where(m => m.Status == "scheduled" && m.IsOverdue).ToList();
+                inProgressMaintenance = maintenanceRecords.Where(m => m.Status == "in_progress").ToList();
+            }
 
             // Populate ViewData with summary data
-            ViewData["VehicleCount"] = vehicles.Count;
+            ViewData["VehicleCount"] = vehicles?.Count ?? 0;
             ViewData["ActiveVehicleCount"] = activeVehicles;
             ViewData["MaintenanceVehicleCount"] = maintenanceVehicles;
             ViewData["InactiveVehicleCount"] = inactiveVehicles;
@@ -63,19 +81,26 @@ public class HomeController : Controller
             ViewData["OverdueMaintenanceCount"] = overdueMaintenance.Count;
             ViewData["InProgressMaintenanceCount"] = inProgressMaintenance.Count;
             
-            ViewData["RecentVehicles"] = vehicles.OrderByDescending(v => v.LastActivityDate).Take(5).ToList();
-            ViewData["RecentMaintenance"] = maintenanceRecords
-                .Where(m => m.Status != "cancelled")
-                .OrderByDescending(m => m.UpdatedAt ?? m.CreatedAt)
-                .Take(5)
-                .ToList();
+            ViewData["RecentVehicles"] = vehicles != null 
+                ? vehicles.OrderByDescending(v => v.LastActivityDate).Take(5).ToList() 
+                : new List<Vehicle>();
+                
+            ViewData["RecentMaintenance"] = maintenanceRecords != null
+                ? maintenanceRecords
+                    .Where(m => m.Status != "cancelled")
+                    .OrderByDescending(m => m.UpdatedAt ?? m.CreatedAt)
+                    .Take(5)
+                    .ToList()
+                : new List<MaintenanceRecord>();
 
             // Get maintenance forecasts
             var maintenanceForecasts = await _maintenanceService.GetMaintenanceForecastsAsync();
-            ViewData["MaintenanceForecasts"] = maintenanceForecasts
-                .OrderBy(f => f.PredictedDueDate)
-                .Take(5)
-                .ToList();
+            ViewData["MaintenanceForecasts"] = maintenanceForecasts != null
+                ? maintenanceForecasts
+                    .OrderBy(f => f.PredictedDueDate)
+                    .Take(5)
+                    .ToList()
+                : new List<MaintenanceForecast>();
 
             return View();
         }

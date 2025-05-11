@@ -14,30 +14,45 @@ namespace FleetTracking.Models
         public int TripId { get; set; }
 
         [Required]
-        [Range(-90, 90)]
-        public decimal Latitude { get; set; }
+        [Display(Name = "Sequence")]
+        public int Sequence { get; set; }
 
         [Required]
-        [Range(-180, 180)]
-        public decimal Longitude { get; set; }
-
-        [Range(-1000, 10000)]
-        public decimal? Altitude { get; set; }
-
-        [Range(0, 300)]
-        [Display(Name = "Speed (km/h)")]
-        public decimal? Speed { get; set; }
-
-        [Range(0, 360)]
-        [Display(Name = "Heading (degrees)")]
-        public decimal? Heading { get; set; }
+        [Display(Name = "Location Name")]
+        public string LocationName { get; set; }
 
         [Required]
-        [DataType(DataType.DateTime)]
-        public DateTime Timestamp { get; set; }
+        [Display(Name = "Latitude")]
+        public double Latitude { get; set; }
 
-        [Display(Name = "Date Created")]
+        [Required]
+        [Display(Name = "Longitude")]
+        public double Longitude { get; set; }
+
+        [Display(Name = "Scheduled Arrival")]
+        public DateTime? ScheduledArrival { get; set; }
+
+        [Display(Name = "Actual Arrival")]
+        public DateTime? ActualArrival { get; set; }
+
+        [Display(Name = "Scheduled Departure")]
+        public DateTime? ScheduledDeparture { get; set; }
+
+        [Display(Name = "Actual Departure")]
+        public DateTime? ActualDeparture { get; set; }
+
+        [Display(Name = "Notes")]
+        public string Notes { get; set; }
+
+        [Required]
+        [Display(Name = "Status")]
+        public string Status { get; set; } = "pending";
+
+        [Display(Name = "Created At")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [Display(Name = "Updated At")]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         [ForeignKey("TripId")]
@@ -45,11 +60,70 @@ namespace FleetTracking.Models
 
         // Helper properties
         [NotMapped]
-        [Display(Name = "Coordinates")]
-        public string Coordinates => $"{Latitude}, {Longitude}";
+        [Display(Name = "Status")]
+        public string StatusDisplay
+        {
+            get
+            {
+                switch (Status.ToLower())
+                {
+                    case "pending": return "Pending";
+                    case "arrived": return "Arrived";
+                    case "departed": return "Departed";
+                    case "skipped": return "Skipped";
+                    case "delayed": return "Delayed";
+                    default: return Status;
+                }
+            }
+        }
 
         [NotMapped]
-        [Display(Name = "Time")]
-        public string FormattedTimestamp => Timestamp.ToString("MM/dd/yyyy HH:mm:ss");
+        public int SequenceNumber => Sequence;
+
+        [NotMapped]
+        public string Location => LocationName;
+        
+        [NotMapped]
+        public DateTime? ArrivalTime => ActualArrival;
+        
+        [NotMapped]
+        public DateTime? DepartureTime => ActualDeparture;
+        
+        [NotMapped]
+        public string Event { get; set; }
+        
+        [NotMapped]
+        public double Speed { get; set; }
+        
+        [NotMapped]
+        public decimal FuelLevel { get; set; }
+
+        [NotMapped]
+        [Display(Name = "Delay")]
+        public TimeSpan? ArrivalDelay
+        {
+            get
+            {
+                if (ScheduledArrival.HasValue && ActualArrival.HasValue)
+                {
+                    return ActualArrival.Value - ScheduledArrival.Value;
+                }
+                return null;
+            }
+        }
+
+        [NotMapped]
+        [Display(Name = "Stay Duration")]
+        public TimeSpan? StayDuration
+        {
+            get
+            {
+                if (ActualArrival.HasValue && ActualDeparture.HasValue)
+                {
+                    return ActualDeparture.Value - ActualArrival.Value;
+                }
+                return null;
+            }
+        }
     }
 } 

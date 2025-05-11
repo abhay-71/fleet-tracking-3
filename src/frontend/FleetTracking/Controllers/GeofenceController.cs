@@ -96,7 +96,7 @@ namespace FleetTracking.Controllers
                     geofence.CreatedBy = 1; // Replace with actual user ID
                     geofence.LastModified = 1; // Replace with actual user ID
 
-                    var response = await _apiService.PostAsync<Geofence, Geofence>("geofences", geofence);
+                    var response = await _apiService.PostAsync<Geofence>("geofences", geofence);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -178,7 +178,7 @@ namespace FleetTracking.Controllers
                     geofence.UpdatedAt = DateTime.UtcNow;
                     geofence.LastModified = 1; // Replace with actual user ID
 
-                    await _apiService.PutAsync<Geofence, object>($"geofences/{id}", geofence);
+                    await _apiService.PutAsync<Geofence>($"geofences/{id}", geofence);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -255,7 +255,7 @@ namespace FleetTracking.Controllers
         {
             try
             {
-                var result = await _apiService.PostAsync<GeofenceCheckRequest, GeofenceCheckResult>("geofences/check", request);
+                var result = await _apiService.PostAsync<GeofenceCheckResult>("geofences/check", request);
                 return Json(result);
             }
             catch (Exception ex)
@@ -304,7 +304,7 @@ namespace FleetTracking.Controllers
                         geofence.CreatedBy = 1; // Replace with actual user ID
                         geofence.LastModified = 1; // Replace with actual user ID
                         
-                        await _apiService.PostAsync<Geofence, Geofence>("geofences", geofence);
+                        await _apiService.PostAsync<Geofence>("geofences", geofence);
                         successCount++;
                     }
                     catch (Exception innerEx)
@@ -365,7 +365,7 @@ namespace FleetTracking.Controllers
                         return Json(new { success = false, message = "Invalid operation" });
                 }
 
-                var response = await _apiService.PostAsync<object, BatchOperationResponse>(endpoint, data);
+                var response = await _apiService.PostAsync<BatchOperationResponse>(endpoint, data);
                 
                 return Json(new { 
                     success = true, 

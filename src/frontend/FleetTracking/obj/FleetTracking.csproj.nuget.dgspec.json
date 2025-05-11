@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\CURSOR\\FLEETVIGIL\\FleerTracking_3\\fleet-tracking-3\\src\\frontend\\FleetTracking\\FleetTracking.csproj": {}
+  },
+  "projects": {
+    "D:\\CURSOR\\FLEETVIGIL\\FleerTracking_3\\fleet-tracking-3\\src\\frontend\\FleetTracking\\FleetTracking.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\CURSOR\\FLEETVIGIL\\FleerTracking_3\\fleet-tracking-3\\src\\frontend\\FleetTracking\\FleetTracking.csproj",
+        "projectName": "FleetTracking",
+        "projectPath": "D:\\CURSOR\\FLEETVIGIL\\FleerTracking_3\\fleet-tracking-3\\src\\frontend\\FleetTracking\\FleetTracking.csproj",
+        "packagesPath": "C:\\Users\\Abhay Deshingkar\\.nuget\\packages\\",
+        "outputPath": "D:\\CURSOR\\FLEETVIGIL\\FleerTracking_3\\fleet-tracking-3\\src\\frontend\\FleetTracking\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Abhay Deshingkar\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[6.0.11, )"
+            },
+            "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[6.0.11, )"
+            },
+            "Microsoft.AspNetCore.Identity.UI": {
+              "target": "Package",
+              "version": "[6.0.11, )"
+            },
+            "Microsoft.EntityFrameworkCore.Tools": {
+              "target": "Package",
+              "version": "[6.0.11, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.2, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[6.0.7, )"
+            },
+            "System.Net.Http.Json": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.428\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

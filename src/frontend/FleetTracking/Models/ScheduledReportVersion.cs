@@ -1,47 +1,51 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.IO;
 
 namespace FleetTracking.Models
 {
     public class ScheduledReportVersion
     {
+        [Key]
         public int Id { get; set; }
         
         [Required]
         public int ScheduledReportId { get; set; }
         
         [Required]
-        [Display(Name = "File Name")]
-        [StringLength(255)]
-        public string FileName { get; set; }
+        public DateTime GeneratedDate { get; set; }
         
         [Required]
-        [Display(Name = "File Path")]
-        [StringLength(1000)]
         public string FilePath { get; set; }
         
-        [Required]
+        public string FileSize { get; set; }
+        
+        public string Format { get; set; }
+        
+        public string Parameters { get; set; }
+        
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
+        // Add missing properties needed by views
+        [NotMapped]
+        [Display(Name = "File Name")]
+        public string FileName => Path.GetFileName(FilePath);
+        
+        [NotMapped]
         [Display(Name = "File Size (KB)")]
-        public long FileSizeKb { get; set; }
+        public decimal FileSizeKb => !string.IsNullOrEmpty(FileSize) && decimal.TryParse(FileSize, out var size) ? Math.Round(size / 1024, 2) : 0;
         
-        [Required]
-        [Display(Name = "Format")]
-        [StringLength(10)]
-        public string Format { get; set; }  // pdf, excel, csv
-        
-        [Required]
-        [Display(Name = "Generated Date")]
-        [DataType(DataType.DateTime)]
-        public DateTime GeneratedDate { get; set; } = DateTime.UtcNow;
-        
+        [NotMapped]
         [Display(Name = "Parameters Used")]
-        public string ParametersUsed { get; set; }  // JSON blob of parameters used
+        public string ParametersUsed => Parameters;
         
+        [NotMapped]
         [Display(Name = "Version Notes")]
-        [StringLength(500)]
-        public string VersionNotes { get; set; }
+        public string VersionNotes { get; set; } = string.Empty;
         
-        // Navigation property
+        // Navigation properties
+        [ForeignKey("ScheduledReportId")]
         public ScheduledReport ScheduledReport { get; set; }
     }
 } 

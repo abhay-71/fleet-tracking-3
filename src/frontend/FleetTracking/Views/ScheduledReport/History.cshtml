@@ -109,7 +109,7 @@
                                         @version.FileName
                                     </td>
                                     <td>
-                                        @(version.FileSizeKb < 1024 ? $"{version.FileSizeKb} KB" : $"{(version.FileSizeKb / 1024.0):F2} MB")
+                                        @(version.FileSizeKb < 1024 ? $"{version.FileSizeKb} KB" : $"{(version.FileSizeKb / 1024m):F2} MB")
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">

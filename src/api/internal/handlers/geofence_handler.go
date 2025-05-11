@@ -63,11 +63,38 @@ func (h *GeofenceHandler) ListGeofences(w http.ResponseWriter, r *http.Request) 
 		},
 	}
 
+	// Apply filters (simplified implementation)
+	var filteredGeofences []models.Geofence
+	for _, g := range geofences {
+		// Filter by company ID if provided
+		if companyID != "" {
+			cID, err := strconv.Atoi(companyID)
+			if err != nil || g.CompanyID != cID {
+				continue
+			}
+		}
+
+		// Filter by category if provided
+		if category != "" && string(g.Category) != category {
+			continue
+		}
+
+		// Filter by active status if provided
+		if active != "" {
+			isActive, err := strconv.ParseBool(active)
+			if err != nil || g.Active != isActive {
+				continue
+			}
+		}
+
+		filteredGeofences = append(filteredGeofences, g)
+	}
+
 	// Create pagination info
 	pagination := models.Pagination{
 		Page:  page,
 		Limit: limit,
-		Total: len(geofences),
+		Total: len(filteredGeofences),
 	}
 
 	// Create response
@@ -75,7 +102,7 @@ func (h *GeofenceHandler) ListGeofences(w http.ResponseWriter, r *http.Request) 
 		Status:  "success",
 		Message: "Geofences retrieved successfully",
 		Data: models.ListResponse{
-			Data:       geofences,
+			Data:       filteredGeofences,
 			Pagination: pagination,
 		},
 	}

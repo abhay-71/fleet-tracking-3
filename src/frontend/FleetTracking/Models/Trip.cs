@@ -12,26 +12,26 @@ namespace FleetTracking.Models
 
         [Required]
         [Display(Name = "Vehicle")]
-        public int VehicleId { get; set; }
+        public int? VehicleId { get; set; }
 
         [Required]
         [Display(Name = "Driver")]
-        public int DriverId { get; set; }
+        public int? DriverId { get; set; }
 
         [Required]
         [StringLength(255)]
         [Display(Name = "Start Location")]
-        public string StartLocation { get; set; }
+        public string StartLocation { get; set; } = string.Empty;
 
         [Required]
         [StringLength(255)]
         [Display(Name = "End Location")]
-        public string EndLocation { get; set; }
+        public string EndLocation { get; set; } = string.Empty;
 
         [Required]
         [DataType(DataType.DateTime)]
         [Display(Name = "Start Time")]
-        public DateTime StartTime { get; set; }
+        public DateTime StartTime { get; set; } = DateTime.UtcNow;
 
         [DataType(DataType.DateTime)]
         [Display(Name = "End Time")]
@@ -54,13 +54,13 @@ namespace FleetTracking.Models
         public decimal AverageSpeed { get; set; }
 
         [StringLength(1000)]
-        public string Notes { get; set; }
+        public string Notes { get; set; } = string.Empty;
 
         [Display(Name = "Date Created")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [Display(Name = "Last Updated")]
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties
         [ForeignKey("VehicleId")]
@@ -69,6 +69,7 @@ namespace FleetTracking.Models
         [ForeignKey("DriverId")]
         public Driver Driver { get; set; }
 
+        // Add Waypoints collection
         public ICollection<Waypoint> Waypoints { get; set; } = new List<Waypoint>();
 
         // Helper properties
@@ -106,10 +107,10 @@ namespace FleetTracking.Models
         public string FormattedEndTime => EndTime.HasValue ? EndTime.Value.ToString("MM/dd/yyyy HH:mm") : "-";
 
         [Display(Name = "Start Date")]
-        public DateTime StartDate { get; set; }
+        public DateTime StartDate { get; set; } = DateTime.UtcNow;
 
         [Display(Name = "End Date")]
-        public DateTime EndDate { get; set; }
+        public DateTime? EndDate { get; set; }
 
         [Display(Name = "Max Speed (km/h)")]
         public double MaxSpeed { get; set; }
@@ -118,24 +119,19 @@ namespace FleetTracking.Models
         public double FuelConsumed { get; set; }
 
         [Display(Name = "Driver")]
-        public string DriverName { get; set; }
+        public string DriverName { get; set; } = string.Empty;
 
         [Display(Name = "Stop Count")]
         public int StopCount { get; set; }
 
         [Display(Name = "Idle Time")]
-        public TimeSpan IdleTime { get; set; }
+        public TimeSpan IdleTime { get; set; } = TimeSpan.Zero;
 
         [Display(Name = "Geofence Events")]
         public int GeofenceEvents { get; set; }
 
-        // Collection of waypoints
-        public List<TripWaypoint> Waypoints { get; set; }
-
-        public Trip()
-        {
-            Waypoints = new List<TripWaypoint>();
-        }
+        [Display(Name = "Current Location")]
+        public string CurrentLocation { get; set; } = string.Empty;
 
         // Calculate fuel economy (km/L)
         public double GetFuelEconomy()
@@ -143,18 +139,21 @@ namespace FleetTracking.Models
             if (FuelConsumed <= 0)
                 return 0;
                 
-            return Distance / FuelConsumed;
+            return (double)Distance / FuelConsumed;
         }
 
         // Calculate average trip speed excluding stops
         public double GetMovingAverageSpeed()
         {
-            double movingTime = (EndDate - StartDate).TotalHours - IdleTime.TotalHours;
-            
-            if (movingTime <= 0)
+            if (!EndDate.HasValue)
                 return 0;
                 
-            return Distance / movingTime;
+            TimeSpan movingTime = EndDate.Value - StartDate;
+            
+            if (movingTime.TotalHours <= 0)
+                return 0;
+                
+            return (double)Distance / movingTime.TotalHours;
         }
     }
 } 

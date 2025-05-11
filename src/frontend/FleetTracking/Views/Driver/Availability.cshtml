@@ -79,7 +79,7 @@
         <div class="card shadow-sm bg-success text-white">
             <div class="card-body">
                 <h5 class="card-title">Available Now</h5>
-                <p class="display-4 mb-0" id="availableCount">@Model.Count(d => !d.CurrentTrips.Any(t => t.Status == "in_progress"))</p>
+                <p class="display-4 mb-0" id="availableCount">@Model.Count(d => !d.Trips.Any(t => (t.Status == "scheduled" || t.Status == "in_progress")))</p>
             </div>
         </div>
     </div>
@@ -87,7 +87,7 @@
         <div class="card shadow-sm bg-warning text-white">
             <div class="card-body">
                 <h5 class="card-title">On Trip</h5>
-                <p class="display-4 mb-0">@Model.Count(d => d.CurrentTrips.Any(t => t.Status == "in_progress"))</p>
+                <p class="display-4 mb-0">@Model.Count(d => d.Trips.Any(t => t.Status == "in_progress"))</p>
             </div>
         </div>
     </div>
@@ -95,7 +95,7 @@
         <div class="card shadow-sm bg-info text-white">
             <div class="card-body">
                 <h5 class="card-title">Scheduled</h5>
-                <p class="display-4 mb-0">@Model.Count(d => d.CurrentTrips.Any(t => t.Status == "scheduled"))</p>
+                <p class="display-4 mb-0">@Model.Count(d => d.Trips.Any(t => t.Status == "scheduled"))</p>
             </div>
         </div>
     </div>
@@ -130,8 +130,8 @@
                 <tbody>
                     @foreach (var driver in Model)
                     {
-                        var currentTrip = driver.CurrentTrips.FirstOrDefault(t => t.Status == "in_progress");
-                        var nextTrip = driver.CurrentTrips.FirstOrDefault(t => t.Status == "scheduled");
+                        var currentTrip = driver.Trips.FirstOrDefault(t => t.Status == "in_progress");
+                        var nextTrip = driver.Trips.FirstOrDefault(t => t.Status == "scheduled");
                         var isAvailable = currentTrip == null;
                         
                         <tr data-driver-id="@driver.Id" class="@(isAvailable ? "available-driver" : "unavailable-driver")">
@@ -182,7 +182,7 @@
                                 <div class="d-flex align-items-center">
                                     <div class="progress flex-grow-1" style="height: 10px;">
                                         @{
-                                            var tripCount = driver.CurrentTrips.Count;
+                                            var tripCount = driver.Trips.Count(t => t.Status == "scheduled" || t.Status == "in_progress");
                                             var progressWidth = Math.Min(tripCount * 10, 100);
                                         }
                                         <div class="progress-bar bg-@(progressWidth < 30 ? "success" : progressWidth < 70 ? "warning" : "danger")" 
@@ -208,8 +208,14 @@
                             </td>
                             <td>
                                 <div class="d-flex flex-column">
-                                    <div><strong>@driver.CompletedTrips</strong> completed trips</div>
-                                    <div class="small text-muted">@(driver.HireDate?.ToString("MM/yyyy") ?? "Unknown") hire date</div>
+                                    <div><strong>@driver.Trips.Count(t => t.Status == "completed")</strong> completed trips</div>
+                                    <div class="small text-muted">
+                                        @{
+                                            var hireDate = driver.HireDate != DateTime.MinValue ? 
+                                                driver.HireDate.ToString("MM/yyyy") : "Unknown";
+                                        }
+                                        @hireDate hire date
+                                    </div>
                                 </div>
                             </td>
                             <td>
@@ -421,7 +427,7 @@
 
 @section Styles {
     <style>
-        @media print {
+        @@media print {
             .btn, button, .card-header, .no-print, .modal {
                 display: none !important;
             }

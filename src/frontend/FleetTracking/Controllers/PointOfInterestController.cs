@@ -105,7 +105,7 @@ namespace FleetTracking.Controllers
                     poi.UpdatedAt = DateTime.UtcNow;
                     poi.CreatedBy = 1; // Replace with actual user ID
 
-                    var response = await _apiService.PostAsync<PointOfInterest, PointOfInterest>("pois", poi);
+                    var response = await _apiService.PostAsync<PointOfInterest>("pois", poi);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -214,7 +214,7 @@ namespace FleetTracking.Controllers
                 {
                     poi.UpdatedAt = DateTime.UtcNow;
 
-                    await _apiService.PutAsync<PointOfInterest, object>($"pois/{id}", poi);
+                    await _apiService.PutAsync<PointOfInterest>($"pois/{id}", poi);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)

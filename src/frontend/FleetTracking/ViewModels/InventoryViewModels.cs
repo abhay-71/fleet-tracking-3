@@ -5,58 +5,6 @@ using FleetTracking.Models;
 
 namespace FleetTracking.ViewModels
 {
-    // View model for item usage reporting
-    public class ItemUsageViewModel
-    {
-        public int ItemId { get; set; }
-        
-        [Display(Name = "Item Name")]
-        public string ItemName { get; set; }
-        
-        [Display(Name = "Category")]
-        public string Category { get; set; }
-        
-        [Display(Name = "Unit")]
-        public string UnitOfMeasure { get; set; }
-        
-        [Display(Name = "Quantity Used")]
-        [DisplayFormat(DataFormatString = "{0:N2}")]
-        public decimal QuantityUsed { get; set; }
-        
-        [Display(Name = "Total Cost")]
-        [DisplayFormat(DataFormatString = "{0:C2}")]
-        public decimal TotalCost { get; set; }
-        
-        [Display(Name = "Usage Frequency")]
-        public int UsageCount { get; set; }
-        
-        [Display(Name = "Average Cost Per Use")]
-        [DisplayFormat(DataFormatString = "{0:C2}")]
-        public decimal AverageCostPerUse => UsageCount > 0 ? TotalCost / UsageCount : 0;
-    }
-    
-    // View model for inventory valuation by category
-    public class CategoryValuationViewModel
-    {
-        public int? CategoryId { get; set; }
-        
-        [Display(Name = "Category")]
-        public string CategoryName { get; set; }
-        
-        [Display(Name = "Item Count")]
-        public int ItemCount { get; set; }
-        
-        public List<InventoryItem> Items { get; set; }
-        
-        [Display(Name = "Total Value")]
-        [DisplayFormat(DataFormatString = "{0:C2}")]
-        public decimal TotalValue { get; set; }
-        
-        [Display(Name = "Average Item Value")]
-        [DisplayFormat(DataFormatString = "{0:C2}")]
-        public decimal AverageItemValue => ItemCount > 0 ? TotalValue / ItemCount : 0;
-    }
-    
     // View model for inventory transaction filters
     public class InventoryTransactionFilterViewModel
     {

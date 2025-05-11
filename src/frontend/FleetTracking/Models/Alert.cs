@@ -15,18 +15,18 @@ namespace FleetTracking.Models
 
         [Required]
         [StringLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [StringLength(500)]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [Required]
         [Display(Name = "Type")]
-        public string Type { get; set; }
+        public string Type { get; set; } = "custom";
 
         [Required]
         [Display(Name = "Category")]
-        public string Category { get; set; }
+        public string Category { get; set; } = string.Empty;
 
         [Display(Name = "Geofence")]
         public int? GeofenceId { get; set; }
@@ -38,34 +38,34 @@ namespace FleetTracking.Models
         public int? DriverId { get; set; }
 
         [Display(Name = "Severity")]
-        public string Severity { get; set; }
+        public string Severity { get; set; } = "medium";
 
         [Display(Name = "Notification Channels")]
-        public string NotificationChannels { get; set; }
+        public string NotificationChannels { get; set; } = string.Empty;
 
         [Display(Name = "Recipients")]
-        public string Recipients { get; set; }
+        public string Recipients { get; set; } = string.Empty;
 
         [Display(Name = "Condition")]
-        public string Condition { get; set; }
+        public string Condition { get; set; } = string.Empty;
 
         [Display(Name = "Threshold")]
         public double? Threshold { get; set; }
 
         [Display(Name = "Unit")]
-        public string Unit { get; set; }
+        public string Unit { get; set; } = string.Empty;
 
         [Display(Name = "Active")]
-        public bool Active { get; set; }
+        public bool Active { get; set; } = true;
 
         [Display(Name = "Auto Resolve")]
         public bool AutoResolve { get; set; }
 
         [Display(Name = "Created At")]
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [Display(Name = "Updated At")]
-        public DateTime UpdatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [Display(Name = "Created By")]
         public int CreatedBy { get; set; }
@@ -150,18 +150,18 @@ namespace FleetTracking.Models
         public int AlertId { get; set; }
         public int? VehicleId { get; set; }
         public int? DriverId { get; set; }
-        public DateTime Timestamp { get; set; }
-        public string Details { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public string Details { get; set; } = string.Empty;
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
         public bool Acknowledged { get; set; }
         public DateTime? AcknowledgedAt { get; set; }
         public int? AcknowledgedBy { get; set; }
-        public string Resolution { get; set; }
+        public string Resolution { get; set; } = string.Empty;
         public DateTime? ResolvedAt { get; set; }
-        public string AlertType { get; set; }
-        public string AlertName { get; set; }
-        public string Severity { get; set; }
+        public string AlertType { get; set; } = string.Empty;
+        public string AlertName { get; set; } = string.Empty;
+        public string Severity { get; set; } = "medium";
 
         public string SeverityBadgeClass
         {

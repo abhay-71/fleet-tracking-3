@@ -1,263 +1,145 @@
-@model FleetTracking.Models.ScheduledReport
+@model FleetTracking.ViewModels.ScheduledReportCreateViewModel
 
 @{
     ViewData["Title"] = "Create Scheduled Report";
 }
 
-<div class="container-fluid px-4 py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="h3 mb-0">Create New Scheduled Report</h1>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
-                    <li class="breadcrumb-item"><a asp-action="Index">Report Scheduler</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Create</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+<div class="container-fluid px-4">
+    <h1 class="mt-4">@ViewData["Title"]</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-controller="ScheduledReport" asp-action="Index">Scheduled Reports</a></li>
+        <li class="breadcrumb-item active">Create New</li>
+    </ol>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Report Schedule Information</h5>
-                </div>
-                <div class="card-body">
-                    <form asp-action="Create" id="createForm">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="Name" class="form-label"></label>
-                                    <input asp-for="Name" class="form-control" />
-                                    <span asp-validation-for="Name" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="ReportType" class="form-label">Report Type</label>
-                                    <select asp-for="ReportType" asp-items="ViewBag.ReportTypes" class="form-select"></select>
-                                    <span asp-validation-for="ReportType" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="Format" class="form-label">Format</label>
-                                    <select asp-for="Format" asp-items="ViewBag.FormatOptions" class="form-select"></select>
-                                    <span asp-validation-for="Format" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="RecurrencePattern" class="form-label">Recurrence</label>
-                                    <select asp-for="RecurrencePattern" asp-items="ViewBag.RecurrenceOptions" class="form-select"></select>
-                                    <span asp-validation-for="RecurrencePattern" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="StartDate" class="form-label">Start Date</label>
-                                    <input asp-for="StartDate" class="form-control" type="date" />
-                                    <span asp-validation-for="StartDate" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label asp-for="EndDate" class="form-label">End Date (Optional)</label>
-                                    <input asp-for="EndDate" class="form-control" type="date" />
-                                    <span asp-validation-for="EndDate" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-group">
-                                <label class="form-label">Recipients (Comma separated email addresses)</label>
-                                <input name="recipientEmails" id="recipientEmails" class="form-control" 
-                                       placeholder="example@example.com, another@example.com"/>
-                                <div id="recipientEmailsHelp" class="form-text">
-                                    Enter email addresses separated by commas.
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-group">
-                                <label asp-for="Description" class="form-label"></label>
-                                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                                <span asp-validation-for="Description" class="text-danger"></span>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input asp-for="IsActive" class="form-check-input" />
-                                <label asp-for="IsActive" class="form-check-label">Active</label>
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
-                            <button type="submit" class="btn btn-primary">Create Schedule</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-calendar-alt me-1"></i>
+            Create New Scheduled Report
         </div>
-        
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Report Types</h5>
+        <div class="card-body">
+            <form asp-action="Create" method="post" id="scheduled-report-form">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Name" class="control-label"></label>
+                            <input asp-for="Name" class="form-control" placeholder="Enter report name" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="ReportType" class="control-label"></label>
+                            <select asp-for="ReportType" class="form-control" asp-items="Model.ReportTypeOptions">
+                                <option value="">-- Select Report Type --</option>
+                            </select>
+                            <span asp-validation-for="ReportType" class="text-danger"></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex align-items-center border-0 p-2">
-                            <span class="badge bg-primary rounded-pill me-2">
-                                <i class="bi bi-truck"></i>
-                            </span>
-                            <div>
-                                <strong>Vehicle Status Report</strong>
-                                <p class="mb-0 small text-muted">Current status of all vehicles in fleet</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 p-2">
-                            <span class="badge bg-success rounded-pill me-2">
-                                <i class="bi bi-map"></i>
-                            </span>
-                            <div>
-                                <strong>Trip Summary Report</strong>
-                                <p class="mb-0 small text-muted">Summary of completed trips and statistics</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 p-2">
-                            <span class="badge bg-info rounded-pill me-2">
-                                <i class="bi bi-fuel-pump"></i>
-                            </span>
-                            <div>
-                                <strong>Fuel Consumption Report</strong>
-                                <p class="mb-0 small text-muted">Fuel usage and efficiency analysis</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 p-2">
-                            <span class="badge bg-warning text-dark rounded-pill me-2">
-                                <i class="bi bi-tools"></i>
-                            </span>
-                            <div>
-                                <strong>Maintenance Cost Report</strong>
-                                <p class="mb-0 small text-muted">Vehicle maintenance expenses and forecasts</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 p-2">
-                            <span class="badge bg-secondary rounded-pill me-2">
-                                <i class="bi bi-person"></i>
-                            </span>
-                            <div>
-                                <strong>Driver Performance Report</strong>
-                                <p class="mb-0 small text-muted">Driver efficiency, safety and metrics</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 p-2">
-                            <span class="badge bg-dark rounded-pill me-2">
-                                <i class="bi bi-cash-coin"></i>
-                            </span>
-                            <div>
-                                <strong>Financial Summary Report</strong>
-                                <p class="mb-0 small text-muted">Cost analysis and financial metrics</p>
-                            </div>
-                        </li>
-                    </ul>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="StartDate" class="control-label"></label>
+                            <input asp-for="StartDate" type="date" class="form-control" />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="EndDate" class="control-label"></label>
+                            <input asp-for="EndDate" type="date" class="form-control" />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Recurrence Options</h5>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Frequency" class="control-label"></label>
+                            <select asp-for="Frequency" class="form-control" asp-items="Model.FrequencyOptions">
+                                <option value="">-- Select Frequency --</option>
+                            </select>
+                            <span asp-validation-for="Frequency" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Time" class="control-label"></label>
+                            <input asp-for="Time" type="time" class="form-control" />
+                            <span asp-validation-for="Time" class="text-danger"></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex align-items-center border-0 py-2">
-                            <span class="badge bg-light text-dark rounded-pill me-2">
-                                <i class="bi bi-calendar-day"></i>
-                            </span>
-                            <div>
-                                <strong>Daily</strong>
-                                <p class="mb-0 small text-muted">Report is generated every day</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 py-2">
-                            <span class="badge bg-light text-dark rounded-pill me-2">
-                                <i class="bi bi-calendar-week"></i>
-                            </span>
-                            <div>
-                                <strong>Weekly</strong>
-                                <p class="mb-0 small text-muted">Report is generated on the same day each week</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 py-2">
-                            <span class="badge bg-light text-dark rounded-pill me-2">
-                                <i class="bi bi-calendar-month"></i>
-                            </span>
-                            <div>
-                                <strong>Monthly</strong>
-                                <p class="mb-0 small text-muted">Report is generated on the same day each month</p>
-                            </div>
-                        </li>
-                        <li class="list-group-item d-flex align-items-center border-0 py-2">
-                            <span class="badge bg-light text-dark rounded-pill me-2">
-                                <i class="bi bi-calendar3"></i>
-                            </span>
-                            <div>
-                                <strong>Quarterly</strong>
-                                <p class="mb-0 small text-muted">Report is generated every three months</p>
-                            </div>
-                        </li>
-                    </ul>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="FileFormat" class="control-label"></label>
+                            <select asp-for="FileFormat" class="form-control" asp-items="Model.FileFormatOptions">
+                                <option value="">-- Select File Format --</option>
+                            </select>
+                            <span asp-validation-for="FileFormat" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="DeliveryMethod" class="control-label"></label>
+                            <select asp-for="DeliveryMethod" class="form-control" asp-items="Model.DeliveryMethodOptions">
+                                <option value="">-- Select Delivery Method --</option>
+                            </select>
+                            <span asp-validation-for="DeliveryMethod" class="text-danger"></span>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label asp-for="EmailRecipients" class="control-label"></label>
+                            <input asp-for="EmailRecipients" class="form-control" placeholder="Enter email addresses separated by commas" />
+                            <span asp-validation-for="EmailRecipients" class="text-danger"></span>
+                            <small class="form-text text-muted">Enter multiple email addresses separated by commas</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label asp-for="Description" class="control-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter report description"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group form-check">
+                            <input asp-for="IsActive" type="checkbox" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label"></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Create</button>
+                            <a asp-controller="ScheduledReport" asp-action="Index" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    
-    <script>
-        $(document).ready(function() {
-            // Email validation
-            $('#createForm').on('submit', function(e) {
-                var emails = $('#recipientEmails').val().split(',');
-                var invalidEmails = [];
-                
-                // Email regex pattern
-                var emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-                
-                // Validate each email
-                emails.forEach(function(email) {
-                    email = email.trim();
-                    if (email && !emailPattern.test(email)) {
-                        invalidEmails.push(email);
-                    }
-                });
-                
-                // Show error for invalid emails
-                if (invalidEmails.length > 0) {
-                    e.preventDefault();
-                    alert('The following email(s) are invalid: ' + invalidEmails.join(', '));
-                }
-            });
-            
-            // Initialize datepicker for date fields if needed
-            // $('.datepicker').datepicker();
-        });
-    </script>
 } 

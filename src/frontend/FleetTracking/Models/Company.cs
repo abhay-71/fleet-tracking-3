@@ -6,6 +6,23 @@ namespace FleetTracking.Models
 {
     public class Company
     {
+        // Default constructor to initialize required properties
+        public Company()
+        {
+            Name = string.Empty;
+            Address = string.Empty;
+            City = string.Empty;
+            State = string.Empty;
+            ZipCode = string.Empty;
+            Country = string.Empty;
+            Phone = string.Empty;
+            Email = string.Empty;
+            Website = string.Empty;
+            TaxId = string.Empty;
+            Vehicles = new List<Vehicle>();
+            Drivers = new List<Driver>();
+        }
+
         [Key]
         public int Id { get; set; }
 
@@ -13,38 +30,32 @@ namespace FleetTracking.Models
         [StringLength(100)]
         public string Name { get; set; }
 
-        [StringLength(500)]
+        [StringLength(200)]
         public string Address { get; set; }
 
-        [StringLength(50)]
+        [StringLength(100)]
         public string City { get; set; }
 
         [StringLength(50)]
         public string State { get; set; }
 
+        [StringLength(20)]
+        public string ZipCode { get; set; }
+
         [StringLength(50)]
         public string Country { get; set; }
 
-        [StringLength(20)]
-        [Display(Name = "Postal Code")]
-        public string PostalCode { get; set; }
-
-        [StringLength(20)]
-        [DataType(DataType.PhoneNumber)]
+        [Phone]
         public string Phone { get; set; }
 
-        [StringLength(100)]
-        [DataType(DataType.EmailAddress)]
+        [EmailAddress]
         public string Email { get; set; }
 
-        [StringLength(100)]
-        [DataType(DataType.Url)]
+        [Url]
         public string Website { get; set; }
 
-        [StringLength(255)]
-        [Display(Name = "Logo URL")]
-        [DataType(DataType.ImageUrl)]
-        public string LogoUrl { get; set; }
+        [StringLength(20)]
+        public string TaxId { get; set; }
 
         [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
@@ -56,11 +67,11 @@ namespace FleetTracking.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
-        public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
-        public ICollection<Driver> Drivers { get; set; } = new List<Driver>();
+        public ICollection<Vehicle> Vehicles { get; set; }
+        public ICollection<Driver> Drivers { get; set; }
 
         // Helper properties
         [Display(Name = "Full Address")]
-        public string FullAddress => $"{Address}, {City}, {State} {PostalCode}, {Country}".Trim(' ', ',');
+        public string FullAddress => $"{Address}, {City}, {State} {ZipCode}, {Country}".Trim(' ', ',');
     }
 } 

@@ -48,7 +48,13 @@
                 <div class="mb-3">
                     <div class="d-flex justify-content-between">
                         <strong>Experience:</strong>
-                        <span>@(Model.HireDate.HasValue ? (DateTime.Now - Model.HireDate.Value).Days / 365 : 0) years</span>
+                        <span>
+                            @{
+                                var experience = Model.HireDate != DateTime.MinValue ? 
+                                    ((DateTime.Now - Model.HireDate).Days / 365) : 0;
+                            }
+                            @experience years
+                        </span>
                     </div>
                 </div>
                 
@@ -130,9 +136,9 @@
                     {
                         foreach (var trip in upcomingTrips)
                         {
-                            <tr data-trip-id="@trip.Id" data-start-time="@trip.StartTime.ToString("yyyy-MM-ddTHH:mm:ss")">
+                            <tr data-trip-id="@trip.Id" data-start-time="@(trip.StartTime.ToString("yyyy-MM-ddTHH:mm:ss"))">
                                 <td>@trip.Id</td>
-                                <td>@trip.StartTime.ToString("MM/dd/yyyy HH:mm")</td>
+                                <td>@(trip.StartTime.ToString("MM/dd/yyyy HH:mm"))</td>
                                 <td>
                                     <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@trip.StartLocation → @trip.EndLocation">
                                         @trip.StartLocation → @trip.EndLocation

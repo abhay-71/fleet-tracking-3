@@ -393,10 +393,7 @@
                                     @foreach (var item in Model.Where(d => d.UpcomingTrips < Model.Average(x => x.UpcomingTrips)))
                                     {
                                         var driver = item.Driver;
-                                        if (driver.Id.ToString() != driverId.ToString())
-                                        {
-                                            <option value="@driver.Id">@driver.User.FirstName @driver.User.LastName</option>
-                                        }
+                                        <option value="@driver.Id">@driver.User.FirstName @driver.User.LastName</option>
                                     }
                                 </select>
                             </td>

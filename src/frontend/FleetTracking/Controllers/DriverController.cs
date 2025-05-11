@@ -203,24 +203,31 @@ namespace FleetTracking.Controllers
         {
             var drivers = await _context.Drivers
                 .Include(d => d.User)
-                .Include(d => d.AssignedTrips)
                 .Where(d => d.Status == "active")
                 .ToListAsync();
-            
-            // Calculate availability for each driver
-            foreach (var driver in drivers)
-            {
-                driver.CurrentTrips = _context.Trips
-                    .Where(t => t.DriverId == driver.Id && (t.Status == "scheduled" || t.Status == "in_progress"))
-                    .OrderBy(t => t.StartTime)
-                    .ToList();
                 
-                driver.CompletedTrips = _context.Trips
-                    .Where(t => t.DriverId == driver.Id && t.Status == "completed")
-                    .Count();
-            }
-            
-            return View(drivers);
+            var activeTrips = await _context.Trips
+                .Include(t => t.Vehicle)
+                .Where(t => t.Status == "in_progress")
+                .ToListAsync();
+                
+            var completedTrips = await _context.Trips
+                .Where(t => t.Status == "completed")
+                .ToListAsync();
+                
+            // Create a list of driver availability data using an anonymous type
+            var driversAvailability = drivers.Select(d => new
+            {
+                Driver = d,
+                ActiveTripCount = activeTrips.Count(t => t.DriverId == d.Id),
+                CompletedTripCount = completedTrips.Count(t => t.DriverId == d.Id),
+                CurrentLocation = activeTrips.FirstOrDefault(t => t.DriverId == d.Id)?.CurrentLocation ?? "N/A",
+                CurrentVehicle = activeTrips.FirstOrDefault(t => t.DriverId == d.Id)?.Vehicle?.RegistrationNumber ?? "N/A",
+                IsAvailable = !activeTrips.Any(t => t.DriverId == d.Id),
+                LastTripDate = completedTrips.Where(t => t.DriverId == d.Id).OrderByDescending(t => t.EndTime).FirstOrDefault()?.EndTime
+            }).ToList();
+                
+            return View(driversAvailability);
         }
 
         // GET: Driver/Schedule/5
@@ -352,12 +359,23 @@ namespace FleetTracking.Controllers
             }
             
             // In a real implementation, we would also filter based on skills, location, vehicle type, etc.
+            var assignedTripCounts = await _context.Trips
+                .Where(t => t.Status == "scheduled" || t.Status == "in_progress")
+                .GroupBy(t => t.DriverId)
+                .Select(g => new { DriverId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.DriverId, g => g.Count);
+                
+            var completedTripCounts = await _context.Trips
+                .Where(t => t.Status == "completed")
+                .GroupBy(t => t.DriverId)
+                .Select(g => new { DriverId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.DriverId, g => g.Count);
             
             return Json(availableDrivers.Select(d => new {
                 id = d.Id,
                 name = $"{d.User.FirstName} {d.User.LastName}",
-                assignedTrips = d.AssignedTrips?.Count ?? 0,
-                completedTrips = _context.Trips.Count(t => t.DriverId == d.Id && t.Status == "completed")
+                assignedTrips = assignedTripCounts.ContainsKey(d.Id) ? assignedTripCounts[d.Id] : 0,
+                completedTrips = completedTripCounts.ContainsKey(d.Id) ? completedTripCounts[d.Id] : 0
             }));
         }
 

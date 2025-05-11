@@ -1,21 +1,23 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace FleetTracking.Models
 {
     public class PointOfInterest
     {
+        [Key]
         public int Id { get; set; }
         
         [Required]
         [Display(Name = "Name")]
         [StringLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         
         [Display(Name = "Description")]
         [StringLength(500)]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         
         [Required]
         [Display(Name = "Latitude")]
@@ -30,31 +32,51 @@ namespace FleetTracking.Models
         [Required]
         [Display(Name = "Category")]
         [StringLength(50)]
-        public string Category { get; set; } // fuel_station, restaurant, rest_area, customer, warehouse, custom, etc.
+        public string Category { get; set; } = "custom"; // fuel_station, restaurant, rest_area, customer, warehouse, custom, etc.
         
         [Display(Name = "Icon")]
         [StringLength(50)]
-        public string Icon { get; set; } // CSS icon class or image path
+        public string Icon { get; set; } = string.Empty; // CSS icon class or image path
         
         [Display(Name = "Address")]
         [StringLength(200)]
-        public string Address { get; set; }
+        public string Address { get; set; } = string.Empty;
+        
+        [Display(Name = "City")]
+        [StringLength(100)]
+        public string City { get; set; } = string.Empty;
+        
+        [Display(Name = "State")]
+        [StringLength(100)]
+        public string State { get; set; } = string.Empty;
+        
+        [Display(Name = "Zip Code")]
+        [StringLength(20)]
+        public string ZipCode { get; set; } = string.Empty;
+        
+        [Display(Name = "Country")]
+        [StringLength(100)]
+        public string Country { get; set; } = string.Empty;
+        
+        [Display(Name = "Icon URL")]
+        [StringLength(200)]
+        public string IconUrl { get; set; } = string.Empty;
         
         [Display(Name = "Phone")]
         [StringLength(20)]
-        public string Phone { get; set; }
+        public string Phone { get; set; } = string.Empty;
         
         [Display(Name = "Website")]
         [StringLength(100)]
-        public string Website { get; set; }
+        public string Website { get; set; } = string.Empty;
         
         [Display(Name = "Operating Hours")]
         [StringLength(100)]
-        public string OperatingHours { get; set; }
+        public string OperatingHours { get; set; } = string.Empty;
         
         [Display(Name = "Tags")]
         [StringLength(200)]
-        public string Tags { get; set; } // Comma-separated tags for searching
+        public string Tags { get; set; } = string.Empty; // Comma-separated tags for searching
         
         [Required]
         [Display(Name = "Company ID")]

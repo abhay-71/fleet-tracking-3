@@ -19,22 +19,22 @@ namespace FleetTracking.Models
         [Required]
         [Display(Name = "Transaction Type")]
         [StringLength(50)]
-        public string TransactionType { get; set; }  // purchase, service, maintenance, etc.
+        public string TransactionType { get; set; } = "purchase";  // purchase, service, maintenance, etc.
         
         [Required]
         [Display(Name = "Description")]
         [StringLength(200)]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         
         [Display(Name = "Invoice Number")]
         [StringLength(50)]
-        public string InvoiceNumber { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
         
         [Required]
         [Display(Name = "Amount")]
         [DataType(DataType.Currency)]
         [Range(0, 1000000)]
-        public decimal Amount { get; set; }
+        public decimal Amount { get; set; } = 0;
         
         [Display(Name = "Tax Amount")]
         [DataType(DataType.Currency)]
@@ -43,7 +43,7 @@ namespace FleetTracking.Models
         
         [Display(Name = "Total Amount")]
         [DataType(DataType.Currency)]
-        public decimal TotalAmount => Amount + (TaxAmount ?? 0);
+        public decimal TotalAmount => Amount + (TaxAmount ?? 0m);
         
         [Display(Name = "Vehicle")]
         public int? VehicleId { get; set; }
@@ -61,15 +61,15 @@ namespace FleetTracking.Models
         
         [Display(Name = "Payment Method")]
         [StringLength(50)]
-        public string PaymentMethod { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
         
         [Display(Name = "Payment Reference")]
         [StringLength(100)]
-        public string PaymentReference { get; set; }
+        public string PaymentReference { get; set; } = string.Empty;
         
         [Display(Name = "Notes")]
         [StringLength(500)]
-        public string Notes { get; set; }
+        public string Notes { get; set; } = string.Empty;
         
         [Display(Name = "Delivery Time (Days)")]
         public int? DeliveryTimeDays { get; set; }

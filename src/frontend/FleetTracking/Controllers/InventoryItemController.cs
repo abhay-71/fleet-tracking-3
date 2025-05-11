@@ -123,8 +123,7 @@ namespace FleetTracking.Controllers
                             TransactionType = "initial",
                             Quantity = item.CurrentQuantity,
                             UnitCost = item.UnitCost,
-                            TotalCost = item.CurrentQuantity * item.UnitCost,
-                            Notes = "Initial inventory",
+                            Note = "Initial inventory",
                             TransactionDate = DateTime.UtcNow,
                             PerformedById = User.Identity.Name,
                             CreatedAt = DateTime.UtcNow
@@ -236,8 +235,7 @@ namespace FleetTracking.Controllers
                             TransactionType = "adjustment",
                             Quantity = adjustmentQty,
                             UnitCost = item.UnitCost,
-                            TotalCost = adjustmentQty * (item.UnitCost ?? 0),
-                            Notes = "Manual inventory adjustment",
+                            Note = "Manual inventory adjustment",
                             TransactionDate = DateTime.UtcNow,
                             PerformedById = User.Identity.Name,
                             CreatedAt = DateTime.UtcNow
@@ -353,18 +351,11 @@ namespace FleetTracking.Controllers
             
             ViewBag.Item = item;
             
-            ViewBag.TransactionTypes = new List<SelectListItem>
-            {
-                new SelectListItem { Value = "purchase", Text = "Purchase" },
-                new SelectListItem { Value = "use", Text = "Use/Consumption" },
-                new SelectListItem { Value = "adjustment", Text = "Adjustment" },
-                new SelectListItem { Value = "return", Text = "Return" },
-                new SelectListItem { Value = "transfer", Text = "Transfer" },
-                new SelectListItem { Value = "scrap", Text = "Scrap/Waste" }
-            };
+            // Set transaction types
+            SetTransactionTypeOptions();
             
-            var vehicles = await _context.Vehicles.OrderBy(v => v.RegistrationNumber).ToListAsync();
-            ViewBag.Vehicles = new SelectList(vehicles, "Id", "RegistrationNumber");
+            // Set vehicles dropdown
+            await SetVehicleOptions();
             
             return View(new InventoryTransaction { 
                 ItemId = item.Id, 
@@ -388,13 +379,10 @@ namespace FleetTracking.Controllers
                 
                 // Set created at and performed by
                 transaction.CreatedAt = DateTime.UtcNow;
-                transaction.PerformedById = User.Identity.Name;
+                transaction.PerformedById = User.Identity?.Name ?? "system";
                 
-                // Calculate total cost if not provided
-                if (!transaction.TotalCost.HasValue && transaction.UnitCost.HasValue)
-                {
-                    transaction.TotalCost = transaction.Quantity * transaction.UnitCost.Value;
-                }
+                // Calculate total cost is now done by the model's computed TotalCost property
+                // No need to manually assign it
                 
                 // Update the current quantity based on the transaction type
                 if (transaction.TransactionType == "purchase" || transaction.TransactionType == "return")
@@ -411,18 +399,11 @@ namespace FleetTracking.Controllers
                         
                         ViewBag.Item = item;
                         
-                        ViewBag.TransactionTypes = new List<SelectListItem>
-                        {
-                            new SelectListItem { Value = "purchase", Text = "Purchase" },
-                            new SelectListItem { Value = "use", Text = "Use/Consumption" },
-                            new SelectListItem { Value = "adjustment", Text = "Adjustment" },
-                            new SelectListItem { Value = "return", Text = "Return" },
-                            new SelectListItem { Value = "transfer", Text = "Transfer" },
-                            new SelectListItem { Value = "scrap", Text = "Scrap/Waste" }
-                        };
+                        // Set transaction types
+                        SetTransactionTypeOptions();
                         
-                        var vehicles = await _context.Vehicles.OrderBy(v => v.RegistrationNumber).ToListAsync();
-                        ViewBag.Vehicles = new SelectList(vehicles, "Id", "RegistrationNumber", transaction.VehicleId);
+                        // Set vehicles dropdown with selected value
+                        await SetVehicleOptions(transaction.VehicleId);
                         
                         return View(transaction);
                     }
@@ -439,18 +420,11 @@ namespace FleetTracking.Controllers
                         
                         ViewBag.Item = item;
                         
-                        ViewBag.TransactionTypes = new List<SelectListItem>
-                        {
-                            new SelectListItem { Value = "purchase", Text = "Purchase" },
-                            new SelectListItem { Value = "use", Text = "Use/Consumption" },
-                            new SelectListItem { Value = "adjustment", Text = "Adjustment" },
-                            new SelectListItem { Value = "return", Text = "Return" },
-                            new SelectListItem { Value = "transfer", Text = "Transfer" },
-                            new SelectListItem { Value = "scrap", Text = "Scrap/Waste" }
-                        };
+                        // Set transaction types
+                        SetTransactionTypeOptions();
                         
-                        var vehicles = await _context.Vehicles.OrderBy(v => v.RegistrationNumber).ToListAsync();
-                        ViewBag.Vehicles = new SelectList(vehicles, "Id", "RegistrationNumber", transaction.VehicleId);
+                        // Set vehicles dropdown with selected value
+                        await SetVehicleOptions(transaction.VehicleId);
                         
                         return View(transaction);
                     }
@@ -476,6 +450,18 @@ namespace FleetTracking.Controllers
                 
             ViewBag.Item = itemForView;
             
+            // Set transaction types
+            SetTransactionTypeOptions();
+            
+            // Set vehicles dropdown with selected value
+            await SetVehicleOptions(transaction.VehicleId);
+            
+            return View(transaction);
+        }
+        
+        // Helper method to set transaction type options
+        private void SetTransactionTypeOptions()
+        {
             ViewBag.TransactionTypes = new List<SelectListItem>
             {
                 new SelectListItem { Value = "purchase", Text = "Purchase" },
@@ -485,11 +471,13 @@ namespace FleetTracking.Controllers
                 new SelectListItem { Value = "transfer", Text = "Transfer" },
                 new SelectListItem { Value = "scrap", Text = "Scrap/Waste" }
             };
-            
-            var vehicles = await _context.Vehicles.OrderBy(v => v.RegistrationNumber).ToListAsync();
-            ViewBag.Vehicles = new SelectList(vehicles, "Id", "RegistrationNumber", transaction.VehicleId);
-            
-            return View(transaction);
+        }
+        
+        // Helper method to set vehicle options
+        private async Task SetVehicleOptions(int? selectedVehicleId = null)
+        {
+            var availableVehicles = await _context.Vehicles.OrderBy(v => v.RegistrationNumber).ToListAsync();
+            ViewBag.Vehicles = new SelectList(availableVehicles, "Id", "RegistrationNumber", selectedVehicleId);
         }
         
         // GET: InventoryItem/LowStock

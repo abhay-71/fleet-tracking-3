@@ -1,58 +1,46 @@
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FleetTracking.Models
 {
     public class PurchaseOrderItem
     {
+        [Key]
         public int Id { get; set; }
         
         [Required]
         public int PurchaseOrderId { get; set; }
         
         [Required]
-        [Display(Name = "Item")]
-        public int? InventoryItemId { get; set; }
+        public int InventoryItemId { get; set; }
+        
+        public string Description { get; set; } = string.Empty;
         
         [Required]
-        [Display(Name = "Description")]
-        [StringLength(200)]
-        public string Description { get; set; }
+        public decimal Quantity { get; set; } = 1;
         
-        [Required]
-        [Display(Name = "Quantity")]
-        [Range(0.01, 9999)]
-        public decimal Quantity { get; set; }
-        
-        [Required]
-        [Display(Name = "Unit Price")]
-        [DataType(DataType.Currency)]
-        [Range(0, 999999)]
-        public decimal UnitPrice { get; set; }
-        
-        [Required]
-        [Display(Name = "Extended Price")]
-        [DataType(DataType.Currency)]
-        [Range(0, 999999)]
-        public decimal ExtendedPrice => Quantity * UnitPrice;
-        
-        [Display(Name = "Tax Rate %")]
-        [Range(0, 100)]
-        public decimal TaxRate { get; set; }
-        
-        [Display(Name = "Tax Amount")]
-        [DataType(DataType.Currency)]
-        public decimal TaxAmount => ExtendedPrice * (TaxRate / 100);
-        
-        [Display(Name = "Total Price")]
-        [DataType(DataType.Currency)]
-        public decimal TotalPrice => ExtendedPrice + TaxAmount;
-        
-        [Display(Name = "Received Quantity")]
-        [Range(0, 9999)]
         public decimal ReceivedQuantity { get; set; } = 0;
         
+        public decimal UnitPrice { get; set; } = 0;
+        
+        public decimal ExtendedPrice { get; set; } = 0;
+        
+        public decimal TaxRate { get; set; } = 0;
+        
+        [NotMapped]
+        public decimal TaxAmount => Math.Round(ExtendedPrice * (TaxRate / 100), 2);
+        
+        [NotMapped]
+        public decimal TotalPrice => ExtendedPrice + TaxAmount;
+        
+        public string Notes { get; set; } = string.Empty;
+        
         // Navigation properties
+        [ForeignKey("PurchaseOrderId")]
         public PurchaseOrder PurchaseOrder { get; set; }
+        
+        [ForeignKey("InventoryItemId")]
         public InventoryItem InventoryItem { get; set; }
     }
 } 
