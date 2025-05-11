@@ -1,0 +1,118 @@
+@model FleetTracking.Models.Driver
+
+@{
+    ViewData["Title"] = "Create Driver";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Create Driver</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Driver" asp-action="Index">Drivers</a></li>
+        <li class="breadcrumb-item active">Create New</li>
+    </ol>
+
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user-plus me-1"></i>
+                    Driver Details
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="UserId" class="form-label">User Account</label>
+                                    <select asp-for="UserId" class="form-select" asp-items="ViewBag.UserId">
+                                        <option value="">-- Select User --</option>
+                                    </select>
+                                    <span asp-validation-for="UserId" class="text-danger"></span>
+                                    <small class="form-text text-muted">Select an existing user account to associate with this driver.</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="CompanyId" class="form-label">Company</label>
+                                    <select asp-for="CompanyId" class="form-select" asp-items="ViewBag.CompanyId">
+                                        <option value="">-- Select Company --</option>
+                                    </select>
+                                    <span asp-validation-for="CompanyId" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="LicenseNumber" class="form-label">License Number</label>
+                                    <input asp-for="LicenseNumber" class="form-control" />
+                                    <span asp-validation-for="LicenseNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="LicenseClass" class="form-label">License Class</label>
+                                    <select asp-for="LicenseClass" class="form-select">
+                                        <option value="">-- Select License Class --</option>
+                                        <option value="A">Class A</option>
+                                        <option value="B">Class B</option>
+                                        <option value="C">Class C</option>
+                                        <option value="CDL-A">Commercial CDL-A</option>
+                                        <option value="CDL-B">Commercial CDL-B</option>
+                                        <option value="CDL-C">Commercial CDL-C</option>
+                                    </select>
+                                    <span asp-validation-for="LicenseClass" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="LicenseExpiryDate" class="form-label">License Expiry Date</label>
+                                    <input asp-for="LicenseExpiryDate" class="form-control" type="date" />
+                                    <span asp-validation-for="LicenseExpiryDate" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Status" class="form-label">Status</label>
+                                    <select asp-for="Status" class="form-select">
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="on-leave">On Leave</option>
+                                        <option value="suspended">Suspended</option>
+                                    </select>
+                                    <span asp-validation-for="Status" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">Create</button>
+                            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        $(document).ready(function () {
+            // Add any client-side validation and enhancements here
+            $('#UserId').select2({
+                placeholder: "Select a user",
+                allowClear: true
+            });
+
+            $('#CompanyId').select2({
+                placeholder: "Select a company",
+                allowClear: true
+            });
+
+            // Set minimum date for license expiry to today
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById("LicenseExpiryDate").setAttribute('min', today);
+        });
+    </script>
+} 

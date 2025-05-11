@@ -1,0 +1,413 @@
+@model FleetTracking.Models.SystemHealth
+
+@{
+    ViewData["Title"] = "System Health Dashboard";
+}
+
+<div class="container-fluid">
+    <h1 class="mt-2 mb-4">
+        <i class="fas fa-heartbeat me-2"></i> System Health Dashboard
+    </h1>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-tachometer-alt me-2"></i> System Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-column">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3" style="width: 150px;"><strong>Status:</strong></div>
+                            <div>
+                                @switch (Model.Status)
+                                {
+                                    case SystemStatus.Healthy:
+                                        <span class="badge bg-success fs-6">Healthy</span>
+                                        break;
+                                    case SystemStatus.Degraded:
+                                        <span class="badge bg-warning fs-6">Degraded</span>
+                                        break;
+                                    case SystemStatus.Unhealthy:
+                                        <span class="badge bg-danger fs-6">Unhealthy</span>
+                                        break;
+                                    case SystemStatus.Offline:
+                                        <span class="badge bg-dark fs-6">Offline</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary fs-6">Unknown</span>
+                                        break;
+                                }
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3" style="width: 150px;"><strong>Last Updated:</strong></div>
+                            <div>@Model.Timestamp.ToString("MMM dd, yyyy HH:mm:ss")</div>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3" style="width: 150px;"><strong>Components:</strong></div>
+                            <div>
+                                <span class="badge bg-success me-2">@Model.Components.Count(c => c.Status == SystemStatus.Healthy) Healthy</span>
+                                <span class="badge bg-warning me-2">@Model.Components.Count(c => c.Status == SystemStatus.Degraded) Degraded</span>
+                                <span class="badge bg-danger me-2">@Model.Components.Count(c => c.Status == SystemStatus.Unhealthy) Unhealthy</span>
+                                <span class="badge bg-dark me-2">@Model.Components.Count(c => c.Status == SystemStatus.Offline) Offline</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="me-3" style="width: 150px;"><strong>Recent Errors:</strong></div>
+                            <div>
+                                <a href="@Url.Action("Errors", "SystemHealth")" class="badge bg-@(Model.RecentErrors.Any() ? "danger" : "success") fs-6">
+                                    @Model.RecentErrors.Count
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="refreshSystemHealth" class="btn btn-primary btn-sm">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-server me-2"></i> System Resources</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>CPU Usage</strong></label>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar @GetProgressBarClass(Model.Resources.CpuUsagePercent)" 
+                                 role="progressbar" 
+                                 style="width: @Model.Resources.CpuUsagePercent%;" 
+                                 aria-valuenow="@Model.Resources.CpuUsagePercent" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                @Model.Resources.CpuUsagePercent%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Memory Usage</strong></label>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar @GetProgressBarClass(Model.Resources.MemoryUsagePercent)" 
+                                 role="progressbar" 
+                                 style="width: @Model.Resources.MemoryUsagePercent%;" 
+                                 aria-valuenow="@Model.Resources.MemoryUsagePercent" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                @Model.Resources.MemoryUsagePercent%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Disk Usage</strong></label>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar @GetProgressBarClass(Model.Resources.DiskUsagePercent)" 
+                                 role="progressbar" 
+                                 style="width: @Model.Resources.DiskUsagePercent%;" 
+                                 aria-valuenow="@Model.Resources.DiskUsagePercent" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                @Model.Resources.DiskUsagePercent%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="form-label"><strong>Database Size</strong></label>
+                        <p class="mb-0">@Model.Resources.DatabaseSizeMB MB</p>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="@Url.Action("Resources", "SystemHealth")" class="btn btn-primary btn-sm">
+                        <i class="fas fa-chart-line"></i> Detailed Resources
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-microchip me-2"></i> Component Health</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="componentHealthTable" class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                    <th>Last Checked</th>
+                                    <th>Response Time</th>
+                                    <th>Uptime %</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Components != null && Model.Components.Any())
+                                {
+                                    foreach (var component in Model.Components)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a href="@Url.Action("ComponentHealth", "SystemHealth", new { componentName = component.Name })">
+                                                    <strong>@component.Name</strong>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                @switch (component.Status)
+                                                {
+                                                    case SystemStatus.Healthy:
+                                                        <span class="badge bg-success">Healthy</span>
+                                                        break;
+                                                    case SystemStatus.Degraded:
+                                                        <span class="badge bg-warning">Degraded</span>
+                                                        break;
+                                                    case SystemStatus.Unhealthy:
+                                                        <span class="badge bg-danger">Unhealthy</span>
+                                                        break;
+                                                    case SystemStatus.Offline:
+                                                        <span class="badge bg-dark">Offline</span>
+                                                        break;
+                                                    default:
+                                                        <span class="badge bg-secondary">Unknown</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td>@component.Description</td>
+                                            <td>@component.LastChecked.ToString("MMM dd, yyyy HH:mm:ss")</td>
+                                            <td>@component.ResponseTime ms</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar @GetProgressBarClass(component.UptimePercentage)" 
+                                                         role="progressbar" 
+                                                         style="width: @component.UptimePercentage%;" 
+                                                         aria-valuenow="@component.UptimePercentage" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                        @component.UptimePercentage%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary check-component" data-component="@component.Name">
+                                                    <i class="fas fa-sync-alt"></i> Check
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center">No component health data available</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-chart-bar me-2"></i> Performance Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Average API Response Time</h6>
+                        <p class="badge bg-info fs-6">@Model.Performance.AvgApiResponseTimeMs ms</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Active Sessions</h6>
+                        <p class="badge bg-info fs-6">@Model.Performance.ActiveUserSessions</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Last 24 Hours</h6>
+                        <canvas id="performanceChart" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="@Url.Action("Performance", "SystemHealth")" class="btn btn-primary btn-sm">
+                        <i class="fas fa-chart-line"></i> Detailed Performance
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-exclamation-triangle me-2"></i> Recent Errors</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        @if (Model.RecentErrors != null && Model.RecentErrors.Any())
+                        {
+                            foreach (var error in Model.RecentErrors.Take(5))
+                            {
+                                <div class="list-group-item list-group-item-action flex-column align-items-start">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1 text-danger">@error.Source</h6>
+                                        <small>@error.Timestamp.ToString("MMM dd, yyyy HH:mm:ss")</small>
+                                    </div>
+                                    <p class="mb-1">@error.Message</p>
+                                    <small class="text-muted">@error.ExceptionType</small>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-success mb-0">
+                                <i class="fas fa-check-circle me-2"></i> No recent errors! The system is running smoothly.
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="@Url.Action("Errors", "SystemHealth")" class="btn btn-primary btn-sm">
+                        <i class="fas fa-list"></i> View All Errors
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            $('#componentHealthTable').DataTable({
+                responsive: true,
+                order: [[1, 'desc']]
+            });
+            
+            // Refresh system health
+            $('#refreshSystemHealth').on('click', function() {
+                location.reload();
+            });
+            
+            // Check component
+            $('.check-component').on('click', function() {
+                const componentName = $(this).data('component');
+                
+                $.ajax({
+                    url: '@Url.Action("ComponentHealth", "SystemHealth")',
+                    type: 'GET',
+                    data: { componentName: componentName },
+                    success: function(result) {
+                        // Show toast notification
+                        showToast(`Component ${componentName} health check completed`, 'success');
+                        
+                        // Reload after 2 seconds
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    },
+                    error: function() {
+                        showToast(`Failed to check component ${componentName} health`, 'error');
+                    }
+                });
+            });
+            
+            // Initialize performance chart
+            const performanceChart = document.getElementById('performanceChart');
+            if (performanceChart) {
+                new Chart(performanceChart, {
+                    type: 'line',
+                    data: {
+                        labels: generateHourLabels(24),
+                        datasets: [{
+                            label: 'API Response Time (ms)',
+                            data: generateRandomData(50, 200, 24),
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Response Time (ms)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Time (Last 24 Hours)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Toast notification
+            function showToast(message, type) {
+                // Check if toastr is available
+                if (typeof toastr !== 'undefined') {
+                    toastr[type](message);
+                } else {
+                    alert(message);
+                }
+            }
+            
+            // Generate sample data
+            function generateRandomData(min, max, count) {
+                const data = [];
+                for (let i = 0; i < count; i++) {
+                    data.push(Math.floor(Math.random() * (max - min + 1)) + min);
+                }
+                return data;
+            }
+            
+            // Generate hour labels
+            function generateHourLabels(count) {
+                const labels = [];
+                const now = new Date();
+                
+                for (let i = count - 1; i >= 0; i--) {
+                    const d = new Date(now);
+                    d.setHours(d.getHours() - i);
+                    labels.push(d.getHours() + ':00');
+                }
+                
+                return labels;
+            }
+        });
+    </script>
+}
+
+@functions {
+    string GetProgressBarClass(double percent)
+    {
+        if (percent < 60)
+            return "bg-success";
+        else if (percent < 80)
+            return "bg-warning";
+        else
+            return "bg-danger";
+    }
+} 

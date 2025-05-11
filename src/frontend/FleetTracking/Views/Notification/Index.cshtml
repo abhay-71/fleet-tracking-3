@@ -1,0 +1,396 @@
+@model List<FleetTracking.Models.Notification>
+
+@{
+    ViewData["Title"] = "Notifications";
+    var hasUnread = Model.Any(n => !n.IsRead);
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-bell me-2"></i> Notifications</h1>
+        <div>
+            @if (hasUnread)
+            {
+                <button id="markAllReadBtn" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-check-double me-1"></i> Mark All as Read
+                </button>
+            }
+            @if (User.IsInRole("Administrator"))
+            {
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Create Notification
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <ul class="nav nav-tabs card-header-tabs" id="notificationTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" 
+                            type="button" role="tab" aria-controls="all" aria-selected="true">
+                        All
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="unread-tab" data-bs-toggle="tab" data-bs-target="#unread" 
+                            type="button" role="tab" aria-controls="unread" aria-selected="false">
+                        Unread <span class="badge bg-primary">@Model.Count(n => !n.IsRead)</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" 
+                            type="button" role="tab" aria-controls="system" aria-selected="false">
+                        System <span class="badge bg-secondary">@Model.Count(n => n.IsSystem)</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-0">
+            <div class="tab-content" id="notificationTabsContent">
+                <!-- All Notifications -->
+                <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                    @if (!Model.Any())
+                    {
+                        <div class="p-4 text-center">
+                            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                            <p class="lead">No notifications found.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var notification in Model.OrderByDescending(n => n.Timestamp))
+                            {
+                                <div class="list-group-item list-group-item-action @(!notification.IsRead ? "bg-light" : "")" 
+                                     data-notification-id="@notification.Id">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-1">
+                                            @{
+                                                var iconClass = notification.Type switch
+                                                {
+                                                    NotificationType.Info => "fas fa-info-circle text-info",
+                                                    NotificationType.Success => "fas fa-check-circle text-success",
+                                                    NotificationType.Warning => "fas fa-exclamation-triangle text-warning",
+                                                    NotificationType.Error => "fas fa-exclamation-circle text-danger",
+                                                    NotificationType.System => "fas fa-cog text-secondary",
+                                                    NotificationType.Alert => "fas fa-bell text-primary",
+                                                    _ => "fas fa-bell text-primary"
+                                                };
+                                            }
+                                            <i class="@iconClass me-2"></i>
+                                            @notification.Title
+                                            @if (!notification.IsRead)
+                                            {
+                                                <span class="badge bg-primary ms-2">New</span>
+                                            }
+                                        </h5>
+                                        <small class="text-muted">@notification.Timestamp.ToLocalTime().ToString("g")</small>
+                                    </div>
+                                    <p class="mb-1">@notification.Message</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(notification.LinkUrl))
+                                            {
+                                                <a href="@notification.LinkUrl" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt me-1"></i> View Details
+                                                </a>
+                                            }
+                                            @if (notification.EntityType != null && notification.EntityId.HasValue)
+                                            {
+                                                <span class="badge bg-secondary ms-2">
+                                                    @notification.EntityType @notification.EntityId
+                                                </span>
+                                            }
+                                        </div>
+                                        <div>
+                                            @if (!notification.IsRead)
+                                            {
+                                                <button class="btn btn-sm btn-outline-secondary mark-read-btn" 
+                                                        data-notification-id="@notification.Id">
+                                                    <i class="fas fa-check me-1"></i> Mark as Read
+                                                </button>
+                                            }
+                                            <button class="btn btn-sm btn-outline-danger ms-2 delete-notification-btn" 
+                                                    data-notification-id="@notification.Id">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                
+                <!-- Unread Notifications -->
+                <div class="tab-pane fade" id="unread" role="tabpanel" aria-labelledby="unread-tab">
+                    @{
+                        var unreadNotifications = Model.Where(n => !n.IsRead).OrderByDescending(n => n.Timestamp).ToList();
+                    }
+                    
+                    @if (!unreadNotifications.Any())
+                    {
+                        <div class="p-4 text-center">
+                            <i class="fas fa-check-double fa-3x text-success mb-3"></i>
+                            <p class="lead">You're all caught up! No unread notifications.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var notification in unreadNotifications)
+                            {
+                                <div class="list-group-item list-group-item-action bg-light" 
+                                     data-notification-id="@notification.Id">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-1">
+                                            @{
+                                                var iconClass = notification.Type switch
+                                                {
+                                                    NotificationType.Info => "fas fa-info-circle text-info",
+                                                    NotificationType.Success => "fas fa-check-circle text-success",
+                                                    NotificationType.Warning => "fas fa-exclamation-triangle text-warning",
+                                                    NotificationType.Error => "fas fa-exclamation-circle text-danger",
+                                                    NotificationType.System => "fas fa-cog text-secondary",
+                                                    NotificationType.Alert => "fas fa-bell text-primary",
+                                                    _ => "fas fa-bell text-primary"
+                                                };
+                                            }
+                                            <i class="@iconClass me-2"></i>
+                                            @notification.Title
+                                            <span class="badge bg-primary ms-2">New</span>
+                                        </h5>
+                                        <small class="text-muted">@notification.Timestamp.ToLocalTime().ToString("g")</small>
+                                    </div>
+                                    <p class="mb-1">@notification.Message</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(notification.LinkUrl))
+                                            {
+                                                <a href="@notification.LinkUrl" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt me-1"></i> View Details
+                                                </a>
+                                            }
+                                            @if (notification.EntityType != null && notification.EntityId.HasValue)
+                                            {
+                                                <span class="badge bg-secondary ms-2">
+                                                    @notification.EntityType @notification.EntityId
+                                                </span>
+                                            }
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary mark-read-btn" 
+                                                    data-notification-id="@notification.Id">
+                                                <i class="fas fa-check me-1"></i> Mark as Read
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger ms-2 delete-notification-btn" 
+                                                    data-notification-id="@notification.Id">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                
+                <!-- System Notifications -->
+                <div class="tab-pane fade" id="system" role="tabpanel" aria-labelledby="system-tab">
+                    @{
+                        var systemNotifications = Model.Where(n => n.IsSystem).OrderByDescending(n => n.Timestamp).ToList();
+                    }
+                    
+                    @if (!systemNotifications.Any())
+                    {
+                        <div class="p-4 text-center">
+                            <i class="fas fa-cog fa-3x text-muted mb-3"></i>
+                            <p class="lead">No system notifications found.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var notification in systemNotifications)
+                            {
+                                <div class="list-group-item list-group-item-action @(!notification.IsRead ? "bg-light" : "")" 
+                                     data-notification-id="@notification.Id">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-1">
+                                            <i class="fas fa-cog text-secondary me-2"></i>
+                                            @notification.Title
+                                            @if (!notification.IsRead)
+                                            {
+                                                <span class="badge bg-primary ms-2">New</span>
+                                            }
+                                        </h5>
+                                        <small class="text-muted">@notification.Timestamp.ToLocalTime().ToString("g")</small>
+                                    </div>
+                                    <p class="mb-1">@notification.Message</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(notification.LinkUrl))
+                                            {
+                                                <a href="@notification.LinkUrl" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt me-1"></i> View Details
+                                                </a>
+                                            }
+                                        </div>
+                                        <div>
+                                            @if (!notification.IsRead)
+                                            {
+                                                <button class="btn btn-sm btn-outline-secondary mark-read-btn" 
+                                                        data-notification-id="@notification.Id">
+                                                    <i class="fas fa-check me-1"></i> Mark as Read
+                                                </button>
+                                            }
+                                            <button class="btn btn-sm btn-outline-danger ms-2 delete-notification-btn" 
+                                                    data-notification-id="@notification.Id">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this notification?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Mark as read functionality
+            $('.mark-read-btn').click(function() {
+                var notificationId = $(this).data('notification-id');
+                var $notificationItem = $(this).closest('.list-group-item');
+                
+                $.ajax({
+                    url: '@Url.Action("MarkAsRead")',
+                    type: 'POST',
+                    data: { id: notificationId },
+                    success: function(result) {
+                        if (result.success) {
+                            // Update UI
+                            $notificationItem.removeClass('bg-light');
+                            $notificationItem.find('.badge.bg-primary').remove();
+                            $notificationItem.find('.mark-read-btn').remove();
+                            
+                            // Update unread count in the tab
+                            var unreadCount = parseInt($('#unread-tab .badge').text()) - 1;
+                            $('#unread-tab .badge').text(unreadCount);
+                            
+                            // Show a toast notification
+                            toastr.success('Notification marked as read');
+                            
+                            // Refresh the unread tab if it's empty now
+                            if (unreadCount === 0 && $('#unread-tab').hasClass('active')) {
+                                location.reload();
+                            }
+                        } else {
+                            toastr.error('Failed to mark notification as read');
+                        }
+                    },
+                    error: function() {
+                        toastr.error('An error occurred while marking notification as read');
+                    }
+                });
+            });
+            
+            // Mark all as read functionality
+            $('#markAllReadBtn').click(function() {
+                $.ajax({
+                    url: '@Url.Action("MarkAllAsRead")',
+                    type: 'POST',
+                    success: function(result) {
+                        if (result.success) {
+                            // Reload the page to reflect changes
+                            location.reload();
+                        } else {
+                            toastr.error('Failed to mark all notifications as read');
+                        }
+                    },
+                    error: function() {
+                        toastr.error('An error occurred while marking all notifications as read');
+                    }
+                });
+            });
+            
+            // Delete notification functionality
+            var notificationIdToDelete = null;
+            
+            $('.delete-notification-btn').click(function() {
+                notificationIdToDelete = $(this).data('notification-id');
+                $('#deleteConfirmationModal').modal('show');
+            });
+            
+            $('#confirmDeleteBtn').click(function() {
+                if (notificationIdToDelete) {
+                    $.ajax({
+                        url: '@Url.Action("Delete")',
+                        type: 'POST',
+                        data: { id: notificationIdToDelete },
+                        success: function(result) {
+                            if (result.success) {
+                                // Hide the modal
+                                $('#deleteConfirmationModal').modal('hide');
+                                
+                                // Remove the notification from the UI
+                                $(`[data-notification-id="${notificationIdToDelete}"]`).fadeOut(300, function() {
+                                    $(this).remove();
+                                    
+                                    // Check if there are any notifications left
+                                    if ($('.list-group-item').length === 0) {
+                                        location.reload(); // Reload to show empty state
+                                    }
+                                });
+                                
+                                // Show a toast notification
+                                toastr.success('Notification deleted successfully');
+                            } else {
+                                $('#deleteConfirmationModal').modal('hide');
+                                toastr.error('Failed to delete notification');
+                            }
+                        },
+                        error: function() {
+                            $('#deleteConfirmationModal').modal('hide');
+                            toastr.error('An error occurred while deleting notification');
+                        }
+                    });
+                }
+            });
+            
+            // Initialize toastr notifications
+            toastr.options = {
+                closeButton: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                timeOut: 3000
+            };
+        });
+    </script>
+} 

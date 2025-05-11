@@ -9,6 +9,15 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha512-mD70nAW2ThLsWH0zif8JPbfraZ8hbCtjQ/5oVVCm2TyU4ops1xn2+6In+bm1tKO5hYxaVvr/6C7J+geV+HATog==" crossorigin="" />
+    
+    <!-- Toastr for notifications -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+    
     <!-- Local stylesheets with direct URLs -->
     <link rel="stylesheet" href="/css/site.css" />
     <link rel="stylesheet" href="/FleetTracking.styles.css" />
@@ -100,6 +109,30 @@
             color: #dc3545;
         }
         
+        /* Notification badge */
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 50%;
+            background-color: #dc3545;
+            color: white;
+            font-size: 0.75rem;
+        }
+        
+        /* Global search box */
+        .global-search {
+            width: 250px;
+        }
+        
+        /* Breadcrumb styling */
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0.5rem 0;
+            margin-bottom: 1rem;
+        }
+        
         /* Custom added styles for the home page */
         h1 {
             margin-bottom: 1rem;
@@ -187,6 +220,13 @@
             background-color: #fff;
             border: 1px solid rgba(0,0,0,.125);
         }
+        
+        /* Help tooltip */
+        .help-icon {
+            color: #0d6efd;
+            cursor: pointer;
+            margin-left: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -203,48 +243,331 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-light" href="/">Home</a>
+                            <a class="nav-link text-light" asp-controller="Home" asp-action="Index"><i class="fas fa-home"></i> Dashboard</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="/Vehicle">Vehicles</a>
+                        
+                        <!-- Fleet Management Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-light" href="#" id="fleetDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-truck-moving"></i> Fleet
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="fleetDropdown">
+                                <li><a class="dropdown-item" asp-controller="Monitoring" asp-action="Index">Live Monitoring</a></li>
+                                <li><a class="dropdown-item" asp-controller="Vehicle" asp-action="Index">Vehicles</a></li>
+                                <li><a class="dropdown-item" asp-controller="Driver" asp-action="Index">Drivers</a></li>
+                                <li><a class="dropdown-item" asp-controller="Maintenance" asp-action="Index">Maintenance</a></li>
+                                <li><a class="dropdown-item" asp-controller="VehicleHistory" asp-action="Index">Vehicle History</a></li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="/Driver">Drivers</a>
+                        
+                        <!-- Trips & Routes Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-light" href="#" id="tripsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-route"></i> Trips & Routes
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="tripsDropdown">
+                                <li><a class="dropdown-item" asp-controller="Trip" asp-action="Index">All Trips</a></li>
+                                <li><a class="dropdown-item" asp-controller="Trip" asp-action="Create">Create Trip</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" asp-controller="Trip" asp-action="Analytics">Trip Analytics</a></li>
+                                <li><a class="dropdown-item" asp-controller="Trip" asp-action="Playback">Trip Playback</a></li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="/Trip">Trips</a>
+                        
+                        <!-- Geospatial Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-light" href="#" id="geoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-map-marked-alt"></i> Geospatial
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="geoDropdown">
+                                <li><a class="dropdown-item" asp-controller="Geofence" asp-action="Index">Geofences</a></li>
+                                <li><a class="dropdown-item" asp-controller="PointOfInterest" asp-action="Index">Points of Interest</a></li>
+                                <li><a class="dropdown-item" asp-controller="Geocoding" asp-action="Index">Geocoding</a></li>
+                                <li><a class="dropdown-item" asp-controller="Alert" asp-action="LocationBased">Location Alerts</a></li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="/Maintenance">Maintenance</a>
+                        
+                        <!-- Business Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-light" href="#" id="businessDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-briefcase"></i> Business
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="businessDropdown">
+                                <li><a class="dropdown-item" asp-controller="InventoryItem" asp-action="Index">Inventory</a></li>
+                                <li><a class="dropdown-item" asp-controller="PurchaseOrder" asp-action="Index">Purchase Orders</a></li>
+                                <li><a class="dropdown-item" asp-controller="Vendor" asp-action="Index">Vendors</a></li>
+                                <li><a class="dropdown-item" asp-controller="VendorTransaction" asp-action="Index">Transactions</a></li>
+                            </ul>
                         </li>
+                        
+                        <!-- Analytics & Reports Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-light" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-chart-bar"></i> Reports
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                                <li><a class="dropdown-item" asp-controller="ScheduledReport" asp-action="Index">Scheduled Reports</a></li>
+                                <li><a class="dropdown-item" asp-controller="ScheduledReport" asp-action="Create">Create Report</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" asp-controller="ScheduledReport" asp-action="VehiclePerformance">Vehicle Performance</a></li>
+                                <li><a class="dropdown-item" asp-controller="ScheduledReport" asp-action="DriverPerformance">Driver Performance</a></li>
+                                <li><a class="dropdown-item" asp-controller="ScheduledReport" asp-action="VendorPerformance">Vendor Performance</a></li>
+                                <li><a class="dropdown-item" asp-controller="ScheduledReport" asp-action="FinancialSummary">Financial Summary</a></li>
+                            </ul>
+                        </li>
+                        
+                        @if (User.IsInRole("Administrator"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-cog"></i> Administration
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                    <li><a class="dropdown-item" asp-controller="UserRoles" asp-action="Index">User Roles</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Alert" asp-action="SystemSettings">System Settings</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="Alert" asp-action="Index">Alert Management</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Alert" asp-action="SystemHealth">System Health</a></li>
+                                </ul>
+                            </li>
+                        }
                     </ul>
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="/Account/Login">Login</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" href="/Account/Register">Register</a>
-                        </li>
-                    </ul>
+                    
+                    <!-- Global Search -->
+                    <form class="d-flex me-2" asp-controller="Home" asp-action="Search" method="get">
+                        <div class="input-group">
+                            <input class="form-control global-search" type="search" name="query" placeholder="Global Search" aria-label="Search">
+                            <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
+                        </div>
+                    </form>
+                    
+                    <!-- Notification Bell -->
+                    <div class="nav-item dropdown me-2 position-relative">
+                        <a class="nav-link dropdown-toggle text-light" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notificationCount">0</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown" id="notificationsList">
+                            <li><a class="dropdown-item text-center" href="#">No new notifications</a></li>
+                        </ul>
+                    </div>
+                    
+                    <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>
     </header>
+    
     <div class="container">
+        <!-- Breadcrumb navigation -->
+        @if (ViewBag.Breadcrumbs != null)
+        {
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    @foreach (var item in ViewBag.Breadcrumbs)
+                    {
+                        if (item.IsActive)
+                        {
+                            <li class="breadcrumb-item active" aria-current="page">@item.Title</li>
+                        }
+                        else
+                        {
+                            <li class="breadcrumb-item"><a href="@item.Url">@item.Title</a></li>
+                        }
+                    }
+                </ol>
+            </nav>
+        }
+        
         <main role="main" class="pb-3">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            
+            @if (TempData["WarningMessage"] != null)
+            {
+                <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> @TempData["WarningMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            
+            @if (TempData["InfoMessage"] != null)
+            {
+                <div class="alert alert-info alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas fa-info-circle me-2"></i> @TempData["InfoMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            
             @RenderBody()
         </main>
     </div>
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2023 - Fleet Tracking - <a href="/Home/Privacy">Privacy</a>
+            <div class="row">
+                <div class="col-md-6">
+                    &copy; 2023 - Fleet Tracking - <a href="/Home/Privacy">Privacy</a>
+                </div>
+                <div class="col-md-6 text-end">
+                    <a href="#" id="helpLink"><i class="fas fa-question-circle"></i> Help</a> | 
+                    <a href="#" id="feedbackLink"><i class="fas fa-comment"></i> Feedback</a>
+                </div>
+            </div>
         </div>
     </footer>
+    
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel">Help Center</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="helpContent">
+                    <div class="text-center">
+                        <h4>Fleet Tracking Application Help</h4>
+                        <p>Select a topic from the list below or search for help:</p>
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="Search help topics..." id="helpSearch">
+                        <button class="btn btn-outline-secondary" type="button"><i class="fas fa-search"></i></button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h5>Getting Started</h5>
+                            <ul class="list-unstyled">
+                                <li><a href="#" class="help-topic">Dashboard Overview</a></li>
+                                <li><a href="#" class="help-topic">Managing Vehicles</a></li>
+                                <li><a href="#" class="help-topic">Managing Drivers</a></li>
+                                <li><a href="#" class="help-topic">Creating Trips</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>Advanced Features</h5>
+                            <ul class="list-unstyled">
+                                <li><a href="#" class="help-topic">Geofencing</a></li>
+                                <li><a href="#" class="help-topic">Reports & Analytics</a></li>
+                                <li><a href="#" class="help-topic">Maintenance Tracking</a></li>
+                                <li><a href="#" class="help-topic">Inventory Management</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h5>Administration</h5>
+                            <ul class="list-unstyled">
+                                <li><a href="#" class="help-topic">User Management</a></li>
+                                <li><a href="#" class="help-topic">System Settings</a></li>
+                                <li><a href="#" class="help-topic">Alerts Configuration</a></li>
+                                <li><a href="#" class="help-topic">Data Import/Export</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <!-- Direct CDN links for scripts -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha512-Dqm3h1Y4qiHUjbhxTuBGQsza0Tfppn53SHlu/uj1f+RT+xfShfe7r6czRf5r2NmllO2YSTWk8sJm5ACwAG8inQ==" crossorigin=""></script>
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    
+    <!-- Notification script -->
+    <script>
+        // Global notification functions
+        $(document).ready(function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+            
+            // Help system
+            $("#helpLink, .help-icon").click(function(e) {
+                e.preventDefault();
+                $("#helpModal").modal('show');
+            });
+            
+            // Fetch notifications (placeholder for actual implementation)
+            function fetchNotifications() {
+                // This would be an actual API call in production
+                setTimeout(function() {
+                    updateNotificationBadge(3);
+                    updateNotificationList([
+                        { id: 1, title: "Vehicle Maintenance Due", message: "Vehicle ABC123 is due for maintenance", time: "5 min ago" },
+                        { id: 2, title: "Driver License Expiring", message: "John Doe's license expires in 10 days", time: "1 hour ago" },
+                        { id: 3, title: "Low Inventory Alert", message: "Brake pads inventory is below minimum threshold", time: "3 hours ago" }
+                    ]);
+                }, 2000);
+            }
+            
+            // Update notification badge
+            function updateNotificationBadge(count) {
+                $("#notificationCount").text(count);
+                if (count > 0) {
+                    $("#notificationCount").show();
+                } else {
+                    $("#notificationCount").hide();
+                }
+            }
+            
+            // Update notification list
+            function updateNotificationList(notifications) {
+                var $list = $("#notificationsList");
+                $list.empty();
+                
+                if (notifications.length === 0) {
+                    $list.append('<li><a class="dropdown-item text-center" href="#">No new notifications</a></li>');
+                    return;
+                }
+                
+                notifications.forEach(function(notification) {
+                    $list.append(
+                        '<li>' +
+                            '<a class="dropdown-item" href="#" data-id="' + notification.id + '">' +
+                                '<strong>' + notification.title + '</strong><br>' +
+                                '<small>' + notification.message + '</small><br>' +
+                                '<small class="text-muted">' + notification.time + '</small>' +
+                            '</a>' +
+                        '</li>'
+                    );
+                });
+                
+                $list.append('<li><hr class="dropdown-divider"></li>');
+                $list.append('<li><a class="dropdown-item text-center" href="/Alert/NotificationCenter">View All Notifications</a></li>');
+            }
+            
+            // Initialize notifications
+            fetchNotifications();
+            
+            // Refresh notifications periodically
+            setInterval(fetchNotifications, 60000); // Every minute
+        });
+    </script>
     
     @await RenderSectionAsync("Scripts", required: false)
 </body>

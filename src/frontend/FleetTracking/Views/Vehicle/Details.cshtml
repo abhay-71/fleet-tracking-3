@@ -1,0 +1,218 @@
+@model FleetTracking.Models.Vehicle
+
+@{
+    ViewData["Title"] = "Vehicle Details";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Vehicle Details</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Vehicle" asp-action="Index">Vehicles</a></li>
+        <li class="breadcrumb-item active">@Model.DisplayName</li>
+    </ol>
+
+    <div class="row">
+        <div class="col-xl-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-car me-1"></i>
+                        Vehicle Information
+                    </div>
+                    <div>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i> Delete
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.RegistrationNumber)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.RegistrationNumber)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.Make)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.Make)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.Model)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.Model)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.Year)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.Year)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.Color)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.Color)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.VIN)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.VIN)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.LicensePlate)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.LicensePlate)</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.Company)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.Company.Name)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.VehicleType)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.VehicleType.Name)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.Status)</dt>
+                                <dd class="col-sm-6">
+                                    <span class="badge @(Model.Status.ToLower() == "active" ? "bg-success" : "bg-secondary")">
+                                        @Html.DisplayFor(model => model.Status)
+                                    </span>
+                                </dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.FuelType)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.FuelType)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.CreatedAt)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.CreatedAt)</dd>
+
+                                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.UpdatedAt)</dt>
+                                <dd class="col-sm-6">@Html.DisplayFor(model => model.UpdatedAt)</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-tachometer-alt me-1"></i>
+                    Status & Metrics
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Fuel Level</label>
+                        <div class="progress">
+                            <div class="progress-bar @(Model.FuelLevelPercentage < 20 ? "bg-danger" : "bg-success")" role="progressbar" 
+                                 style="width: @Model.FuelLevelPercentage%;" 
+                                 aria-valuenow="@Model.FuelLevelPercentage" aria-valuemin="0" aria-valuemax="100">
+                                @Model.FuelLevelPercentage%
+                            </div>
+                        </div>
+                        <small class="text-muted">@Model.CurrentFuelLevel L / @Model.FuelCapacity L</small>
+                    </div>
+
+                    <dl class="row">
+                        <dt class="col-sm-7">@Html.DisplayNameFor(model => model.OdometerReading)</dt>
+                        <dd class="col-sm-5">@Html.DisplayFor(model => model.OdometerReading) km</dd>
+
+                        <dt class="col-sm-7">@Html.DisplayNameFor(model => model.LastServiceDate)</dt>
+                        <dd class="col-sm-5">@(Model.LastServiceDate?.ToString("d") ?? "N/A")</dd>
+
+                        <dt class="col-sm-7">@Html.DisplayNameFor(model => model.NextServiceDate)</dt>
+                        <dd class="col-sm-5">@(Model.NextServiceDate?.ToString("d") ?? "N/A")</dd>
+
+                        <dt class="col-sm-7">@Html.DisplayNameFor(model => model.LastActivityDate)</dt>
+                        <dd class="col-sm-5">@(Model.LastActivityDate?.ToString("g") ?? "N/A")</dd>
+
+                        <dt class="col-sm-7">@Html.DisplayNameFor(model => model.CurrentLocation)</dt>
+                        <dd class="col-sm-5">@Html.DisplayFor(model => model.CurrentLocation)</dd>
+                    </dl>
+
+                    @if (Model.CurrentLatitude.HasValue && Model.CurrentLongitude.HasValue)
+                    {
+                        <div id="map" style="height: 200px;" data-lat="@Model.CurrentLatitude" data-lng="@Model.CurrentLongitude" data-vehicle="@Model.DisplayName"></div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-list me-1"></i>
+                    Recent Trips
+                </div>
+                <div class="card-body">
+                    @if (Model.Trips != null && Model.Trips.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Trip ID</th>
+                                        <th>Start Time</th>
+                                        <th>End Time</th>
+                                        <th>Status</th>
+                                        <th>Driver</th>
+                                        <th>Distance</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var trip in Model.Trips.OrderByDescending(t => t.StartTime).Take(5))
+                                    {
+                                        <tr>
+                                            <td>@trip.Id</td>
+                                            <td>@trip.StartTime.ToString("g")</td>
+                                            <td>@(trip.EndTime?.ToString("g") ?? "In Progress")</td>
+                                            <td>
+                                                <span class="badge @(trip.Status == "completed" ? "bg-success" : (trip.Status == "in-progress" ? "bg-primary" : "bg-secondary"))">
+                                                    @trip.Status
+                                                </span>
+                                            </td>
+                                            <td>@(trip.Driver?.FullName ?? "Unassigned")</td>
+                                            <td>@trip.Distance km</td>
+                                            <td>
+                                                <a asp-controller="Trip" asp-action="Details" asp-route-id="@trip.Id" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-end">
+                            <a asp-controller="Trip" asp-action="Index" asp-route-vehicleId="@Model.Id" class="btn btn-outline-secondary">
+                                View All Trips
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No trips recorded for this vehicle.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize map if coordinates are available
+            var mapElement = document.getElementById('map');
+            if (mapElement) {
+                var lat = parseFloat(mapElement.getAttribute('data-lat'));
+                var lng = parseFloat(mapElement.getAttribute('data-lng'));
+                var vehicleName = mapElement.getAttribute('data-vehicle');
+                
+                var map = L.map('map').setView([lat, lng], 13);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup(vehicleName)
+                    .openPopup();
+            }
+        });
+    </script>
+} 

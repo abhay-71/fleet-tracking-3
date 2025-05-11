@@ -1,5 +1,6 @@
 using FleetTracking.Data;
 using FleetTracking.Hubs;
+using FleetTracking.Middleware;
 using FleetTracking.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -76,7 +77,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.HttpOnly = true;
     options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     options.LoginPath = "/Identity/Account/Login";
-    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+    options.AccessDeniedPath = "/Account/AccessDenied";
     options.SlidingExpiration = true;
 });
 
@@ -97,6 +98,26 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
+// Seed roles and users
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var dbContext = services.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.Migrate();
+        
+        // Seed roles and admin user
+        RoleSeeder.SeedRolesAsync(app.Services).Wait();
+        RoleSeeder.SeedAdminUserAsync(app.Services).Wait();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -104,10 +125,15 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Home/Error");
+    // Use our custom error handling middleware instead of the default exception handler
+    // app.UseExceptionHandler("/Home/Error");
+    
     // The default HSTS value is 30 days. You may want to change this for production scenarios.
     app.UseHsts();
 }
+
+// Add global error handling middleware
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
 // Comment out HTTPS redirection to allow HTTP connections
 // app.UseHttpsRedirection();

@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using FleetTracking.Data;
 using FleetTracking.Models;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace FleetTracking.Controllers
 {
@@ -16,22 +17,37 @@ namespace FleetTracking.Controllers
     public class TripController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<TripController> _logger;
 
-        public TripController(ApplicationDbContext context)
+        public TripController(ApplicationDbContext context, ILogger<TripController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // GET: Trip
         public async Task<IActionResult> Index()
         {
-            var trips = await _context.Trips
-                .Include(t => t.Vehicle)
-                .Include(t => t.Driver)
-                .Include(t => t.Driver.User)
-                .OrderByDescending(t => t.StartTime)
-                .ToListAsync();
-            return View(trips);
+            try
+            {
+                _logger.LogInformation("Retrieving list of all trips");
+
+                var trips = await _context.Trips
+                    .Include(t => t.Vehicle)
+                    .Include(t => t.Driver)
+                    .Include(t => t.Driver.User)
+                    .OrderByDescending(t => t.StartTime)
+                    .ToListAsync();
+
+                _logger.LogInformation("Successfully retrieved {Count} trips", trips.Count);
+                return View(trips);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while retrieving trips list");
+                TempData["ErrorMessage"] = "An error occurred while retrieving the trips. Please try again.";
+                return View(new List<Trip>());
+            }
         }
 
         // GET: Trip/Details/5
@@ -39,58 +55,86 @@ namespace FleetTracking.Controllers
         {
             if (id == null)
             {
+                _logger.LogWarning("Trip Details accessed with null ID");
                 return NotFound();
             }
 
-            var trip = await _context.Trips
-                .Include(t => t.Vehicle)
-                .Include(t => t.Driver)
-                .Include(t => t.Driver.User)
-                .Include(t => t.Waypoints.OrderBy(w => w.SequenceNumber))
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (trip == null)
+            try
             {
-                return NotFound();
-            }
+                _logger.LogInformation("Retrieving details for trip with ID: {Id}", id);
 
-            return View(trip);
+                var trip = await _context.Trips
+                    .Include(t => t.Vehicle)
+                    .Include(t => t.Driver)
+                    .Include(t => t.Driver.User)
+                    .Include(t => t.Waypoints.OrderBy(w => w.SequenceNumber))
+                    .FirstOrDefaultAsync(m => m.Id == id);
+
+                if (trip == null)
+                {
+                    _logger.LogWarning("Trip with ID: {Id} not found", id);
+                    return NotFound();
+                }
+
+                _logger.LogInformation("Successfully retrieved details for trip with ID: {Id}", id);
+                return View(trip);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while retrieving details for trip with ID: {Id}", id);
+                TempData["ErrorMessage"] = "An error occurred while retrieving trip details. Please try again.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // GET: Trip/Create
+        [Authorize(Roles = "Administrator,Manager,Dispatcher")]
         public IActionResult Create()
         {
-            ViewData["VehicleId"] = new SelectList(_context.Vehicles.Where(v => v.Status == "active"), "Id", "DisplayName");
-            
-            // Modify the driver query to avoid null-propagating operator in LINQ expression
-            var driversWithUsers = _context.Drivers
-                .Include(d => d.User)
-                .Where(d => d.Status == "active")
-                .ToList();
+            try
+            {
+                _logger.LogInformation("Accessing trip creation form");
+
+                ViewData["VehicleId"] = new SelectList(_context.Vehicles.Where(v => v.Status == "active"), "Id", "DisplayName");
                 
-            var driverSelectList = driversWithUsers
-                .Select(d => new 
-                {
-                    d.Id,
-                    DriverName = GetDriverName(d.User)
-                });
-                
-            ViewData["DriverId"] = new SelectList(
-                _context.Drivers
+                // Modify the driver query to avoid null-propagating operator in LINQ expression
+                var driversWithUsers = _context.Drivers
                     .Include(d => d.User)
                     .Where(d => d.Status == "active")
-                    .Select(d => new { 
-                        d.Id, 
-                        DriverName = d.User != null ? GetDriverFullName(d.User) : "Unknown Driver"
-                    }),
-                "Id", 
-                "DriverName");
-                
-            return View();
+                    .ToList();
+                    
+                var driverSelectList = driversWithUsers
+                    .Select(d => new 
+                    {
+                        d.Id,
+                        DriverName = GetDriverName(d.User)
+                    });
+                    
+                ViewData["DriverId"] = new SelectList(
+                    _context.Drivers
+                        .Include(d => d.User)
+                        .Where(d => d.Status == "active")
+                        .Select(d => new { 
+                            d.Id, 
+                            DriverName = d.User != null ? GetDriverFullName(d.User) : "Unknown Driver"
+                        }),
+                    "Id", 
+                    "DriverName");
+                    
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while preparing trip creation form");
+                TempData["ErrorMessage"] = "An error occurred while loading the creation form. Please try again.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // POST: Trip/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrator,Manager,Dispatcher")]
         public async Task<IActionResult> Create([Bind("Id,VehicleId,DriverId,StartLocation,EndLocation,StartTime,EndTime,Status,Distance,FuelUsed,AverageSpeed,Notes")] Trip trip, string WaypointsJson, 
             double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude)
         {
@@ -186,6 +230,7 @@ namespace FleetTracking.Controllers
         }
 
         // GET: Trip/Edit/5
+        [Authorize(Roles = "Administrator,Manager,Dispatcher")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -230,6 +275,7 @@ namespace FleetTracking.Controllers
         // POST: Trip/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrator,Manager,Dispatcher")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,VehicleId,DriverId,StartLocation,EndLocation,StartTime,EndTime,Status,Distance,FuelUsed,AverageSpeed,Notes,CreatedAt")] Trip trip,
             string WaypointsJson, double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude)
         {
@@ -336,6 +382,7 @@ namespace FleetTracking.Controllers
         }
 
         // GET: Trip/Delete/5
+        [Authorize(Roles = "Administrator,Manager")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -359,6 +406,7 @@ namespace FleetTracking.Controllers
         // POST: Trip/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrator,Manager")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var trip = await _context.Trips.FindAsync(id);
@@ -377,6 +425,7 @@ namespace FleetTracking.Controllers
         }
 
         // GET: Trip/AddWaypoint/5
+        [Authorize(Roles = "Administrator,Manager,Dispatcher")]
         public async Task<IActionResult> AddWaypoint(int? id)
         {
             if (id == null)
@@ -409,6 +458,7 @@ namespace FleetTracking.Controllers
         // POST: Trip/AddWaypoint
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrator,Manager,Dispatcher")]
         public async Task<IActionResult> AddWaypoint([Bind("Id,TripId,LocationName,Latitude,Longitude,Sequence,ActualArrival,ActualDeparture,Status,Notes")] Waypoint waypoint)
         {
             if (ModelState.IsValid)
@@ -439,6 +489,7 @@ namespace FleetTracking.Controllers
         }
         
         // GET: Trip/Analytics
+        [Authorize(Roles = "Administrator,Manager,Dispatcher")]
         public async Task<IActionResult> Analytics()
         {
             // Get all completed trips for analytics

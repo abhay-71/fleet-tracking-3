@@ -1,0 +1,385 @@
+@model FleetTracking.Controllers.GlobalSearchViewModel
+
+@{
+    ViewData["Title"] = "Search Results";
+    ViewBag.Breadcrumbs = new[]
+    {
+        new { Title = "Search", Url = "#", IsActive = true }
+    };
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form asp-controller="Home" asp-action="Search" method="get" class="mb-0">
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-lg" id="searchQuery" name="query" 
+                                   value="@Model.Query" placeholder="Search vehicles, drivers, trips, etc...">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search me-1"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Query))
+    {
+        <h4>Search Results for "@Model.Query" <span class="badge bg-primary">@Model.TotalResults Results</span></h4>
+
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i> @Model.Error
+            </div>
+        }
+        else if (Model.TotalResults == 0)
+        {
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No results found. Try adjusting your search terms.
+            </div>
+        }
+        else
+        {
+            <ul class="nav nav-tabs mb-3" id="searchResultTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" 
+                            type="button" role="tab" aria-controls="all" aria-selected="true">
+                        All Results <span class="badge bg-secondary">@Model.TotalResults</span>
+                    </button>
+                </li>
+                @if (Model.Vehicles.Any())
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="vehicles-tab" data-bs-toggle="tab" data-bs-target="#vehicles" 
+                                type="button" role="tab" aria-controls="vehicles" aria-selected="false">
+                            Vehicles <span class="badge bg-secondary">@Model.Vehicles.Count</span>
+                        </button>
+                    </li>
+                }
+                @if (Model.Drivers.Any())
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="drivers-tab" data-bs-toggle="tab" data-bs-target="#drivers" 
+                                type="button" role="tab" aria-controls="drivers" aria-selected="false">
+                            Drivers <span class="badge bg-secondary">@Model.Drivers.Count</span>
+                        </button>
+                    </li>
+                }
+                @if (Model.Trips.Any())
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="trips-tab" data-bs-toggle="tab" data-bs-target="#trips" 
+                                type="button" role="tab" aria-controls="trips" aria-selected="false">
+                            Trips <span class="badge bg-secondary">@Model.Trips.Count</span>
+                        </button>
+                    </li>
+                }
+                @if (Model.Vendors.Any())
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="vendors-tab" data-bs-toggle="tab" data-bs-target="#vendors" 
+                                type="button" role="tab" aria-controls="vendors" aria-selected="false">
+                            Vendors <span class="badge bg-secondary">@Model.Vendors.Count</span>
+                        </button>
+                    </li>
+                }
+                @if (Model.Inventory.Any())
+                {
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" 
+                                type="button" role="tab" aria-controls="inventory" aria-selected="false">
+                            Inventory <span class="badge bg-secondary">@Model.Inventory.Count</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+
+            <div class="tab-content" id="searchResultTabsContent">
+                <!-- All Results Tab -->
+                <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                    @if (Model.Vehicles.Any())
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-truck-moving me-2"></i> Vehicles</h5>
+                                    <a href="#vehicles" data-bs-toggle="tab" data-bs-target="#vehicles" class="btn btn-sm btn-outline-primary">View All</a>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>License Plate</th>
+                                                <th>Type</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var vehicle in Model.Vehicles.Take(3))
+                                            {
+                                                <tr>
+                                                    <td>@vehicle.Name</td>
+                                                    <td>@vehicle.LicensePlate</td>
+                                                    <td>@vehicle.VehicleType</td>
+                                                    <td>
+                                                        @switch (vehicle.Status?.ToLower())
+                                                        {
+                                                            case "active":
+                                                                <span class="badge bg-success">Active</span>
+                                                                break;
+                                                            case "maintenance":
+                                                                <span class="badge bg-warning text-dark">Maintenance</span>
+                                                                break;
+                                                            case "inactive":
+                                                                <span class="badge bg-secondary">Inactive</span>
+                                                                break;
+                                                            default:
+                                                                <span class="badge bg-info">@vehicle.Status</span>
+                                                                break;
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <a asp-controller="Vehicle" asp-action="Details" asp-route-id="@vehicle.Id" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-info-circle"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if (Model.Vehicles.Count > 3)
+                                {
+                                    <div class="card-footer text-center">
+                                        <a href="#vehicles" data-bs-toggle="tab" data-bs-target="#vehicles" class="btn btn-link">
+                                            Show all @Model.Vehicles.Count vehicles
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.Drivers.Any())
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-id-card me-2"></i> Drivers</h5>
+                                    <a href="#drivers" data-bs-toggle="tab" data-bs-target="#drivers" class="btn btn-sm btn-outline-primary">View All</a>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>License</th>
+                                                <th>Phone</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var driver in Model.Drivers.Take(3))
+                                            {
+                                                <tr>
+                                                    <td>@driver.Name</td>
+                                                    <td>@driver.LicenseNumber</td>
+                                                    <td>@driver.Phone</td>
+                                                    <td>
+                                                        @switch (driver.Status?.ToLower())
+                                                        {
+                                                            case "active":
+                                                                <span class="badge bg-success">Active</span>
+                                                                break;
+                                                            case "on leave":
+                                                                <span class="badge bg-warning text-dark">On Leave</span>
+                                                                break;
+                                                            case "inactive":
+                                                                <span class="badge bg-secondary">Inactive</span>
+                                                                break;
+                                                            default:
+                                                                <span class="badge bg-info">@driver.Status</span>
+                                                                break;
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <a asp-controller="Driver" asp-action="Details" asp-route-id="@driver.Id" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-info-circle"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if (Model.Drivers.Count > 3)
+                                {
+                                    <div class="card-footer text-center">
+                                        <a href="#drivers" data-bs-toggle="tab" data-bs-target="#drivers" class="btn btn-link">
+                                            Show all @Model.Drivers.Count drivers
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Show other entity previews in a similar way -->
+                </div>
+
+                <!-- Vehicles Tab -->
+                <div class="tab-pane fade" id="vehicles" role="tabpanel" aria-labelledby="vehicles-tab">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-truck-moving me-2"></i> Vehicles (@Model.Vehicles.Count)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="vehiclesTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>License Plate</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var vehicle in Model.Vehicles)
+                                        {
+                                            <tr>
+                                                <td>@vehicle.Name</td>
+                                                <td>@vehicle.LicensePlate</td>
+                                                <td>@vehicle.VehicleType</td>
+                                                <td>
+                                                    @switch (vehicle.Status?.ToLower())
+                                                    {
+                                                        case "active":
+                                                            <span class="badge bg-success">Active</span>
+                                                            break;
+                                                        case "maintenance":
+                                                            <span class="badge bg-warning text-dark">Maintenance</span>
+                                                            break;
+                                                        case "inactive":
+                                                            <span class="badge bg-secondary">Inactive</span>
+                                                            break;
+                                                        default:
+                                                            <span class="badge bg-info">@vehicle.Status</span>
+                                                            break;
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <a asp-controller="Vehicle" asp-action="Details" asp-route-id="@vehicle.Id" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-info-circle"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Drivers Tab -->
+                <div class="tab-pane fade" id="drivers" role="tabpanel" aria-labelledby="drivers-tab">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-id-card me-2"></i> Drivers (@Model.Drivers.Count)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="driversTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>License</th>
+                                            <th>Phone</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var driver in Model.Drivers)
+                                        {
+                                            <tr>
+                                                <td>@driver.Name</td>
+                                                <td>@driver.LicenseNumber</td>
+                                                <td>@driver.Phone</td>
+                                                <td>
+                                                    @switch (driver.Status?.ToLower())
+                                                    {
+                                                        case "active":
+                                                            <span class="badge bg-success">Active</span>
+                                                            break;
+                                                        case "on leave":
+                                                            <span class="badge bg-warning text-dark">On Leave</span>
+                                                            break;
+                                                        case "inactive":
+                                                            <span class="badge bg-secondary">Inactive</span>
+                                                            break;
+                                                        default:
+                                                            <span class="badge bg-info">@driver.Status</span>
+                                                            break;
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <a asp-controller="Driver" asp-action="Details" asp-route-id="@driver.Id" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-info-circle"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Similar tabs for Trips, Vendors, and Inventory -->
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTables for better search result interaction
+            $("#vehiclesTable, #driversTable").DataTable({
+                pageLength: 10,
+                lengthChange: false,
+                ordering: true,
+                info: true,
+                autoWidth: false,
+                responsive: true,
+                language: {
+                    search: "Filter results:"
+                }
+            });
+            
+            // Handle tab navigation from links
+            $('a[data-bs-toggle="tab"]').on('click', function (e) {
+                $($(this).data('bs-target')).tab('show');
+                $('html, body').animate({
+                    scrollTop: $("#searchResultTabs").offset().top - 100
+                }, 200);
+            });
+        });
+    </script>
+} 

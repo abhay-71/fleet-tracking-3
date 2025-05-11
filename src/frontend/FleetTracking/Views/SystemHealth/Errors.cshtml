@@ -1,0 +1,324 @@
+@model List<FleetTracking.Models.SystemError>
+
+@{
+    ViewData["Title"] = "System Errors";
+}
+
+<div class="container-fluid">
+    <h1 class="mt-2 mb-4">
+        <i class="fas fa-exclamation-triangle me-2"></i> System Errors
+    </h1>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="m-0"><i class="fas fa-bug me-2"></i> Error Log</h5>
+                        <div>
+                            <button id="refreshErrors" class="btn btn-light btn-sm me-2">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item filter-errors" data-filter="all" href="#">All Errors</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item filter-errors" data-filter="today" href="#">Today</a></li>
+                                    <li><a class="dropdown-item filter-errors" data-filter="week" href="#">Last 7 Days</a></li>
+                                    <li><a class="dropdown-item filter-errors" data-filter="month" href="#">Last 30 Days</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item filter-errors" data-filter="api" href="#">API Errors</a></li>
+                                    <li><a class="dropdown-item filter-errors" data-filter="database" href="#">Database Errors</a></li>
+                                    <li><a class="dropdown-item filter-errors" data-filter="security" href="#">Security Errors</a></li>
+                                    <li><a class="dropdown-item filter-errors" data-filter="application" href="#">Application Errors</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model != null && Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table id="errorsTable" class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Source</th>
+                                        <th>Message</th>
+                                        <th>Exception Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var error in Model)
+                                    {
+                                        <tr data-error-id="@error.GetHashCode()">
+                                            <td>@error.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                            <td>
+                                                <span class="badge bg-secondary">@error.Source</span>
+                                            </td>
+                                            <td class="text-truncate" style="max-width: 300px;">@error.Message</td>
+                                            <td class="text-truncate" style="max-width: 200px;">@error.ExceptionType</td>
+                                            <td>
+                                                <button type="button" class="btn btn-info btn-sm view-details" data-error-id="@error.GetHashCode()">
+                                                    <i class="fas fa-info-circle"></i> Details
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success text-center">
+                            <i class="fas fa-check-circle fa-2x mb-3"></i>
+                            <h5>No System Errors!</h5>
+                            <p class="mb-0">The system is running without any logged errors.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-chart-pie me-2"></i> Error Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Errors by Source</h6>
+                            <canvas id="errorsBySourceChart" height="250"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Errors by Time</h6>
+                            <canvas id="errorsByTimeChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Details Modal -->
+<div class="modal fade" id="errorDetailsModal" tabindex="-1" aria-labelledby="errorDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorDetailsModalLabel">
+                    <i class="fas fa-exclamation-circle me-2"></i> Error Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Timestamp:</label>
+                            <p id="error-timestamp" class="mb-0"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Source:</label>
+                            <p id="error-source" class="mb-0"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Message:</label>
+                    <p id="error-message" class="mb-0"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Exception Type:</label>
+                    <p id="error-exception-type" class="mb-0"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Stack Trace:</label>
+                    <pre id="error-stack-trace" class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function () {
+            // Initialize DataTable
+            const errorsTable = $('#errorsTable').DataTable({
+                responsive: true,
+                order: [[0, 'desc']], // Sort by timestamp desc
+                pageLength: 25,
+                lengthMenu: [10, 25, 50, 100],
+                language: {
+                    search: "Search errors:"
+                }
+            });
+
+            // Refresh errors
+            $('#refreshErrors').on('click', function () {
+                location.reload();
+            });
+
+            // Filter errors
+            $('.filter-errors').on('click', function (e) {
+                e.preventDefault();
+                const filter = $(this).data('filter');
+                let searchValue = '';
+
+                switch (filter) {
+                    case 'today':
+                        const today = new Date().toISOString().split('T')[0];
+                        searchValue = today;
+                        break;
+                    case 'api':
+                        searchValue = 'API';
+                        break;
+                    case 'database':
+                        searchValue = 'Database';
+                        break;
+                    case 'security':
+                        searchValue = 'Security';
+                        break;
+                    case 'application':
+                        searchValue = 'Application';
+                        break;
+                    default:
+                        searchValue = '';
+                }
+
+                errorsTable.search(searchValue).draw();
+            });
+
+            // View error details
+            $('.view-details').on('click', function () {
+                const errorId = $(this).data('error-id');
+                const row = $(`tr[data-error-id="${errorId}"]`);
+                
+                // In a real application, you would fetch the detailed error information
+                // from the server based on the errorId. Here we're just displaying the row data.
+                const timestamp = row.find('td:eq(0)').text();
+                const source = row.find('td:eq(1)').text();
+                const message = row.find('td:eq(2)').text();
+                const exceptionType = row.find('td:eq(3)').text();
+                
+                // For demonstration purposes, generate a fake stack trace
+                const stackTrace = `${exceptionType}: ${message}\n   at FleetTracking.Controllers.${source}Controller.Index() in ${source}Controller.cs:line 42\n   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute()\n   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0()`;
+                
+                // Populate modal
+                $('#error-timestamp').text(timestamp);
+                $('#error-source').text(source);
+                $('#error-message').text(message);
+                $('#error-exception-type').text(exceptionType);
+                $('#error-stack-trace').text(stackTrace);
+                
+                // Show modal
+                $('#errorDetailsModal').modal('show');
+            });
+
+            // Create sample data for charts
+            const createErrorsBySourceChart = () => {
+                const canvas = document.getElementById('errorsBySourceChart');
+                if (!canvas) return;
+
+                // In a real application, this data would come from the server
+                const data = {
+                    labels: ['API', 'Database', 'Application', 'Security', 'Network'],
+                    datasets: [{
+                        data: [12, 8, 5, 3, 2],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+
+                new Chart(canvas, {
+                    type: 'pie',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right'
+                            }
+                        }
+                    }
+                });
+            };
+
+            const createErrorsByTimeChart = () => {
+                const canvas = document.getElementById('errorsByTimeChart');
+                if (!canvas) return;
+
+                // In a real application, this data would come from the server
+                const labels = [];
+                const data = [];
+                
+                // Generate labels for the last 7 days
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    data.push(Math.floor(Math.random() * 10)); // Random data for demonstration
+                }
+
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Number of Errors',
+                            data: data,
+                            fill: true,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0 // Only show whole numbers
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            // Initialize charts
+            createErrorsBySourceChart();
+            createErrorsByTimeChart();
+        });
+    </script>
+} 

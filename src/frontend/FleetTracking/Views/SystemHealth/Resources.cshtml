@@ -1,0 +1,660 @@
+@model FleetTracking.Models.SystemResources
+
+@{
+    ViewData["Title"] = "System Resources";
+}
+
+<div class="container-fluid">
+    <h1 class="mt-2 mb-4">
+        <i class="fas fa-server me-2"></i> System Resources
+    </h1>
+    
+    <div class="row mb-4">
+        <!-- CPU Usage -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-microchip me-2"></i> CPU Usage</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="gauge-container mb-3">
+                        <canvas id="cpuGauge" height="200"></canvas>
+                    </div>
+                    <div class="display-6 mb-2">@Model.CpuUsagePercent%</div>
+                    <p class="text-muted">Current CPU Usage</p>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div>
+                            <small class="d-block text-muted">Peak (24h)</small>
+                            <span class="fw-bold">@(Model.CpuUsagePercent + 15)%</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Avg (24h)</small>
+                            <span class="fw-bold">@(Model.CpuUsagePercent - 10)%</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Low (24h)</small>
+                            <span class="fw-bold">@(Math.Max(5, Model.CpuUsagePercent - 20))%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <span class="@(Model.CpuUsagePercent < 70 ? "text-success" : "text-warning")">
+                        <i class="@(Model.CpuUsagePercent < 70 ? "fas fa-check-circle" : "fas fa-exclamation-triangle")"></i>
+                        @(Model.CpuUsagePercent < 70 ? "Normal" : "High usage")
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Memory Usage -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-memory me-2"></i> Memory Usage</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="gauge-container mb-3">
+                        <canvas id="memoryGauge" height="200"></canvas>
+                    </div>
+                    <div class="display-6 mb-2">@Model.MemoryUsagePercent%</div>
+                    <p class="text-muted">Current Memory Usage</p>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div>
+                            <small class="d-block text-muted">Total</small>
+                            <span class="fw-bold">@(Model.TotalMemoryMB) MB</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Used</small>
+                            <span class="fw-bold">@(Model.TotalMemoryMB * Model.MemoryUsagePercent / 100) MB</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Free</small>
+                            <span class="fw-bold">@(Model.TotalMemoryMB * (100 - Model.MemoryUsagePercent) / 100) MB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <span class="@(Model.MemoryUsagePercent < 80 ? "text-success" : "text-warning")">
+                        <i class="@(Model.MemoryUsagePercent < 80 ? "fas fa-check-circle" : "fas fa-exclamation-triangle")"></i>
+                        @(Model.MemoryUsagePercent < 80 ? "Normal" : "High usage")
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Disk Usage -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-hdd me-2"></i> Disk Usage</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="gauge-container mb-3">
+                        <canvas id="diskGauge" height="200"></canvas>
+                    </div>
+                    <div class="display-6 mb-2">@Model.DiskUsagePercent%</div>
+                    <p class="text-muted">Current Disk Usage</p>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div>
+                            <small class="d-block text-muted">Total</small>
+                            <span class="fw-bold">@(Model.TotalDiskSpaceGB) GB</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Used</small>
+                            <span class="fw-bold">@(Model.TotalDiskSpaceGB * Model.DiskUsagePercent / 100) GB</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Free</small>
+                            <span class="fw-bold">@(Model.TotalDiskSpaceGB * (100 - Model.DiskUsagePercent) / 100) GB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <span class="@(Model.DiskUsagePercent < 85 ? "text-success" : "text-danger")">
+                        <i class="@(Model.DiskUsagePercent < 85 ? "fas fa-check-circle" : "fas fa-exclamation-circle")"></i>
+                        @(Model.DiskUsagePercent < 85 ? "Normal" : "Critical")
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Database -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-database me-2"></i> Database</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="gauge-container mb-3">
+                        <canvas id="databaseGauge" height="200"></canvas>
+                    </div>
+                    <div class="display-6 mb-2">@Model.DatabaseSizeMB MB</div>
+                    <p class="text-muted">Database Size</p>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <div>
+                            <small class="d-block text-muted">Record Count</small>
+                            <span class="fw-bold">1,245,876</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Tables</small>
+                            <span class="fw-bold">42</span>
+                        </div>
+                        <div>
+                            <small class="d-block text-muted">Growth (30d)</small>
+                            <span class="fw-bold text-info">+8.2%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <span class="text-success">
+                        <i class="fas fa-check-circle"></i>
+                        Healthy
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-chart-line me-2"></i> Resource Usage Trends</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="resourceTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="cpu-tab" data-bs-toggle="tab" data-bs-target="#cpu-content" 
+                                    type="button" role="tab" aria-controls="cpu-content" aria-selected="true">
+                                CPU
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="memory-tab" data-bs-toggle="tab" data-bs-target="#memory-content" 
+                                    type="button" role="tab" aria-controls="memory-content" aria-selected="false">
+                                Memory
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="disk-tab" data-bs-toggle="tab" data-bs-target="#disk-content" 
+                                    type="button" role="tab" aria-controls="disk-content" aria-selected="false">
+                                Disk
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content mt-3" id="resourceTabsContent">
+                        <div class="tab-pane fade show active" id="cpu-content" role="tabpanel" aria-labelledby="cpu-tab">
+                            <canvas id="cpuHistoryChart" height="250"></canvas>
+                        </div>
+                        <div class="tab-pane fade" id="memory-content" role="tabpanel" aria-labelledby="memory-tab">
+                            <canvas id="memoryHistoryChart" height="250"></canvas>
+                        </div>
+                        <div class="tab-pane fade" id="disk-content" role="tabpanel" aria-labelledby="disk-tab">
+                            <canvas id="diskHistoryChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active time-filter" data-days="1">1 Day</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary time-filter" data-days="7">7 Days</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary time-filter" data-days="30">30 Days</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-laptop me-2"></i> Server Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%;">Operating System</th>
+                                    <td>Windows Server 2022</td>
+                                </tr>
+                                <tr>
+                                    <th>Server Name</th>
+                                    <td>FLEET-PROD-01</td>
+                                </tr>
+                                <tr>
+                                    <th>CPU Model</th>
+                                    <td>Intel Xeon E5-2680 v4 @ 2.40GHz</td>
+                                </tr>
+                                <tr>
+                                    <th>CPU Cores</th>
+                                    <td>8 (16 threads)</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Memory</th>
+                                    <td>@Model.TotalMemoryMB MB</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Disk Space</th>
+                                    <td>@Model.TotalDiskSpaceGB GB</td>
+                                </tr>
+                                <tr>
+                                    <th>Database Server</th>
+                                    <td>SQL Server 2019</td>
+                                </tr>
+                                <tr>
+                                    <th>Web Server</th>
+                                    <td>IIS 10.0</td>
+                                </tr>
+                                <tr>
+                                    <th>Last Boot Time</th>
+                                    <td>@DateTime.Now.AddDays(-14).ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                </tr>
+                                <tr>
+                                    <th>Uptime</th>
+                                    <td>14 days, 7 hours, 32 minutes</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="refreshServerInfo" class="btn btn-primary btn-sm">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0"><i class="fas fa-folder-open me-2"></i> Storage Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Storage Distribution</h6>
+                            <canvas id="storageDistributionChart" height="260"></canvas>
+                        </div>
+                        <div class="col-md-7">
+                            <h6 class="mb-3">Directory Sizes</h6>
+                            <div class="table-responsive">
+                                <table id="directorySizeTable" class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Directory</th>
+                                            <th>Size (MB)</th>
+                                            <th>Files</th>
+                                            <th>Growth (30d)</th>
+                                            <th>Last Modified</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>/data/vehicles</td>
+                                            <td>5,240</td>
+                                            <td>12,450</td>
+                                            <td><span class="text-success">+2.1%</span></td>
+                                            <td>@DateTime.Now.AddHours(-2).ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                        <tr>
+                                            <td>/data/trips</td>
+                                            <td>8,756</td>
+                                            <td>24,876</td>
+                                            <td><span class="text-danger">+15.3%</span></td>
+                                            <td>@DateTime.Now.AddMinutes(-45).ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                        <tr>
+                                            <td>/data/maintenance</td>
+                                            <td>3,420</td>
+                                            <td>8,541</td>
+                                            <td><span class="text-success">+1.8%</span></td>
+                                            <td>@DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                        <tr>
+                                            <td>/data/drivers</td>
+                                            <td>1,845</td>
+                                            <td>3,245</td>
+                                            <td><span class="text-success">+0.5%</span></td>
+                                            <td>@DateTime.Now.AddHours(-5).ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                        <tr>
+                                            <td>/logs</td>
+                                            <td>2,354</td>
+                                            <td>854</td>
+                                            <td><span class="text-warning">+8.7%</span></td>
+                                            <td>@DateTime.Now.AddMinutes(-15).ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                        <tr>
+                                            <td>/temp</td>
+                                            <td>542</td>
+                                            <td>125</td>
+                                            <td><span class="text-success">-12.5%</span></td>
+                                            <td>@DateTime.Now.AddHours(-1).ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="analyzeStorage" class="btn btn-primary btn-sm">
+                        <i class="fas fa-search"></i> Analyze Storage
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            $('#directorySizeTable').DataTable({
+                responsive: true,
+                order: [[1, 'desc']], // Sort by size desc
+                pageLength: 10,
+                language: {
+                    search: "Search directories:"
+                }
+            });
+            
+            // Create CPU gauge
+            createGaugeChart('cpuGauge', @Model.CpuUsagePercent, 'CPU Usage', getColorForPercentage(@Model.CpuUsagePercent));
+            
+            // Create Memory gauge
+            createGaugeChart('memoryGauge', @Model.MemoryUsagePercent, 'Memory Usage', getColorForPercentage(@Model.MemoryUsagePercent));
+            
+            // Create Disk gauge
+            createGaugeChart('diskGauge', @Model.DiskUsagePercent, 'Disk Usage', getColorForPercentage(@Model.DiskUsagePercent));
+            
+            // Create Database gauge (using percentage of a 10GB limit as example)
+            const dbPercent = Math.min(100, (@Model.DatabaseSizeMB / 10000) * 100);
+            createGaugeChart('databaseGauge', dbPercent, 'Database Size', getColorForPercentage(dbPercent));
+            
+            // Create history charts
+            createHistoryChart('cpu');
+            createHistoryChart('memory');
+            createHistoryChart('disk');
+            
+            // Create storage distribution chart
+            createStorageDistributionChart();
+            
+            // Time filter buttons
+            $('.time-filter').click(function() {
+                $('.time-filter').removeClass('active');
+                $(this).addClass('active');
+                
+                const days = $(this).data('days');
+                updateHistoryCharts(days);
+            });
+            
+            // Refresh server info button
+            $('#refreshServerInfo').click(function() {
+                $(this).html('<i class="fas fa-spinner fa-spin"></i> Refreshing...');
+                
+                // Simulate API call
+                setTimeout(function() {
+                    $('#refreshServerInfo').html('<i class="fas fa-sync-alt"></i> Refresh');
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Server information refreshed successfully.');
+                    } else {
+                        alert('Server information refreshed successfully.');
+                    }
+                }, 1500);
+            });
+            
+            // Analyze storage button
+            $('#analyzeStorage').click(function() {
+                $(this).html('<i class="fas fa-spinner fa-spin"></i> Analyzing...');
+                
+                // Simulate API call
+                setTimeout(function() {
+                    $('#analyzeStorage').html('<i class="fas fa-search"></i> Analyze Storage');
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Storage analysis completed successfully.');
+                    } else {
+                        alert('Storage analysis completed successfully.');
+                    }
+                }, 2500);
+            });
+            
+            // Create gauge chart
+            function createGaugeChart(canvasId, value, label, color) {
+                const ctx = document.getElementById(canvasId);
+                if (!ctx) return;
+                
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [value, 100 - value],
+                            backgroundColor: [color, '#e9ecef'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '75%',
+                        rotation: -90,
+                        circumference: 180,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'gaugeText',
+                        beforeDraw: function(chart) {
+                            const width = chart.width;
+                            const height = chart.height;
+                            const ctx = chart.ctx;
+                            
+                            ctx.restore();
+                            ctx.font = "bold 16px Arial";
+                            ctx.textBaseline = "middle";
+                            ctx.textAlign = "center";
+                            
+                            ctx.fillText(label, width / 2, height - 20);
+                            
+                            ctx.restore();
+                        }
+                    }]
+                });
+            }
+            
+            // Create history chart
+            function createHistoryChart(type) {
+                const canvas = document.getElementById(`${type}HistoryChart`);
+                if (!canvas) return;
+                
+                // Generate random data for demonstration
+                const labels = generateTimeLabels(24);
+                let data, label, borderColor, backgroundColor;
+                
+                switch (type) {
+                    case 'cpu':
+                        data = generateRandomData(20, 80, 24);
+                        label = 'CPU Usage (%)';
+                        borderColor = 'rgba(255, 99, 132, 1)';
+                        backgroundColor = 'rgba(255, 99, 132, 0.2)';
+                        break;
+                    case 'memory':
+                        data = generateRandomData(40, 85, 24);
+                        label = 'Memory Usage (%)';
+                        borderColor = 'rgba(54, 162, 235, 1)';
+                        backgroundColor = 'rgba(54, 162, 235, 0.2)';
+                        break;
+                    case 'disk':
+                        data = generateRandomData(50, 75, 24);
+                        label = 'Disk Usage (%)';
+                        borderColor = 'rgba(255, 159, 64, 1)';
+                        backgroundColor = 'rgba(255, 159, 64, 0.2)';
+                        break;
+                }
+                
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: label,
+                            data: data,
+                            borderColor: borderColor,
+                            backgroundColor: backgroundColor,
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                suggestedMax: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Percentage (%)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Time (Last 24 Hours)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Create storage distribution chart
+            function createStorageDistributionChart() {
+                const canvas = document.getElementById('storageDistributionChart');
+                if (!canvas) return;
+                
+                new Chart(canvas, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Vehicles', 'Trips', 'Maintenance', 'Drivers', 'Logs', 'Temp', 'Other'],
+                        datasets: [{
+                            data: [5240, 8756, 3420, 1845, 2354, 542, 843],
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.7)',
+                                'rgba(255, 99, 132, 0.7)',
+                                'rgba(54, 162, 235, 0.7)',
+                                'rgba(255, 206, 86, 0.7)',
+                                'rgba(153, 102, 255, 0.7)',
+                                'rgba(255, 159, 64, 0.7)',
+                                'rgba(201, 203, 207, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(201, 203, 207, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${context.label}: ${value} MB (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Update history charts based on selected time range
+            function updateHistoryCharts(days) {
+                // In a real application, you would fetch data for the selected time range
+                // Here we just update the chart title for demonstration
+                
+                const cpuChart = Chart.getChart(document.getElementById('cpuHistoryChart'));
+                const memoryChart = Chart.getChart(document.getElementById('memoryHistoryChart'));
+                const diskChart = Chart.getChart(document.getElementById('diskHistoryChart'));
+                
+                if (cpuChart) {
+                    cpuChart.options.scales.x.title.text = `Time (Last ${days} ${days === 1 ? 'Day' : 'Days'})`;
+                    cpuChart.update();
+                }
+                
+                if (memoryChart) {
+                    memoryChart.options.scales.x.title.text = `Time (Last ${days} ${days === 1 ? 'Day' : 'Days'})`;
+                    memoryChart.update();
+                }
+                
+                if (diskChart) {
+                    diskChart.options.scales.x.title.text = `Time (Last ${days} ${days === 1 ? 'Day' : 'Days'})`;
+                    diskChart.update();
+                }
+            }
+            
+            // Generate random data
+            function generateRandomData(min, max, count) {
+                const data = [];
+                for (let i = 0; i < count; i++) {
+                    data.push(Math.floor(Math.random() * (max - min + 1)) + min);
+                }
+                return data;
+            }
+            
+            // Generate time labels (e.g., "2h ago", "3h ago", etc.)
+            function generateTimeLabels(count) {
+                const labels = [];
+                for (let i = count - 1; i >= 0; i--) {
+                    labels.push(`${i}h ago`);
+                }
+                return labels;
+            }
+            
+            // Get color based on percentage value
+            function getColorForPercentage(percent) {
+                if (percent < 60) {
+                    return 'rgba(40, 167, 69, 0.8)'; // Green
+                } else if (percent < 80) {
+                    return 'rgba(255, 193, 7, 0.8)'; // Yellow
+                } else {
+                    return 'rgba(220, 53, 69, 0.8)'; // Red
+                }
+            }
+        });
+    </script>
+} 

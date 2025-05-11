@@ -1,0 +1,183 @@
+@model FleetTracking.Models.Notification
+
+@{
+    ViewData["Title"] = "Create Notification";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-bell me-2"></i> Create New Notification</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">Title</label>
+                            <input asp-for="Title" class="form-control" placeholder="Enter notification title" required />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Message" class="form-label">Message</label>
+                            <textarea asp-for="Message" class="form-control" rows="4" placeholder="Enter notification message" required></textarea>
+                            <span asp-validation-for="Message" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Type" class="form-label">Notification Type</label>
+                                <select asp-for="Type" class="form-select" required>
+                                    <option value="">-- Select Type --</option>
+                                    <option value="@NotificationType.Info">Information</option>
+                                    <option value="@NotificationType.Success">Success</option>
+                                    <option value="@NotificationType.Warning">Warning</option>
+                                    <option value="@NotificationType.Error">Error</option>
+                                    <option value="@NotificationType.System">System</option>
+                                    <option value="@NotificationType.Alert">Alert</option>
+                                </select>
+                                <span asp-validation-for="Type" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="UserId" class="form-label">User ID (Optional)</label>
+                                <input asp-for="UserId" class="form-control" placeholder="Leave empty for broadcast" />
+                                <span asp-validation-for="UserId" class="text-danger"></span>
+                                <div class="form-text">Leave empty to send to all users</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="LinkUrl" class="form-label">Link URL (Optional)</label>
+                            <input asp-for="LinkUrl" class="form-control" placeholder="e.g., /Vehicle/Details/1" />
+                            <span asp-validation-for="LinkUrl" class="text-danger"></span>
+                            <div class="form-text">URL that will be opened when the user clicks on the notification</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="EntityType" class="form-label">Entity Type (Optional)</label>
+                                <input asp-for="EntityType" class="form-control" placeholder="e.g., Vehicle, Driver, Trip" />
+                                <span asp-validation-for="EntityType" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="EntityId" class="form-label">Entity ID (Optional)</label>
+                                <input asp-for="EntityId" class="form-control" type="number" placeholder="e.g., 1, 2, 3" />
+                                <span asp-validation-for="EntityId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsSystem" class="form-check-input" type="checkbox" />
+                                <label asp-for="IsSystem" class="form-check-label">Mark as System Notification</label>
+                            </div>
+                            <div class="form-text">System notifications are highlighted differently and may receive special treatment</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i> Send Notification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Preview notification based on type selection
+            $('#Type').change(function() {
+                var selectedType = $(this).val();
+                var previewColor = '';
+                var previewIcon = '';
+                
+                switch (selectedType) {
+                    case '@((int)NotificationType.Info)':
+                        previewColor = 'primary';
+                        previewIcon = 'info-circle';
+                        break;
+                    case '@((int)NotificationType.Success)':
+                        previewColor = 'success';
+                        previewIcon = 'check-circle';
+                        break;
+                    case '@((int)NotificationType.Warning)':
+                        previewColor = 'warning';
+                        previewIcon = 'exclamation-triangle';
+                        break;
+                    case '@((int)NotificationType.Error)':
+                        previewColor = 'danger';
+                        previewIcon = 'exclamation-circle';
+                        break;
+                    case '@((int)NotificationType.System)':
+                        previewColor = 'secondary';
+                        previewIcon = 'cog';
+                        break;
+                    case '@((int)NotificationType.Alert)':
+                        previewColor = 'info';
+                        previewIcon = 'bell';
+                        break;
+                    default:
+                        previewColor = 'primary';
+                        previewIcon = 'bell';
+                }
+                
+                // Update the card header to preview the notification type
+                $('.card-header')
+                    .removeClass('bg-primary bg-success bg-warning bg-danger bg-secondary bg-info')
+                    .addClass('bg-' + previewColor);
+                    
+                $('.card-header i')
+                    .removeClass('fa-bell fa-info-circle fa-check-circle fa-exclamation-triangle fa-exclamation-circle fa-cog')
+                    .addClass('fa-' + previewIcon);
+            });
+            
+            // Form validation
+            $('form').submit(function(e) {
+                var title = $('#Title').val().trim();
+                var message = $('#Message').val().trim();
+                var type = $('#Type').val();
+                
+                if (!title || !message || !type) {
+                    e.preventDefault();
+                    
+                    if (!title) {
+                        $('#Title').addClass('is-invalid');
+                    }
+                    
+                    if (!message) {
+                        $('#Message').addClass('is-invalid');
+                    }
+                    
+                    if (!type) {
+                        $('#Type').addClass('is-invalid');
+                    }
+                    
+                    toastr.error('Please fill in all required fields');
+                }
+            });
+            
+            // Clear validation on input
+            $('input, textarea, select').on('input change', function() {
+                $(this).removeClass('is-invalid');
+            });
+            
+            // Initialize toastr
+            toastr.options = {
+                closeButton: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                timeOut: 3000
+            };
+        });
+    </script>
+} 

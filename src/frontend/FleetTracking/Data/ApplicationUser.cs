@@ -6,13 +6,13 @@ namespace FleetTracking.Data;
 
 public class ApplicationUser : IdentityUser
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string JobTitle { get; set; }
-    public string Department { get; set; }
-    public DateTime LastLoginDate { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string JobTitle { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty;
+    public DateTime LastLoginDate { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
-    public string ProfilePictureUrl { get; set; }
+    public string ProfilePictureUrl { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     

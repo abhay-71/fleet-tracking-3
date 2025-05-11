@@ -1,0 +1,78 @@
+@model FleetTracking.Models.Driver
+
+@{
+    ViewData["Title"] = "Delete Driver";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Delete Driver</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Driver" asp-action="Index">Drivers</a></li>
+        <li class="breadcrumb-item active">Delete</li>
+    </ol>
+
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Confirm Deletion
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h4>Are you sure you want to delete this driver?</h4>
+                        <p>This action cannot be undone. All related data such as trip history will still be preserved but will no longer be associated with this driver.</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">Name</dt>
+                                <dd class="col-sm-7">@Model.User.FullName</dd>
+
+                                <dt class="col-sm-5">Email</dt>
+                                <dd class="col-sm-7">@Model.User.Email</dd>
+
+                                <dt class="col-sm-5">License Number</dt>
+                                <dd class="col-sm-7">@Model.LicenseNumber</dd>
+
+                                <dt class="col-sm-5">License Class</dt>
+                                <dd class="col-sm-7">@Model.LicenseClass</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">@Html.DisplayNameFor(model => model.Company)</dt>
+                                <dd class="col-sm-7">@Model.Company.Name</dd>
+
+                                <dt class="col-sm-5">@Html.DisplayNameFor(model => model.Status)</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge @(Model.Status.ToLower() == "active" ? "bg-success" : "bg-secondary")">
+                                        @Model.Status
+                                    </span>
+                                </dd>
+
+                                <dt class="col-sm-5">License Expiry</dt>
+                                <dd class="col-sm-7">@(Model.LicenseExpiryDate.HasValue ? Model.LicenseExpiryDate.Value.ToString("d") : "N/A")</dd>
+
+                                <dt class="col-sm-5">@Html.DisplayNameFor(model => model.CreatedAt)</dt>
+                                <dd class="col-sm-7">@Model.CreatedAt.ToString("g")</dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <form asp-action="Delete" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
