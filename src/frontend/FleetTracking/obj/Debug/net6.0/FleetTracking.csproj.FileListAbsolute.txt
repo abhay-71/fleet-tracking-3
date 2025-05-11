@@ -43,3 +43,5 @@ D:\CURSOR\FLEETVIGIL\FleerTracking_3\fleet-tracking-3\src\frontend\FleetTracking
 D:\CURSOR\FLEETVIGIL\FleerTracking_3\fleet-tracking-3\src\frontend\FleetTracking\obj\Debug\net6.0\FleetTracking.pdb
 D:\CURSOR\FLEETVIGIL\FleerTracking_3\fleet-tracking-3\src\frontend\FleetTracking\obj\Debug\net6.0\FleetTracking.genruntimeconfig.cache
 D:\CURSOR\FLEETVIGIL\FleerTracking_3\fleet-tracking-3\src\frontend\FleetTracking\obj\Debug\net6.0\ref\FleetTracking.dll
+D:\CURSOR\FLEETVIGIL\FleerTracking_3\fleet-tracking-3\src\frontend\FleetTracking\bin\Debug\net6.0\libman.json
+D:\CURSOR\FLEETVIGIL\FleerTracking_3\fleet-tracking-3\src\frontend\FleetTracking\bin\Debug\net6.0\web.config

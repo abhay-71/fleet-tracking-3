@@ -123,4 +123,65 @@ $(document).ready(function() {
         console.error('AJAX Error:', thrownError);
         toastr.error('An error occurred while processing your request. Please try again later.');
     });
+
+    // Initialize all DataTables
+    if ($.fn.DataTable) {
+        $('.data-table').DataTable({
+            responsive: true,
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search...",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                paginate: {
+                    first: "First",
+                    last: "Last",
+                    next: ">",
+                    previous: "<"
+                }
+            },
+            pageLength: 10,
+            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "All"]]
+        });
+    }
+
+    // Add animation to dashboard cards
+    $('.dashboard-card').addClass('animate__animated animate__fadeIn');
+
+    // Format dates using moment.js if available
+    if (typeof moment !== 'undefined') {
+        $('.date-format').each(function () {
+            var dateString = $(this).text();
+            if (dateString && dateString.trim() !== '') {
+                var formattedDate = moment(dateString).format('MMM DD, YYYY');
+                $(this).text(formattedDate);
+            }
+        });
+
+        $('.datetime-format').each(function () {
+            var dateString = $(this).text();
+            if (dateString && dateString.trim() !== '') {
+                var formattedDate = moment(dateString).format('MMM DD, YYYY HH:mm');
+                $(this).text(formattedDate);
+            }
+        });
+    }
+
+    // Add confirmation to delete buttons
+    $('.btn-delete-confirm').on('click', function (e) {
+        if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+            e.preventDefault();
+        }
+    });
+
+    // Enable file input customization
+    $('.custom-file-input').on('change', function () {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName);
+    });
+
+    // Sidebar toggle functionality (if present)
+    $('#sidebarToggle').on('click', function (e) {
+        e.preventDefault();
+        $('body').toggleClass('sb-sidenav-toggled');
+    });
 }); 

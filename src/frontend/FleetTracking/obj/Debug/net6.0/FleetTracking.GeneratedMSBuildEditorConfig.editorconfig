@@ -270,3 +270,11 @@ build_metadata.AdditionalFiles.CssScope =
 [D:/CURSOR/FLEETVIGIL/FleerTracking_3/fleet-tracking-3/src/frontend/FleetTracking/Views/Vendor/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVmVuZG9yXEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
+
+[D:/CURSOR/FLEETVIGIL/FleerTracking_3/fleet-tracking-3/src/frontend/FleetTracking/Views/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/CURSOR/FLEETVIGIL/FleerTracking_3/fleet-tracking-3/src/frontend/FleetTracking/Views/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 

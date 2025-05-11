@@ -3,8 +3,14 @@ using FleetTracking.Hubs;
 using FleetTracking.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Net.Http.Headers;
+using System.Net.Mime;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure specific port to avoid conflicts - using different ports (5004, 5005) and binding to all interfaces
+builder.WebHost.UseUrls("http://0.0.0.0:5004", "https://0.0.0.0:5005");
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -103,8 +109,53 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+// Comment out HTTPS redirection to allow HTTP connections
+// app.UseHttpsRedirection();
+
+// Add default files configuration - will look for index.html
+app.UseDefaultFiles(new DefaultFilesOptions
+{
+    DefaultFileNames = new List<string> { "index.html" }
+});
+
+// Enhanced static files configuration (only one UseStaticFiles call)
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Cache static files for 24 hours
+        ctx.Context.Response.Headers[HeaderNames.CacheControl] = "public,max-age=86400";
+        
+        // Set appropriate MIME types for common file extensions
+        var path = ctx.File.PhysicalPath;
+        if (path != null)
+        {
+            var extension = Path.GetExtension(path).ToLowerInvariant();
+            switch (extension)
+            {
+                case ".css":
+                    ctx.Context.Response.ContentType = "text/css";
+                    break;
+                case ".js":
+                    ctx.Context.Response.ContentType = "text/javascript";
+                    break;
+                case ".woff":
+                case ".woff2":
+                    ctx.Context.Response.ContentType = "application/font-woff";
+                    break;
+                case ".ttf":
+                    ctx.Context.Response.ContentType = "application/octet-stream";
+                    break;
+                case ".svg":
+                    ctx.Context.Response.ContentType = "image/svg+xml";
+                    break;
+                case ".eot":
+                    ctx.Context.Response.ContentType = "application/vnd.ms-fontobject";
+                    break;
+            }
+        }
+    }
+});
 
 app.UseRouting();
 
@@ -112,13 +163,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
+// Make sure we have appropriate endpoint routing
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapRazorPages();
 
-// Map SignalR hubs
+// Ensure SignalR hubs are mapped
 app.MapHub<VehicleStatusHub>("/hubs/vehicleStatus");
-app.MapHub<VehicleHub>("/vehicleHub");
+
+// Map Razor pages
+app.MapRazorPages();
 
 app.Run(); 
